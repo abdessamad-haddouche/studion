@@ -3,7 +3,7 @@
  * @module constants/shared/boolean-utils
  */
 
-import { TRUTHY_VALUES, FALSY_VALUES, VALID_BOOLEAN_VALUES } from './booleans.js';
+import { TRUTHY_VALUES, FALSY_VALUES, VALID_BOOLEAN_VALUES } from '#constants/shared/index.js';
 
 export const parseBoolean = (value, defaultValue = false) => {
     if (value === undefined || value === '') return defaultValue;

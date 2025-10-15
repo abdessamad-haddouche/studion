@@ -1,9 +1,9 @@
 /**
  * Environment Utility Functions
- * @module constants/shared/environment-utils
+ * @module lib/config/environment
  */
 
-import { ENVIRONMENTS, VALID_ENVIRONMENTS } from './environments.js';
+import { ENVIRONMENTS, VALID_ENVIRONMENTS } from '#constants/shared/environments.js';
 
 export const isValidEnvironment = (env) => {
     return typeof env === 'string' && VALID_ENVIRONMENTS.includes(env.toLowerCase());
@@ -23,3 +23,11 @@ export const getValidEnvironment = (env, fallback = ENVIRONMENTS.DEVELOPMENT) =>
     
     return normalizedEnv;
 };
+
+export const getCurrentEnvironment = () => {
+    return process.env.NODE_ENV || ENVIRONMENTS.DEVELOPMENT;
+};
+
+export const isDevelopment = () => getCurrentEnvironment() === ENVIRONMENTS.DEVELOPMENT;
+export const isProduction = () => getCurrentEnvironment() === ENVIRONMENTS.PRODUCTION;
+export const isTest = () => getCurrentEnvironment() === ENVIRONMENTS.TEST;

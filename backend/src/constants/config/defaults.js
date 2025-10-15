@@ -4,7 +4,6 @@
  */
 
 // Application Configuration Defaults
-// Application Configuration Defaults
 export const APP_DEFAULTS = Object.freeze({
     DEVELOPMENT: {
         APP_NAME: 'Studion',

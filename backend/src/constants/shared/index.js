@@ -1,5 +1,5 @@
 /**
- * Shared Constants and Utilities Public API
+ * Shared Constants Public API
  * @module constants/shared
  */
 
@@ -9,20 +9,9 @@ export {
     VALID_ENVIRONMENTS 
 } from './environments.js';
 
-// Environment utilities
-export { 
-    isValidEnvironment, 
-    getValidEnvironment 
-} from './environment-utils.js';
-
 // Boolean constants
 export { 
     TRUTHY_VALUES, 
     FALSY_VALUES, 
     VALID_BOOLEAN_VALUES 
 } from './booleans.js';
-
-// Boolean utilities
-export { 
-    parseBoolean 
-} from './boolean-utils.js';

@@ -1,9 +1,9 @@
 /**
  * Defaults Utility Functions
- * @module constants/config/defaults-utils
+ * @module lib/config/defaults
  */
 
-import { APP_DEFAULTS, SERVER_DEFAULTS } from './defaults.js';
+import { APP_DEFAULTS, SERVER_DEFAULTS } from '#constants/config/defaults.js';
 
 const DEFAULTS_REGISTRY = Object.freeze({
     app: APP_DEFAULTS,

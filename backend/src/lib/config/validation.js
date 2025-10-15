@@ -1,9 +1,9 @@
 /**
  * Validation Utility Functions
- * @module constants/config/validation-utils
+ * @module lib/config/validation
  */
 
-import { APP_VALIDATION, SERVER_VALIDATION } from './validation.js';
+import { APP_VALIDATION, SERVER_VALIDATION } from '#constants/config/validation.js';
 
 const VALIDATION_REGISTRY = Object.freeze({
     app: APP_VALIDATION,
