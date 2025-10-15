@@ -3,7 +3,7 @@
  * @module lib/config/defaults
  */
 
-import { APP_DEFAULTS, SERVER_DEFAULTS } from '#constants/config/defaults.js';
+import { APP_DEFAULTS, SERVER_DEFAULTS } from '#constants/config/index.js';
 
 const DEFAULTS_REGISTRY = Object.freeze({
     app: APP_DEFAULTS,
