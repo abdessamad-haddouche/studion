@@ -1,0 +1,12 @@
+/**
+ * Configuration Constants Public API
+ * @module constants/config
+ */
+
+// Constants
+export { APP_DEFAULTS, SERVER_DEFAULTS } from './defaults.js';
+export { APP_VALIDATION, SERVER_VALIDATION } from './validation.js';
+
+// Utilities
+export { getEnvironmentDefaults } from './defaults-utils.js';
+export { getConfigValidation, validateConfigValue } from './validation-utils.js';
