@@ -88,3 +88,44 @@ export const SERVER_DEFAULTS = Object.freeze({
         COMPRESSION: true
     }
 });
+
+/**
+ * Database configuration defaults
+ */
+export const DATABASE_DEFAULTS = Object.freeze({
+  DEVELOPMENT: {
+    MONGODB_URI: 'mongodb://localhost:27017/studion',
+    MONGODB_DB_NAME: 'studion',
+    CONNECTION_POOL_SIZE: 10,
+    CONNECTION_TIMEOUT: 10000,
+    AUTO_INDEX: true,
+    DEBUG_MODE: true,
+  },
+
+  PRODUCTION: {
+    MONGODB_URI: 'mongodb://localhost:27017/studion',
+    MONGODB_DB_NAME: 'studion',
+    CONNECTION_POOL_SIZE: 50,
+    CONNECTION_TIMEOUT: 30000,
+    AUTO_INDEX: false,
+    DEBUG_MODE: false,
+  },
+
+  TEST: {
+    MONGODB_URI: 'mongodb://localhost:27017/studion_test',
+    MONGODB_DB_NAME: 'studion_test',
+    CONNECTION_POOL_SIZE: 5,
+    CONNECTION_TIMEOUT: 5000,
+    AUTO_INDEX: true,
+    DEBUG_MODE: false,
+  },
+
+  COMMON: {
+    MONGODB_URI: 'mongodb://localhost:27017/studion',
+    MONGODB_DB_NAME: 'studion',
+    CONNECTION_POOL_SIZE: 25,
+    CONNECTION_TIMEOUT: 15000,
+    AUTO_INDEX: false,
+    DEBUG_MODE: false,
+  }
+});
