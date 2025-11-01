@@ -52,7 +52,7 @@ describe('Student Model', () => {
             expect(savedStudent.email).toBe('student@example.com');
             expect(savedStudent.name.first).toBe('Alice');
             expect(savedStudent.name.last).toBe('Johnson');
-            expect(savedStudent.userType).toBe('Student');
+            expect(savedStudent.userType).toBe('student');
             expect(savedStudent.academic.level).toBe('undergraduate');
             expect(savedStudent.academic.institution).toBe('MIT');
             expect(savedStudent.subscription.tier).toBe('free');

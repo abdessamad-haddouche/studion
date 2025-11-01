@@ -47,6 +47,28 @@
     "clean": "rm -rf node_modules dist",
     "logs": "pm2 logs studion-backend"
   },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "moduleNameMapper": {
+      "^#src/(.*)$": "<rootDir>/src/$1",
+      "^#app$": "<rootDir>/app.js",
+      "^#config/(.*)$": "<rootDir>/src/config/$1",
+      "^#lib/(.*)$": "<rootDir>/src/lib/$1",
+      "^#constants/(.*)$": "<rootDir>/src/constants/$1",
+      "^#controllers/(.*)$": "<rootDir>/src/controllers/$1",
+      "^#exceptions/(.*)$": "<rootDir>/src/exceptions/$1",
+      "^#middleware/(.*)$": "<rootDir>/src/middleware/$1",
+      "^#routes/(.*)$": "<rootDir>/src/routes/$1",
+      "^#services/(.*)$": "<rootDir>/src/services/$1",
+      "^#models/(.*)$": "<rootDir>/src/models/$1",
+      "^#validators/(.*)$": "<rootDir>/src/validators/$1",
+      "^#tests/(.*)$": "<rootDir>/tests/$1"
+    },
+    "setupFilesAfterEnv": [
+      "./jest.setup.js"
+    ]
+  },
   "keywords": [
     "ai",
     "education",
@@ -59,6 +81,7 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "compression": "^1.7.4",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",

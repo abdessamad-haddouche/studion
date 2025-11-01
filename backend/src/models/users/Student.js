@@ -664,6 +664,6 @@ studentSchema.query.byPointsRange = function(min, max) {
 // CREATE DISCRIMINATOR MODEL
 // ==========================================
 
-const Student = BaseUser.discriminator('Student', studentSchema);
+const Student = BaseUser.discriminator('student', studentSchema);
 
 export default Student;
