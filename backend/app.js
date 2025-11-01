@@ -6,7 +6,7 @@
 import express from 'express';
 import { configureApp } from './src/config/express.config.js';
 import { setupMiddleware, setupErrorHandlers } from './src/middleware/index.js';
-// import { setupRoutes } from './src/routes/index.js';
+import { setupRoutes } from './src/routes/index.js';
 
 /**
  * Create and configure Express application
@@ -28,7 +28,7 @@ const createApp = () => {
     // ==========================================
     // Routes Setup
     // ==========================================
-    // setupRoutes(app);
+    setupRoutes(app);
 
     // ==========================================
     // Error Handling
