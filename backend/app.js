@@ -5,9 +5,8 @@
 
 import express from 'express';
 import { configureApp } from './src/config/express.config.js';
-// import { setupMiddleware } from './src/middleware/index.js';
+import { setupMiddleware, setupErrorHandlers } from './src/middleware/index.js';
 // import { setupRoutes } from './src/routes/index.js';
-// import { setupErrorHandlers } from './src/middleware/errorHandlers.js';
 
 /**
  * Create and configure Express application
@@ -24,7 +23,7 @@ const createApp = () => {
     // ==========================================
     // Middleware Setup
     // ==========================================
-    // setupMiddleware(app);
+    setupMiddleware(app);
 
     // ==========================================
     // Routes Setup
@@ -32,9 +31,9 @@ const createApp = () => {
     // setupRoutes(app);
 
     // ==========================================
-    // Error Handling (must be last)
+    // Error Handling
     // ==========================================
-    // setupErrorHandlers(app);
+    setupErrorHandlers(app);
 
     return app;
 };

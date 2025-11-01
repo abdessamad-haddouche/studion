@@ -11,6 +11,7 @@
     "#lib/*": "./src/lib/*",
     "#constants/*": "./src/constants/*",
     "#controllers/*": "./src/controllers/*",
+    "#exceptions/*": "./src/exceptions/*",
     "#middleware/*": "./src/middleware/*",
     "#routes/*": "./src/routes/*",
     "#services/*": "./src/services/*",
