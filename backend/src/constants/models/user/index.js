@@ -24,11 +24,10 @@ export {
   DEVICE_TYPES,
   NOTIFICATION_TYPES,
   USER_PERMISSIONS,
-  DEFAULT_USER_PREFERENCES
-} from './enums.js';
-
-export {
+  DEFAULT_USER_PREFERENCES,
+  // Student-specific exports
+  ACADEMIC_LEVELS,
   SUBSCRIPTION_TIERS,
   QUIZ_TYPES,
-  LEARNING_PREFERENCES,
-} from './student.js'
+  LEARNING_PREFERENCES
+} from './enums.js';

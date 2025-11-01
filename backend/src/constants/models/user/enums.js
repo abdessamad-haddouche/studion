@@ -73,6 +73,47 @@ export const NOTIFICATION_TYPES = Object.freeze([
   'marketing'
 ]);
 
+// ==========================================
+// STUDENT-SPECIFIC ENUMS
+// ==========================================
+
+/**
+ * Academic levels for students
+ */
+export const ACADEMIC_LEVELS = Object.freeze([
+  'high_school',
+  'undergraduate', 
+  'graduate',
+  'professional'
+]);
+
+/**
+ * Subscription tiers (Core Business Model)
+ */
+export const SUBSCRIPTION_TIERS = Object.freeze([
+  'free',          // Limited documents & quizzes
+  'premium',       // Unlimited access
+  'student'        // Discounted for students
+]);
+
+/**
+ * Basic quiz types (Future Implementation)
+ */
+export const QUIZ_TYPES = Object.freeze([
+  'multiple_choice',
+  'true_false',
+  'short_answer'
+]);
+
+/**
+ * Learning preferences (Simple)
+ */
+export const LEARNING_PREFERENCES = Object.freeze([
+  'visual',
+  'text',
+  'mixed'
+]);
+
 /**
  * User role permissions (for future use)
  */

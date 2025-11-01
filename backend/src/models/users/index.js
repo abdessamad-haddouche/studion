@@ -4,4 +4,9 @@
  * @description Export point for user models
  */
 
-export { baseUserSchema } from '../BaseUser.js';
+// Base User Model
+export { baseUserSchema } from './BaseUser.js';
+export { default as BaseUser } from './BaseUser.js';
+
+// Student Model
+export { default as Student } from './Student.js';
