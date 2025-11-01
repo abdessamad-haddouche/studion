@@ -4,4 +4,5 @@
  * @description Export point for document models
  */
 
-export { documentSchema } from '../Document.js';
+export { quizSchema, questionSchema } from './Quiz.js';
+export { quizSchema, questionSchema } from './QuizAttempt.js';

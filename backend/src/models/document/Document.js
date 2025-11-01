@@ -1,7 +1,7 @@
 /**
  * Document Model
  * @module models/Document
- * @description Enterprise-grade document model for PDF processing and AI analysis
+ * @description Document model for PDF processing and AI analysis
  */
 
 import mongoose from 'mongoose';
