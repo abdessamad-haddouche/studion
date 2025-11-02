@@ -29,6 +29,18 @@ export const setupRoutes = (app) => {
   app.use(`${apiPrefix}/users`, authenticateJWT, userRoutes);
   app.use(`${apiPrefix}/courses`, courseRoutes);
   
+  // ADD THIS LINE - AI Status Route
+  app.get(`${apiPrefix}/ai/status`, authenticateJWT, (req, res) => {
+    res.status(200).json({
+      success: true,
+      aiService: {
+        status: 'operational',
+        model: 'gemini-1.5-flash',
+        available: true
+      }
+    });
+  });
+  
   // API Status Route
   app.get(`${apiPrefix}/status`, (req, res) => {
     res.status(200).json({
