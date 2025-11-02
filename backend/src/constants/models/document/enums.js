@@ -50,11 +50,14 @@ export const INTERACTIVE_STATUSES = Object.freeze(['completed', 'archived']);
  */
 export const PROCESSING_STAGES = Object.freeze([
   'upload',           // File upload stage
+  'ai_analysis',
+  'processing',
   'validation',       // File validation stage
   'text_extraction',  // PDF text extraction stage
   'summarization',    // AI summarization stage
   'metadata_analysis', // Document analysis stage
-  'finalization'      // Final processing stage
+  'finalization',      // Final processing stage
+  'completed',
 ]);
 
 // ==========================================
@@ -189,6 +192,7 @@ export const QUALITY_INDICATORS = Object.freeze([
  * Processing error types
  */
 export const PROCESSING_ERROR_TYPES = Object.freeze([
+  'ai_processing_error',
   'file_corrupted',         // File is corrupted
   'unsupported_format',     // File format not supported
   'extraction_failed',      // Text extraction failed
