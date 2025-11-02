@@ -5,27 +5,12 @@
  */
 
 import express from 'express';
-import multer from 'multer';
-
-// Import controllers
-// These will be implemented later - placeholders for now
-import {
-  uploadDocument,
-  getAllDocuments,
-  getDocumentById,
-  deleteDocument,
-  getDocumentSummary,
-  updateDocument,
-  processPendingDocument,
-  getDocumentAnalytics
-} from '#controllers/index.js';
+import { upload, uploadDocument, getAllDocuments, getDocumentById, 
+         updateDocument, deleteDocument, getDocumentSummary, 
+         processPendingDocument, getDocumentAnalytics 
+       } from '#controllers/document.controller.js';
 
 const router = express.Router();
-
-// Configure multer for file uploads
-const upload = multer({ 
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-});
 
 // ==========================================
 // DOCUMENT MANAGEMENT ROUTES
@@ -36,7 +21,7 @@ const upload = multer({
  * @description Upload a new document
  * @access Private
  */
-router.post('/', upload.single('document'), uploadDocument);
+router.post('/', upload.single('file'), uploadDocument);
 
 /**
  * @route GET /api/documents

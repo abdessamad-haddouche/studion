@@ -7,6 +7,7 @@ import express from 'express';
 import { configureApp } from './src/config/express.config.js';
 import { setupMiddleware, setupErrorHandlers } from './src/middleware/index.js';
 import { setupRoutes } from './src/routes/index.js';
+import { initializeModels } from './src/models/index.js';
 
 /**
  * Create and configure Express application
@@ -19,6 +20,11 @@ const createApp = () => {
     // Application Configuration
     // ==========================================
     configureApp(app);
+    
+    // ==========================================
+    // Initialize Models
+    // ==========================================
+    initializeModels(app);
 
     // ==========================================
     // Middleware Setup

@@ -117,6 +117,13 @@ export const register = async (req, res, next) => {
  */
 export const login = async (req, res, next) => {
   try {
+    if (!req.body.email || !req.body.password) {
+      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    };
+    
     const credentials = {
       email: req.body.email,
       password: req.body.password
