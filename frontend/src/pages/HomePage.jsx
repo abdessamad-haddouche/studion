@@ -1,13 +1,38 @@
 /**
  * PATH: src/pages/HomePage.jsx
- * HomePage with Header and Footer
+ * Updated HomePage with authentication redirect
  */
 
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import { ArrowRight, PlayCircle, Star, Users, BookOpen, Brain } from 'lucide-react'
 
 const HomePage = () => {
+  const navigate = useNavigate()
+  const { isAuthenticated, user } = useSelector(state => state.auth)
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
+  // Show loading state while checking authentication
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show guest homepage for non-authenticated users
   return (
     <Layout>
       {/* Hero Section */}

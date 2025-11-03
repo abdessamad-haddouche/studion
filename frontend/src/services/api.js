@@ -1,6 +1,6 @@
 /**
  * PATH: src/services/api.js
- * Enhanced API client with authentication
+ * Enhanced API client with complete document endpoints
  */
 
 import axios from 'axios'
@@ -52,32 +52,41 @@ export const authAPI = {
   resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password })
 }
 
-// Documents API (for future use)
+// Documents API - Complete endpoints
 export const documentsAPI = {
-  getAll: () => api.get('/documents'),
-  upload: (formData) => api.post('/documents/upload', formData, {
+  // Basic CRUD
+  getAll: (config = {}) => api.get('/documents', config),
+  upload: (formData) => api.post('/documents', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getById: (id) => api.get(`/documents/${id}`),
-  delete: (id) => api.delete(`/documents/${id}`)
+  update: (id, data) => api.put(`/documents/${id}`, data),
+  delete: (id, params = {}) => api.delete(`/documents/${id}`, { params }),
+  
+  // AI Processing endpoints
+  getSummary: (id) => api.get(`/documents/${id}/summary`),
+  process: (id) => api.post(`/documents/${id}/process`),
+  generateQuiz: (id, data) => api.post(`/documents/${id}/generate-quiz`, data),
+  customAnalysis: (id, data) => api.post(`/documents/${id}/custom-analysis`, data),
+  getAnalytics: (id) => api.get(`/documents/${id}/analytics`)
 }
 
-// Quizzes API (for future use)
+// Quizzes API
 export const quizzesAPI = {
   getAll: () => api.get('/quizzes'),
-  generate: (documentId) => api.post('/quizzes/generate', { documentId }),
+  generate: (documentId, options) => api.post('/quizzes/generate', { documentId, ...options }),
   submit: (quizId, answers) => api.post(`/quizzes/${quizId}/submit`, { answers }),
   getResults: (attemptId) => api.get(`/quiz-attempts/${attemptId}`)
 }
 
-// Courses API (for future use)
+// Courses API
 export const coursesAPI = {
   getAll: () => api.get('/courses'),
   getById: (id) => api.get(`/courses/${id}`),
   purchase: (id) => api.post(`/courses/${id}/purchase`)
 }
 
-// User Profile API (for future use)
+// User Profile API
 export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),

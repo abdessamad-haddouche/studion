@@ -1,10 +1,11 @@
 /**
  * PATH: src/store/index.js
- * Updated Redux store with enhanced auth
+ * Updated Redux store with documents slice
  */
 
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
+import documentsReducer from './slices/documentsSlice'
 
 // Simple UI slice
 import { createSlice } from '@reduxjs/toolkit'
@@ -13,7 +14,8 @@ const uiSlice = createSlice({
   name: 'ui',
   initialState: {
     sidebarOpen: false,
-    theme: 'light'
+    theme: 'light',
+    notifications: []
   },
   reducers: {
     toggleSidebar: (state) => {
@@ -21,6 +23,17 @@ const uiSlice = createSlice({
     },
     setTheme: (state, action) => {
       state.theme = action.payload
+    },
+    addNotification: (state, action) => {
+      state.notifications.push({
+        id: Date.now(),
+        ...action.payload
+      })
+    },
+    removeNotification: (state, action) => {
+      state.notifications = state.notifications.filter(
+        notification => notification.id !== action.payload
+      )
     }
   }
 })
@@ -29,6 +42,7 @@ const uiSlice = createSlice({
 const store = configureStore({
   reducer: {
     auth: authReducer,
+    documents: documentsReducer,
     ui: uiSlice.reducer
   },
   devTools: process.env.NODE_ENV !== 'production',
@@ -41,7 +55,7 @@ const store = configureStore({
 })
 
 // Export UI actions
-export const { toggleSidebar, setTheme } = uiSlice.actions
+export const { toggleSidebar, setTheme, addNotification, removeNotification } = uiSlice.actions
 
 // Export store as default
 export default store
