@@ -1,30 +1,26 @@
 /**
- * API Client Service
- * @description Axios-based HTTP client for backend communication
+ * PATH: src/services/api.js
+ * Enhanced API client with authentication
  */
 
 import axios from 'axios'
-import toast from 'react-hot-toast'
 
 // Create axios instance
-const apiClient = axios.create({
+const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 30000, // 30 seconds
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 })
 
-// Request interceptor - Add auth token
-apiClient.interceptors.request.use(
+// Request interceptor to add auth token
+api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('token')
-
+    const token = localStorage.getItem('accessToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-
     return config
   },
   (error) => {
@@ -32,96 +28,61 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor - Handle errors globally
-apiClient.interceptors.response.use(
-  (response) => {
-    return response
-  },
+// Response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
-    const { response, message } = error
-
-    if (response) {
-      const { status, data } = response
-
-      switch (status) {
-        case 401:
-          localStorage.removeItem('token')
-          window.location.href = '/login'
-          toast.error('Session expired. Please log in again.')
-          break
-
-        case 403:
-          toast.error('Access denied.')
-          break
-
-        case 404:
-          toast.error(data?.message || 'Resource not found')
-          break
-
-        case 422:
-          if (data?.errors) {
-            Object.values(data.errors).forEach(error => {
-              toast.error(error)
-            })
-          } else {
-            toast.error(data?.message || 'Validation failed')
-          }
-          break
-
-        case 429:
-          toast.error('Too many requests. Please slow down.')
-          break
-
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-          toast.error('Server error. Please try again later.')
-          break
-
-        default:
-          toast.error(data?.message || 'An unexpected error occurred')
-      }
-    } else if (message === 'Network Error') {
-      toast.error('Network error. Check your connection.')
-    } else if (message.includes('timeout')) {
-      toast.error('Request timeout. Please try again.')
-    } else {
-      toast.error('An unexpected error occurred')
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('accessToken')
+      window.location.href = '/login'
     }
-
     return Promise.reject(error)
   }
 )
 
-// API endpoints
+// Auth API endpoints
 export const authAPI = {
-  login: (credentials) => apiClient.post('/auth/login', credentials),
-  register: (userData) => apiClient.post('/auth/register', userData),
-  logout: () => apiClient.post('/auth/logout'),
-  refreshToken: () => apiClient.post('/auth/refresh'),
+  register: (userData) => api.post('/auth/register', userData),
+  login: (credentials) => api.post('/auth/login', credentials),
+  logout: () => api.post('/auth/logout'),
+  refreshToken: () => api.post('/auth/refresh-token'),
+  verifyToken: () => api.get('/auth/verify'),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password })
 }
 
+// Documents API (for future use)
 export const documentsAPI = {
-  upload: (formData, onProgress) => apiClient.post('/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress: onProgress
+  getAll: () => api.get('/documents'),
+  upload: (formData) => api.post('/documents/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  getAll: (params) => apiClient.get('/documents', { params }),
-  getById: (id) => apiClient.get(`/documents/${id}`),
-  update: (id, data) => apiClient.put(`/documents/${id}`, data),
-  delete: (id) => apiClient.delete(`/documents/${id}`),
-  getSummary: (id) => apiClient.get(`/documents/${id}/summary`),
+  getById: (id) => api.get(`/documents/${id}`),
+  delete: (id) => api.delete(`/documents/${id}`)
 }
 
+// Quizzes API (for future use)
 export const quizzesAPI = {
-  generate: (data) => apiClient.post('/quizzes/generate', data),
-  getAll: (params) => apiClient.get('/quizzes', { params }),
-  getById: (id) => apiClient.get(`/quizzes/${id}`),
-  startAttempt: (id, data) => apiClient.post(`/quizzes/${id}/attempt`, data),
-  submitAnswer: (quizId, attemptId, data) => apiClient.put(`/quizzes/${quizId}/attempt/${attemptId}`, data),
-  completeAttempt: (quizId, attemptId) => apiClient.post(`/quizzes/${quizId}/attempt/${attemptId}/complete`),
-  getResults: (quizId, attemptId) => apiClient.get(`/quizzes/${quizId}/attempt/${attemptId}/results`),
+  getAll: () => api.get('/quizzes'),
+  generate: (documentId) => api.post('/quizzes/generate', { documentId }),
+  submit: (quizId, answers) => api.post(`/quizzes/${quizId}/submit`, { answers }),
+  getResults: (attemptId) => api.get(`/quiz-attempts/${attemptId}`)
 }
 
-export default apiClient
+// Courses API (for future use)
+export const coursesAPI = {
+  getAll: () => api.get('/courses'),
+  getById: (id) => api.get(`/courses/${id}`),
+  purchase: (id) => api.post(`/courses/${id}/purchase`)
+}
+
+// User Profile API (for future use)
+export const userAPI = {
+  getProfile: () => api.get('/user/profile'),
+  updateProfile: (data) => api.put('/user/profile', data),
+  getAnalytics: () => api.get('/user/analytics'),
+  getPoints: () => api.get('/user/points')
+}
+
+export default api

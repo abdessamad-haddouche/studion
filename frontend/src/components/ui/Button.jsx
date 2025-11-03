@@ -1,6 +1,6 @@
 /**
- * Premium Button Component
- * @description Beautiful, accessible button with multiple variants
+ * PATH: src/components/ui/Button.jsx
+ * Enhanced Button Component with loading and variants
  */
 
 import React from 'react'

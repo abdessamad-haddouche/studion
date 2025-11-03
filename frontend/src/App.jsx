@@ -1,28 +1,73 @@
 /**
  * PATH: src/App.jsx
- * Studion App - Main Component
+ * Complete App with Redux Provider and auth routes
  */
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { Provider } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { Toaster } from 'react-hot-toast'
+
+// Store
+import store from './store'
+import { checkAuthState } from './store/slices/authSlice'
 
 // Pages
 import HomePage from './pages/HomePage'
+import RegisterPage from './pages/auth/RegisterPage'
+import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 
-const App = () => {
+// Auth checker component
+const AuthChecker = ({ children }) => {
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    // Check if user is already logged in on app start
+    dispatch(checkAuthState())
+  }, [dispatch])
+
+  return children
+}
+
+function App() {
   return (
-    <Router>
-      <div className="App min-h-screen">
-        <Toaster position="top-right" />
-        
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-        </Routes>
-      </div>
-    </Router>
+    <Provider store={store}>
+      <Router>
+        <AuthChecker>
+          <div className="App min-h-screen">
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+                success: {
+                  style: {
+                    background: '#10b981',
+                  },
+                },
+                error: {
+                  style: {
+                    background: '#ef4444',
+                  },
+                },
+              }}
+            />
+            
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+            </Routes>
+          </div>
+        </AuthChecker>
+      </Router>
+    </Provider>
   )
 }
 
