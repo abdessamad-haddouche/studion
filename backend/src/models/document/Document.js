@@ -682,8 +682,16 @@ documentSchema.methods.recordQuizGeneration = function() {
  * Soft delete document
  */
 documentSchema.methods.softDelete = function() {
-  this.deletedAt = new Date();
-  return this.save();
+  const shouldUseSoftDelete = process.env.ENABLE_SOFT_DELETE === 'true';
+  
+  if (shouldUseSoftDelete) {
+    // Soft delete
+    this.deletedAt = new Date();
+    return this.save();
+  } else {
+    // Hard delete
+    return this.deleteOne();
+  }
 };
 
 /**
@@ -715,7 +723,7 @@ documentSchema.statics.findByUser = function(userId, options = {}) {
   
   const query = { userId };
   
-  if (!includeDeleted) {
+  if (!includeDeleted && process.env.ENABLE_SOFT_DELETE === 'true') {
     query.deletedAt = null;
   }
   

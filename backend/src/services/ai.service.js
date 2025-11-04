@@ -307,6 +307,7 @@ ${extractionResult.text}`
   }
 };
 
+
 /**
  * Generate quiz questions from document
  */
@@ -314,17 +315,19 @@ export const generateQuizFromDocument = async (filePath, options = {}) => {
   try {
     const {
       questionCount = 5,
-      difficulty = 'intermediate',
-      questionTypes = ['multiple-choice']
+      difficulty = 'medium',
+      questionTypes = ['multiple_choice'] // NEW: Support multiple types
     } = options;
 
     console.log(`🧪 Generating ${questionCount} quiz questions from: ${filePath}`);
+    console.log(`🎯 Question types: ${questionTypes.join(', ')}`);
+    console.log(`📊 Difficulty: ${difficulty}`);
     
     // Resolve the correct file path
     const resolvedPath = resolveFilePath(filePath);
     console.log(`✅ Resolved path for quiz: ${resolvedPath}`);
 
-    // ✅ EXTRACT TEXT FROM DOCUMENT
+    // Extract text from document
     console.log(`📖 Extracting text for quiz generation...`);
     const extractionResult = await extractDocumentText(resolvedPath);
     
@@ -336,43 +339,17 @@ export const generateQuizFromDocument = async (filePath, options = {}) => {
     
     console.log(`✅ Text extracted for quiz (${extractionResult.text.length} characters)`);
 
-    // ✅ IMPROVED DIRECT QUIZ PROMPT WITH CUSTOM XML FORMAT
+    // 🔥 NEW: Enhanced prompt for JSON format with multiple question types
+    const prompt = buildQuizPrompt(extractionResult.text, {
+      questionCount,
+      difficulty,
+      questionTypes
+    });
+
     const messages = [
       {
         role: 'user',
-        content: `Generate ${questionCount} multiple-choice questions from this document. Use the SAME LANGUAGE as the document. Format each question exactly like this:
-
-<q1>Question text here?</q1>
-<a1>
-A. Option A
-B. Option B  
-C. Option C
-D. Option D
-Correct: A
-Explanation: Brief explanation
-</a1>
-
-<q2>Next question here?</q2>
-<a2>
-A. Option A
-B. Option B
-C. Option C  
-D. Option D
-Correct: B
-Explanation: Brief explanation
-</a2>
-
-Requirements:
-- Difficulty: ${difficulty}
-- Use document's language (French, Arabic, English, etc.)
-- Test understanding, not memorization
-- 4 options per question (A, B, C, D)
-- Include correct answer and brief explanation
-- NO introductory text or explanations
-- Start directly with <q1>
-
-Document:
-${extractionResult.text}`
+        content: prompt
       }
     ];
 
@@ -381,52 +358,53 @@ ${extractionResult.text}`
     const startTime = Date.now();
     
     const response = await callDeepSeekAPI(messages, {
-      maxTokens: 3000,
+      maxTokens: 4000,
       temperature: 0.7
     });
 
     const endTime = Date.now();
-    let quizText = response.choices[0]?.message?.content || '';
+    let rawResponse = response.choices[0]?.message?.content || '';
 
-    console.log(`✅ Quiz generation completed (${quizText.length} characters)`);
+    console.log(`✅ Quiz generation completed (${rawResponse.length} characters)`);
     console.log(`📊 Processing time: ${endTime - startTime}ms`);
 
-    if (!quizText || quizText.length === 0) {
+    if (!rawResponse || rawResponse.length === 0) {
       throw HttpError.internalServerError('DeepSeek returned empty quiz response', {
         code: 'EMPTY_QUIZ_RESPONSE'
       });
     }
 
-    // ✅ PARSE CUSTOM XML FORMAT
-    const questions = parseQuizXML(quizText);
+    // 🔥 NEW: Parse JSON response with enhanced validation
+    const parsedQuiz = parseQuizJSON(rawResponse, questionTypes);
 
-    if (questions.length === 0) {
+    if (!parsedQuiz.questions || parsedQuiz.questions.length === 0) {
       throw HttpError.badRequest('No valid quiz questions found in AI response', {
         code: 'NO_VALID_QUESTIONS',
-        context: { rawResponse: quizText.substring(0, 300) }
+        context: { rawResponse: rawResponse.substring(0, 500) }
       });
     }
 
-    console.log(`✅ Quiz parsing completed (${questions.length} questions)`);
+    console.log(`✅ Quiz parsing completed (${parsedQuiz.questions.length} questions)`);
 
     return {
       success: true,
-      questions: questions,
-      rawResponse: quizText, // Include raw response for frontend parsing
+      questions: parsedQuiz.questions,
       metadata: {
+        ...parsedQuiz.metadata,
         model: DEEPSEEK_CONFIG.model,
-        questionCount: questions.length,
+        questionCount: parsedQuiz.questions.length,
         difficulty: difficulty,
+        questionTypes: questionTypes,
         tokensUsed: response.usage?.total_tokens || 0,
         processingTime: endTime - startTime,
         extractionStats: extractionResult.metadata
-      }
+      },
+      rawResponse: rawResponse // For debugging
     };
 
   } catch (error) {
     console.error('❌ Quiz generation error:', error);
     
-    // If it's already an HttpError, re-throw it
     if (error.name === 'HttpError') {
       throw error;
     }
@@ -437,6 +415,300 @@ ${extractionResult.text}`
     });
   }
 };
+
+/**
+ * 🔥 NEW: Build enhanced prompt for different question types
+ */
+const buildQuizPrompt = (documentText, options) => {
+  const { questionCount, difficulty, questionTypes } = options;
+  
+  // Calculate questions per type
+  const questionsPerType = distributeQuestions(questionCount, questionTypes);
+  
+  const prompt = `Generate a quiz from this document. You MUST respond with ONLY valid JSON in this exact format:
+
+{
+  "questions": [
+    {
+      "id": 1,
+      "type": "multiple_choice",
+      "question": "What is...?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option A",
+      "explanation": "Brief explanation why this is correct",
+      "points": 1
+    },
+    {
+      "id": 2,
+      "type": "true_false",
+      "question": "The statement is true or false?",
+      "options": ["True", "False"],
+      "correctAnswer": "True",
+      "explanation": "Brief explanation",
+      "points": 1
+    },
+    {
+      "id": 3,
+      "type": "fill_blank",
+      "question": "Complete the sentence: The capital of France is ____.",
+      "options": [],
+      "correctAnswer": "Paris",
+      "explanation": "Paris is the capital of France",
+      "points": 1
+    },
+    {
+      "id": 4,
+      "type": "short_answer",
+      "question": "Explain the main concept in 2-3 sentences.",
+      "options": [],
+      "correctAnswer": "Expected answer guidelines",
+      "explanation": "Key points that should be covered",
+      "points": 2
+    }
+  ],
+  "metadata": {
+    "totalQuestions": ${questionCount},
+    "difficulty": "${difficulty}",
+    "estimatedTime": ${Math.ceil(questionCount * 1.5)},
+    "questionTypes": ${JSON.stringify(questionTypes)}
+  }
+}
+
+REQUIREMENTS:
+- Generate exactly ${questionCount} questions total
+${questionsPerType.map(q => `- ${q.count} ${q.type.replace('_', ' ')} questions`).join('\n')}
+- Difficulty level: ${difficulty}
+- Use the document's language (French, Arabic, English, etc.)
+- NO introductory text, explanations, or comments
+- Start directly with the JSON object
+- Ensure all JSON is valid and properly formatted
+- For multiple choice: always provide exactly 4 options
+- For true/false: always provide ["True", "False"] as options
+- For fill_blank: leave options array empty, put answer in correctAnswer
+- For short_answer: leave options array empty, put guidelines in correctAnswer
+
+Document text:
+${documentText}`;
+
+  return prompt;
+};
+
+/**
+ * 🔥 NEW: Distribute questions across different types
+ */
+const distributeQuestions = (totalCount, questionTypes) => {
+  const distribution = [];
+  const typesCount = questionTypes.length;
+  const baseCount = Math.floor(totalCount / typesCount);
+  const remainder = totalCount % typesCount;
+  
+  questionTypes.forEach((type, index) => {
+    const count = baseCount + (index < remainder ? 1 : 0);
+    distribution.push({ type, count });
+  });
+  
+  return distribution;
+};
+
+/**
+ * 🔥 NEW: Parse JSON quiz response with robust error handling
+ */
+const parseQuizJSON = (rawResponse, expectedTypes) => {
+  try {
+    // Clean the response - remove any text before/after JSON
+    let cleanedResponse = rawResponse.trim();
+    
+    // Find JSON object boundaries
+    const jsonStart = cleanedResponse.indexOf('{');
+    const jsonEnd = cleanedResponse.lastIndexOf('}') + 1;
+    
+    if (jsonStart === -1 || jsonEnd === 0) {
+      throw new Error('No JSON object found in response');
+    }
+    
+    cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd);
+    
+    // Parse JSON
+    const quizData = JSON.parse(cleanedResponse);
+    
+    // Validate structure
+    if (!quizData.questions || !Array.isArray(quizData.questions)) {
+      throw new Error('Invalid quiz structure: missing questions array');
+    }
+    
+    // Validate and clean each question
+    const validatedQuestions = quizData.questions
+      .map((q, index) => validateQuestion(q, index + 1))
+      .filter(q => q !== null);
+    
+    // Ensure we have questions
+    if (validatedQuestions.length === 0) {
+      throw new Error('No valid questions found after validation');
+    }
+    
+    return {
+      questions: validatedQuestions,
+      metadata: {
+        totalQuestions: validatedQuestions.length,
+        difficulty: quizData.metadata?.difficulty || 'medium',
+        estimatedTime: quizData.metadata?.estimatedTime || Math.ceil(validatedQuestions.length * 1.5),
+        questionTypes: [...new Set(validatedQuestions.map(q => q.type))]
+      }
+    };
+    
+  } catch (error) {
+    console.error('❌ JSON parsing error:', error.message);
+    console.error('❌ Raw response:', rawResponse.substring(0, 500));
+    
+    // 🔥 FALLBACK: Try to extract questions using regex
+    return parseQuizFallback(rawResponse, expectedTypes);
+  }
+};
+
+/**
+ * 🔥 NEW: Validate individual question
+ */
+const validateQuestion = (question, questionId) => {
+  try {
+    // Required fields
+    if (!question.question || typeof question.question !== 'string') {
+      throw new Error(`Question ${questionId}: missing or invalid question text`);
+    }
+    
+    if (!question.type || typeof question.type !== 'string') {
+      throw new Error(`Question ${questionId}: missing or invalid type`);
+    }
+    
+    if (!question.correctAnswer) {
+      throw new Error(`Question ${questionId}: missing correct answer`);
+    }
+    
+    // Type-specific validation
+    const validatedQuestion = {
+      id: questionId,
+      type: question.type,
+      question: question.question.trim(),
+      options: question.options || [],
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation || 'No explanation provided',
+      points: question.points || 1
+    };
+    
+    // Validate based on question type
+    switch (question.type) {
+      case 'multiple_choice':
+        if (!Array.isArray(question.options) || question.options.length !== 4) {
+          throw new Error(`Question ${questionId}: multiple choice must have exactly 4 options`);
+        }
+        if (!question.options.includes(question.correctAnswer)) {
+          throw new Error(`Question ${questionId}: correct answer not found in options`);
+        }
+        break;
+        
+      case 'true_false':
+        validatedQuestion.options = ['True', 'False'];
+        if (!['True', 'False'].includes(question.correctAnswer)) {
+          throw new Error(`Question ${questionId}: true/false answer must be 'True' or 'False'`);
+        }
+        break;
+        
+      case 'fill_blank':
+      case 'short_answer':
+        validatedQuestion.options = [];
+        break;
+        
+      default:
+        throw new Error(`Question ${questionId}: unsupported question type '${question.type}'`);
+    }
+    
+    return validatedQuestion;
+    
+  } catch (error) {
+    console.error(`❌ Question validation error:`, error.message);
+    return null;
+  }
+};
+
+/**
+ * 🔥 NEW: Fallback parser when JSON parsing fails
+ */
+const parseQuizFallback = (rawResponse, expectedTypes) => {
+  console.log('🔄 Attempting fallback parsing...');
+  
+  // This is a simplified fallback - you can enhance this based on common patterns
+  const questions = [];
+  
+  // Try to find question patterns in the text
+  const lines = rawResponse.split('\n').filter(line => line.trim());
+  
+  // Basic fallback for multiple choice questions
+  let currentQuestion = null;
+  let questionId = 1;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Look for question patterns
+    if (trimmed.match(/^\d+[\.\)]\s+/) || trimmed.includes('?')) {
+      if (currentQuestion) {
+        questions.push(currentQuestion);
+      }
+      
+      currentQuestion = {
+        id: questionId++,
+        type: 'multiple_choice',
+        question: trimmed.replace(/^\d+[\.\)]\s+/, ''),
+        options: [],
+        correctAnswer: '',
+        explanation: 'No explanation provided',
+        points: 1
+      };
+    }
+    // Look for options (A., B., C., D.)
+    else if (currentQuestion && trimmed.match(/^[A-D][\.\)]\s+/)) {
+      const option = trimmed.replace(/^[A-D][\.\)]\s+/, '');
+      currentQuestion.options.push(option);
+    }
+    // Look for correct answer
+    else if (currentQuestion && trimmed.toLowerCase().includes('correct')) {
+      const match = trimmed.match(/correct[:\s]*([A-D]|True|False)/i);
+      if (match) {
+        const answer = match[1];
+        if (answer.match(/[A-D]/)) {
+          const index = answer.charCodeAt(0) - 65;
+          currentQuestion.correctAnswer = currentQuestion.options[index] || currentQuestion.options[0];
+        } else {
+          currentQuestion.correctAnswer = answer;
+        }
+      }
+    }
+  }
+  
+  // Add the last question
+  if (currentQuestion) {
+    questions.push(currentQuestion);
+  }
+  
+  // Filter valid questions
+  const validQuestions = questions.filter(q => 
+    q.question && q.options.length > 0 && q.correctAnswer
+  );
+  
+  console.log(`🔄 Fallback parsing recovered ${validQuestions.length} questions`);
+  
+  return {
+    questions: validQuestions,
+    metadata: {
+      totalQuestions: validQuestions.length,
+      difficulty: 'medium',
+      estimatedTime: Math.ceil(validQuestions.length * 1.5),
+      questionTypes: [...new Set(validQuestions.map(q => q.type))]
+    }
+  };
+};
+
+
+
 
 /**
  * Parse quiz questions from custom XML format
@@ -689,9 +961,133 @@ export const checkAIServiceStatus = async () => {
   }
 };
 
+/**
+ * Generate quiz questions from document - CLEAN JSON APPROACH
+ */
+export const generateQuizFromDocumentJSON = async (filePath, options = {}) => {
+  try {
+    const {
+      questionCount = 5,
+      difficulty = 'medium',
+      questionTypes = ['multiple-choice']
+    } = options;
+
+    console.log(`🧪 Generating ${questionCount} ${difficulty} quiz questions from: ${filePath}`);
+    
+    // Resolve the correct file path (use your existing resolveFilePath function)
+    const resolvedPath = resolveFilePath(filePath);
+    console.log(`✅ Resolved path for quiz: ${resolvedPath}`);
+
+    // Extract text from document (use your existing function)
+    console.log(`📖 Extracting text for quiz generation...`);
+    const extractionResult = await extractDocumentText(resolvedPath);
+    
+    if (!extractionResult.success) {
+      throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`, {
+        code: 'TEXT_EXTRACTION_ERROR'
+      });
+    }
+    
+    console.log(`✅ Text extracted for quiz (${extractionResult.text.length} characters)`);
+
+    // 🔥 CLEAN JSON PROMPT - NO FLUFF, DIRECT RESPONSE
+    const messages = [
+      {
+        role: 'user',
+        content: `Generate ${questionCount} multiple-choice questions from this document.
+
+CRITICAL: Respond ONLY with a valid JSON array. No introductions, explanations, or extra text.
+
+Format:
+[
+  {
+    "question": "Question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": "Option A",
+    "explanation": "Brief explanation why this is correct"
+  }
+]
+
+Requirements:
+- Difficulty: ${difficulty}
+- Use document's language (French, Arabic, English, etc.)
+- Test understanding, not memorization
+- 4 options per question (A, B, C, D)
+- correctAnswer must match exactly one of the options
+- Keep explanations brief (1-2 sentences)
+
+Document:
+${extractionResult.text}`
+      }
+    ];
+
+    // Generate quiz using DeepSeek
+    console.log(`🤖 Calling DeepSeek API for ${difficulty} quiz generation...`);
+    const startTime = Date.now();
+    
+    const response = await callDeepSeekAPI(messages, {
+      maxTokens: 3000,
+      temperature: 0.7
+    });
+
+    const endTime = Date.now();
+    let quizText = response.choices[0]?.message?.content || '';
+
+    console.log(`✅ Quiz generation completed (${quizText.length} characters)`);
+    console.log(`📊 Processing time: ${endTime - startTime}ms`);
+
+    if (!quizText || quizText.length === 0) {
+      throw HttpError.internalServerError('DeepSeek returned empty quiz response', {
+        code: 'EMPTY_QUIZ_RESPONSE'
+      });
+    }
+
+    // 🎯 PARSE JSON RESPONSE
+    const questions = parseQuizJSON(quizText);
+
+    if (questions.length === 0) {
+      throw HttpError.badRequest('No valid quiz questions found in AI response', {
+        code: 'NO_VALID_QUESTIONS',
+        context: { rawResponse: quizText.substring(0, 300) }
+      });
+    }
+
+    console.log(`✅ Quiz parsing completed (${questions.length} questions)`);
+
+    return {
+      success: true,
+      questions: questions,
+      rawResponse: quizText,
+      metadata: {
+        model: DEEPSEEK_CONFIG.model,
+        questionCount: questions.length,
+        difficulty: difficulty,
+        tokensUsed: response.usage?.total_tokens || 0,
+        processingTime: endTime - startTime,
+        extractionStats: extractionResult.metadata
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Quiz generation error:', error);
+    
+    if (error.name === 'HttpError') {
+      throw error;
+    }
+    
+    throw HttpError.internalServerError(`Quiz generation failed: ${error.message}`, {
+      code: 'QUIZ_GENERATION_ERROR',
+      context: { originalError: error.message }
+    });
+  }
+};
+
+
+
 export default {
   processDocumentWithAI,
   generateQuizFromDocument,
+  parseQuizJSON,
   generateCustomText,
-  checkAIServiceStatus
+  checkAIServiceStatus,
 };

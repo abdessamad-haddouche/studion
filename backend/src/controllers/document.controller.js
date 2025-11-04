@@ -19,7 +19,7 @@ import {
 } from '#services/document.service.js';
 import {
   processDocumentWithAI,
-  generateQuizFromDocument as generateQuizFromDocumentAI,
+  generateQuizFromDocument,
   generateCustomText,
   checkAIServiceStatus
 } from '#services/ai.service.js';
@@ -839,14 +839,22 @@ export const generateDocumentQuiz = async (req, res, next) => {
   try {
     const documentId = req.params.id;
     const userId = req.user.userId;
-    const { questionCount = 5, difficulty = 'intermediate' } = req.body;
     
-    // ✅ FIX: Explicitly select the storagePath field
+    // 🔥 EXTRACT ALL PARAMETERS INCLUDING QUESTION TYPES
+    const { 
+      questionCount = 5, 
+      difficulty = 'medium',
+      questionTypes = ['multiple_choice'] // 🔥 NOW FROM REQUEST BODY
+    } = req.body;
+
+    console.log(`🎯 Quiz request: ${questionCount} questions, ${difficulty} difficulty, types: ${questionTypes.join(', ')}`);
+    
+    // ✅ Explicitly select the storagePath field
     const document = await Document.findOne({
       _id: documentId,
       userId,
       deletedAt: null
-    }).select('+file.storagePath'); // ✅ ADD THIS LINE
+    }).select('+file.storagePath');
     
     if (!document) {
       return res.status(404).json({
@@ -863,10 +871,10 @@ export const generateDocumentQuiz = async (req, res, next) => {
       });
     }
 
-    // Get file path - NOW IT WILL EXIST
+    // Get file path
     const filePath = document.file.storagePath;
     
-    console.log(`🔍 Using file path for quiz: ${filePath}`); // Debug log
+    console.log(`🔍 Using file path for quiz: ${filePath}`);
     
     if (!filePath) {
       return res.status(404).json({
@@ -875,16 +883,17 @@ export const generateDocumentQuiz = async (req, res, next) => {
       });
     }
 
-    // Generate quiz using AI
-    const quizResults = await generateQuizFromDocumentAI(filePath, {
+    // 🔥 CALL THE ENHANCED AI FUNCTION WITH ALL PARAMETERS
+    const quizResults = await generateQuizFromDocument(filePath, {
       questionCount: parseInt(questionCount),
       difficulty,
-      questionTypes: ['multiple-choice']
+      questionTypes // 🔥 PASS THE ACTUAL QUESTION TYPES
     });
 
     // Update document analytics
     await document.recordQuizGeneration();
 
+    // 🔥 RETURN COMPLETE QUIZ DATA
     res.status(200).json({
       success: true,
       message: 'Quiz generated successfully',
@@ -893,9 +902,11 @@ export const generateDocumentQuiz = async (req, res, next) => {
         metadata: quizResults.metadata,
         documentId: documentId,
         generatedAt: new Date()
-      }
+      },
+      rawResponse: quizResults.rawResponse // 🔥 INCLUDE RAW RESPONSE FOR DEBUGGING
     });
   } catch (error) {
+    console.error('❌ Quiz generation controller error:', error);
     next(error);
   }
 };
