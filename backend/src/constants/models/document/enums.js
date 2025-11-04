@@ -52,6 +52,7 @@ export const PROCESSING_STAGES = Object.freeze([
   'upload',           // File upload stage
   'ai_analysis',
   'processing',
+  'quiz_generation',
   'validation',       // File validation stage
   'text_extraction',  // PDF text extraction stage
   'summarization',    // AI summarization stage

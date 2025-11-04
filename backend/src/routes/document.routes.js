@@ -15,7 +15,6 @@ import {
   getDocumentSummary, 
   processPendingDocument, 
   getDocumentAnalytics,
-  generateDocumentQuiz,
   generateCustomAnalysis,
   getAIServiceStatus
 } from '#controllers/document.controller.js';
@@ -101,22 +100,6 @@ router.get('/:id/summary', getDocumentSummary);
  */
 router.post('/:id/process', processPendingDocument);
 
-/**
- * @route POST /api/documents/:id/generate-quiz
- * @description Generate quiz questions from document using AI
- * @body {number} questionCount - Number of questions (1-20, default: 5)
- * @body {string} difficulty - Question difficulty (easy, medium, hard, default: medium)
- * @body {Array<string>} questionTypes - Question types array (default: ["multiple_choice"])
- *   Available types: "multiple_choice", "true_false", "fill_blank", "short_answer"
- * @example
- * {
- *   "questionCount": 6,
- *   "difficulty": "hard", 
- *   "questionTypes": ["multiple_choice", "true_false", "fill_blank"]
- * }
- * @access Private
- */
-router.post('/:id/generate-quiz', generateDocumentQuiz);
 
 /**
  * @route POST /api/documents/:id/custom-analysis

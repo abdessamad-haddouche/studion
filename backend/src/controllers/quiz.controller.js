@@ -1,155 +1,375 @@
 /**
- * Quiz Controller - COMPLETE WITH QUIZ ATTEMPT FUNCTIONALITY
- * @module controllers/quiz
- * @description Handles quiz generation, attempts, and results
+ * Enhanced Quiz Controller - Uses Pre-generated Quiz Collection
+ * @module controllers/quiz-enhanced
+ * @description Quiz controller that selects from comprehensive pre-generated quiz collection
  */
 
+import Quiz from '#models/quiz/Quiz.js';
+import QuizAttempt from '#models/quiz/QuizAttempt.js';
+import Document from '#models/document/Document.js';
 import { HttpError } from '#exceptions/index.js';
-import { HTTP_STATUS_CODES } from '#constants/http/index.js';
-
-// Quiz Services
-import {
-  generateQuizFromDocument as generateQuizService,
-  getUserQuizzes,
-  getQuizById as getQuizByIdService
-} from '#services/quiz.service.js';
-
-// Quiz Attempt Services
-import {
-  startQuizAttempt as startQuizAttemptService,
-  submitQuizAnswer as submitQuizAnswerService,
-  completeQuizAttempt as completeQuizAttemptService,
-  getQuizAttemptResults as getQuizAttemptResultsService
-} from '#services/quizAttempt.service.js';
+import { 
+  getAvailableQuizzes, 
+  selectRandomQuiz, 
+  getQuizCollectionStats 
+} from '#services/quizCollection.service.js';
 
 // ==========================================
-// QUIZ MANAGEMENT CONTROLLERS
+// ENHANCED QUIZ GENERATION (FROM PRE-GENERATED COLLECTION)
 // ==========================================
 
 /**
- * @route POST /api/quizzes/generate
- * @description Generate a quiz from a document using AI
+ * 🎯 Generate quiz from pre-generated collection
+ * Select a quiz from the comprehensive collection based on criteria
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
  */
 export const generateQuiz = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const {
       documentId,
-      questionCount = 5,
       difficulty = 'medium',
-      title = null,
-      categories = ['general']
+      questionType,
+      questionCount,
+      title
     } = req.body;
-
+    
+    console.log(`🎯 Quiz generation request from user: ${userId}`);
+    console.log(`📊 Criteria:`, { documentId, difficulty, questionType, questionCount });
+    
     // Validate required fields
     if (!documentId) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
-        success: false,
-        message: 'Document ID is required',
-        code: 'MISSING_DOCUMENT_ID'
-      });
+      return next(HttpError.badRequest('Document ID is required'));
     }
-
-    // Validate question count
-    const validCounts = [5, 10, 15, 20];
-    if (!validCounts.includes(parseInt(questionCount))) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
-        success: false,
-        message: 'Question count must be 5, 10, 15, or 20',
-        code: 'INVALID_QUESTION_COUNT'
-      });
-    }
-
-    // Validate difficulty
-    const validDifficulties = ['easy', 'medium', 'hard'];
-    if (!validDifficulties.includes(difficulty)) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
-        success: false,
-        message: 'Difficulty must be easy, medium, or hard',
-        code: 'INVALID_DIFFICULTY'
-      });
-    }
-
-    console.log(`🎯 Generating ${difficulty} quiz with ${questionCount} questions for document ${documentId}`);
-
-    // Generate quiz using service
-    const result = await generateQuizService(documentId, userId, {
-      questionCount: parseInt(questionCount),
-      difficulty,
-      title,
-      categories
+    
+    // Verify document exists and belongs to user
+    const document = await Document.findOne({
+      _id: documentId,
+      userId,
+      deletedAt: null
     });
-
-    res.status(HTTP_STATUS_CODES.CREATED).json({
+    
+    if (!document) {
+      return next(HttpError.notFound('Document not found'));
+    }
+    
+    // Check if document has been processed
+    if (document.status !== 'completed') {
+      return next(HttpError.badRequest('Document must be processed before generating quizzes', {
+        code: 'DOCUMENT_NOT_PROCESSED',
+        context: { currentStatus: document.status }
+      }));
+    }
+    
+    // If questionCount is specified, we need to create a custom quiz
+    if (questionCount && questionCount !== 20) {
+      return await generateCustomQuiz(req, res, next);
+    }
+    
+    // Select random quiz from pre-generated collection
+    const selectedQuiz = await selectRandomQuiz(documentId, userId, {
+      difficulty,
+      questionType,
+      excludeUsed: true
+    });
+    
+    console.log(`✅ Selected quiz: ${selectedQuiz.title} (${selectedQuiz.questions.length} questions)`);
+    
+    // Update quiz title if custom title provided
+    if (title && title !== selectedQuiz.title) {
+      selectedQuiz.title = title;
+      await selectedQuiz.save();
+    }
+    
+    // Return quiz for user to take
+    res.status(200).json({
       success: true,
-      message: 'Quiz generated successfully',
+      message: 'Quiz selected successfully',
       quiz: {
-        id: result.quiz._id,
-        title: result.quiz.title,
-        description: result.quiz.description,
-        questions: result.quiz.questions,
-        difficulty: result.quiz.difficulty,
-        category: result.quiz.category,
-        estimatedTime: result.quiz.estimatedTime,
-        passingScore: result.quiz.passingScore,
-        status: result.quiz.status,
-        createdAt: result.quiz.createdAt
-      },
-      metadata: {
-        questionsGenerated: result.metadata.questionsGenerated,
-        documentTitle: result.metadata.documentTitle,
-        aiModel: result.metadata.aiMetadata.model,
-        tokensUsed: result.metadata.aiMetadata.tokensUsed,
-        processingTime: result.metadata.aiMetadata.processingTime
+        id: selectedQuiz._id,
+        title: selectedQuiz.title,
+        description: selectedQuiz.description,
+        difficulty: selectedQuiz.difficulty,
+        questionType: selectedQuiz.aiMetadata?.questionType,
+        questionCount: selectedQuiz.questions.length,
+        estimatedTime: selectedQuiz.estimatedTime,
+        questions: selectedQuiz.questions.map((q, index) => ({
+          id: q.id || index + 1,
+          question: q.question,
+          options: q.options,
+          type: selectedQuiz.aiMetadata?.questionType || 'multiple_choice'
+          // Note: Don't include correctAnswer or correctAnswerIndex in response
+        }))
       }
     });
-
+    
   } catch (error) {
-    console.error('❌ Generate quiz controller error:', error);
+    console.error('❌ Quiz generation error:', error);
     next(error);
   }
 };
 
 /**
- * @route GET /api/quizzes
- * @description Get all user quizzes with optional filtering
+ * 🎲 Generate custom quiz with specific question count
+ * For cases where user wants different number of questions
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+const generateCustomQuiz = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const {
+      documentId,
+      difficulty = 'medium',
+      questionType,
+      questionCount,
+      title = 'Custom Quiz'
+    } = req.body;
+    
+    console.log(`🎲 Custom quiz generation request: ${questionCount} questions`);
+    
+    if (questionCount < 1 || questionCount > 20) {
+      return next(HttpError.badRequest('Question count must be between 1 and 20'));
+    }
+    
+    // Get available quizzes of the requested type
+    const availableQuizzes = await getAvailableQuizzes(documentId, userId, {
+      difficulty,
+      questionType,
+      excludeUsed: false, // Allow used quizzes for question pool
+      limit: 10
+    });
+    
+    if (availableQuizzes.length === 0) {
+      return next(HttpError.notFound('No quizzes available for the specified criteria'));
+    }
+    
+    // Collect questions from available quizzes
+    const allQuestions = [];
+    for (const quizInfo of availableQuizzes) {
+      const quiz = await Quiz.findById(quizInfo.quizId);
+      if (quiz && quiz.questions) {
+        allQuestions.push(...quiz.questions.map(q => ({
+          ...q,
+          sourceQuizId: quiz._id
+        })));
+      }
+    }
+    
+    if (allQuestions.length < questionCount) {
+      return next(HttpError.badRequest(`Not enough questions available. Found ${allQuestions.length}, requested ${questionCount}`));
+    }
+    
+    // Randomly select questions
+    const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffled.slice(0, questionCount);
+    
+    // Create new custom quiz
+    const customQuiz = new Quiz({
+      documentId,
+      userId,
+      title,
+      description: `Custom ${difficulty} quiz with ${questionCount} questions`,
+      questions: selectedQuestions.map((q, index) => ({
+        id: index + 1,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        correctAnswerIndex: q.correctAnswerIndex,
+        explanation: q.explanation,
+        points: q.points || 1
+      })),
+      difficulty,
+      category: 'comprehension',
+      estimatedTime: Math.ceil(questionCount * 1.5),
+      status: 'active',
+      aiMetadata: {
+        model: 'custom-selection',
+        generationType: 'custom_question_selection',
+        originalQuestionCount: questionCount,
+        sourceQuizzes: [...new Set(selectedQuestions.map(q => q.sourceQuizId))],
+        generatedAt: new Date()
+      }
+    });
+    
+    await customQuiz.save();
+    
+    console.log(`✅ Custom quiz created: ${customQuiz._id} (${questionCount} questions)`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Custom quiz created successfully',
+      quiz: {
+        id: customQuiz._id,
+        title: customQuiz.title,
+        description: customQuiz.description,
+        difficulty: customQuiz.difficulty,
+        questionCount: customQuiz.questions.length,
+        estimatedTime: customQuiz.estimatedTime,
+        questions: customQuiz.questions.map(q => ({
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          type: questionType || 'multiple_choice'
+          // Note: Don't include correctAnswer in response
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Custom quiz generation error:', error);
+    next(error);
+  }
+};
+
+// ==========================================
+// QUIZ LISTING AND MANAGEMENT
+// ==========================================
+
+/**
+ * Get all quizzes for user with enhanced filtering
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
  */
 export const getAllQuizzes = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const {
       status = 'active',
       difficulty,
       category,
+      documentId,
       page = 1,
       limit = 20,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
+      includeAttempts = false
     } = req.query;
-
-    console.log(`📚 Getting quizzes for user ${userId}`);
-
-    const result = await getUserQuizzes(userId, {
+    
+    console.log(`📋 Getting quizzes for user: ${userId}`);
+    
+    // Build query
+    const query = {
+      userId,
       status,
-      difficulty,
-      category,
-      page,
-      limit,
-      sortBy,
-      sortOrder
-    });
-
-    // Calculate total count for pagination (simplified)
-    const totalQuizzes = result.quizzes.length;
-
-    res.status(HTTP_STATUS_CODES.OK).json({
+      deletedAt: null
+    };
+    
+    if (difficulty) query.difficulty = difficulty;
+    if (category) query.category = category;
+    if (documentId) query.documentId = documentId;
+    
+    // Execute query with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    const quizzes = await Quiz.find(query)
+      .populate('documentId', 'title')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+    
+    // Get total count for pagination
+    const totalCount = await Quiz.countDocuments(query);
+    
+    // Include attempt information if requested
+    let enhancedQuizzes = quizzes;
+    if (includeAttempts === 'true') {
+      enhancedQuizzes = await Promise.all(
+        quizzes.map(async (quiz) => {
+          const attemptCount = await QuizAttempt.countDocuments({
+            quizId: quiz._id,
+            userId
+          });
+          
+          const bestAttempt = await QuizAttempt.findOne({
+            quizId: quiz._id,
+            userId,
+            status: 'completed'
+          }).sort({ percentage: -1 }).lean();
+          
+          return {
+            ...quiz,
+            attemptInfo: {
+              attemptCount,
+              bestScore: bestAttempt?.percentage || null,
+              lastAttempt: bestAttempt?.createdAt || null
+            }
+          };
+        })
+      );
+    }
+    
+    res.status(200).json({
       success: true,
-      count: result.count,
-      total: totalQuizzes,
-      page: result.page,
-      limit: result.limit,
-      totalPages: Math.ceil(totalQuizzes / result.limit),
-      quizzes: result.quizzes.map(quiz => ({
+      quizzes: enhancedQuizzes.map(quiz => ({
+        id: quiz._id,
+        title: quiz.title,
+        description: quiz.description,
+        difficulty: quiz.difficulty,
+        category: quiz.category,
+        questionCount: quiz.questions?.length || 0,
+        estimatedTime: quiz.estimatedTime,
+        questionType: quiz.aiMetadata?.questionType,
+        document: quiz.documentId ? {
+          id: quiz.documentId._id || quiz.documentId,
+          title: quiz.documentId.title || 'Unknown Document'
+        } : null,
+        createdAt: quiz.createdAt,
+        attemptInfo: quiz.attemptInfo
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        pages: Math.ceil(totalCount / parseInt(limit))
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Get all quizzes error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get quiz by ID with questions
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+export const getQuizById = async (req, res, next) => {
+  try {
+    const quizId = req.params.id;
+    const userId = req.user.id;
+    
+    console.log(`🔍 Getting quiz: ${quizId} for user: ${userId}`);
+    
+    const quiz = await Quiz.findOne({
+      _id: quizId,
+      userId,
+      deletedAt: null
+    }).populate('documentId', 'title');
+    
+    if (!quiz) {
+      return next(HttpError.notFound('Quiz not found'));
+    }
+    
+    // Get user's attempt history for this quiz
+    const attempts = await QuizAttempt.find({
+      quizId,
+      userId
+    }).sort({ createdAt: -1 }).limit(5).lean();
+    
+    res.status(200).json({
+      success: true,
+      quiz: {
         id: quiz._id,
         title: quiz.title,
         description: quiz.description,
@@ -157,236 +377,602 @@ export const getAllQuizzes = async (req, res, next) => {
         category: quiz.category,
         questionCount: quiz.questions.length,
         estimatedTime: quiz.estimatedTime,
-        status: quiz.status,
-        analytics: quiz.analytics,
-        createdAt: quiz.createdAt,
+        questionType: quiz.aiMetadata?.questionType,
         document: quiz.documentId ? {
           id: quiz.documentId._id,
           title: quiz.documentId.title
-        } : null
-      }))
-    });
-
-  } catch (error) {
-    console.error('❌ Get all quizzes controller error:', error);
-    next(error);
-  }
-};
-
-/**
- * @route GET /api/quizzes/:id
- * @description Get a specific quiz by ID
- */
-export const getQuizById = async (req, res, next) => {
-  try {
-    const userId = req.user.userId;
-    const quizId = req.params.id;
-
-    console.log(`🔍 Getting quiz ${quizId} for user ${userId}`);
-
-    const result = await getQuizByIdService(quizId, userId);
-
-    res.status(HTTP_STATUS_CODES.OK).json({
-      success: true,
-      quiz: {
-        id: result.quiz._id,
-        title: result.quiz.title,
-        description: result.quiz.description,
-        questions: result.quiz.questions,
-        difficulty: result.quiz.difficulty,
-        category: result.quiz.category,
-        estimatedTime: result.quiz.estimatedTime,
-        passingScore: result.quiz.passingScore,
-        status: result.quiz.status,
-        analytics: result.quiz.analytics,
-        aiMetadata: result.quiz.aiMetadata,
-        createdAt: result.quiz.createdAt,
-        document: result.quiz.documentId ? {
-          id: result.quiz.documentId._id,
-          title: result.quiz.documentId.title
-        } : null
+        } : null,
+        questions: quiz.questions.map(q => ({
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          type: quiz.aiMetadata?.questionType || 'multiple_choice'
+          // Note: Don't include answers in response
+        })),
+        attemptHistory: attempts.map(attempt => ({
+          id: attempt._id,
+          score: attempt.score,
+          percentage: attempt.percentage,
+          timeSpent: attempt.timeSpent,
+          status: attempt.status,
+          completedAt: attempt.completedAt,
+          createdAt: attempt.createdAt
+        })),
+        createdAt: quiz.createdAt
       }
     });
-
+    
   } catch (error) {
-    console.error('❌ Get quiz by ID controller error:', error);
+    console.error('❌ Get quiz by ID error:', error);
     next(error);
   }
 };
 
 // ==========================================
-// QUIZ ATTEMPT CONTROLLERS
+// QUIZ ATTEMPT MANAGEMENT
 // ==========================================
 
 /**
- * @route POST /api/quizzes/:id/attempt
- * @description Start a new quiz attempt
- * @body {string} deviceType - Device type (mobile, tablet, desktop) (optional)
+ * Start a new quiz attempt
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
  */
 export const startQuizAttempt = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
     const quizId = req.params.id;
-    const { deviceType = 'unknown' } = req.body;
-
-    console.log(`🎯 Starting quiz attempt for quiz ${quizId} by user ${userId}`);
-
-    // Prepare metadata
-    const metadata = {
-      userAgent: req.headers['user-agent'],
-      ipAddress: req.ip || req.connection.remoteAddress,
-      deviceType: deviceType
-    };
-
-    const result = await startQuizAttemptService(quizId, userId, metadata);
-
-    res.status(HTTP_STATUS_CODES.CREATED).json({
-      success: true,
-      message: result.isResuming ? 'Resumed existing quiz attempt' : 'Quiz attempt started successfully',
-      attempt: result.attempt,
-      quiz: {
-        id: result.quiz.id,
-        title: result.quiz.title,
-        difficulty: result.quiz.difficulty,
-        estimatedTime: result.quiz.estimatedTime,
-        passingScore: result.quiz.passingScore,
-        totalQuestions: result.quiz.questions.length,
-        // Don't send all questions at once for security - send them one by one
-        currentQuestion: result.quiz.questions[0] || null
-      },
-      isResuming: result.isResuming
+    const userId = req.user.id;
+    
+    console.log(`🚀 Starting quiz attempt: ${quizId} for user: ${userId}`);
+    
+    // Verify quiz exists and belongs to user
+    const quiz = await Quiz.findOne({
+      _id: quizId,
+      userId,
+      status: 'active',
+      deletedAt: null
     });
-
+    
+    if (!quiz) {
+      return next(HttpError.notFound('Quiz not found'));
+    }
+    
+    // Create new quiz attempt
+    const attempt = new QuizAttempt({
+      userId,
+      quizId,
+      status: 'in_progress',
+      startedAt: new Date(),
+      answers: [],
+      metadata: {
+        userAgent: req.get('User-Agent'),
+        deviceType: getDeviceType(req.get('User-Agent'))
+      }
+    });
+    
+    await attempt.save();
+    
+    console.log(`✅ Quiz attempt started: ${attempt._id}`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Quiz attempt started',
+      attempt: {
+        id: attempt._id,
+        quizId: quiz._id,
+        startedAt: attempt.startedAt,
+        status: attempt.status,
+        timeLimit: quiz.estimatedTime * 60 * 1000 // Convert to milliseconds
+      }
+    });
+    
   } catch (error) {
-    console.error('❌ Start quiz attempt controller error:', error);
+    console.error('❌ Start quiz attempt error:', error);
     next(error);
   }
 };
 
 /**
- * @route PUT /api/quizzes/:id/attempt/:attemptId
- * @description Submit answer for a quiz question
- * @body {number} questionIndex - Index of the question being answered (required)
- * @body {*} userAnswer - User's answer (string for multiple choice, boolean for true/false, etc.)
- * @body {number} timeSpent - Time spent on this question in milliseconds (optional)
+ * Submit answer for a quiz question
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
  */
 export const submitQuizAnswer = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
     const { id: quizId, attemptId } = req.params;
-    const { questionIndex, userAnswer, timeSpent = 0 } = req.body;
-
-    // Validate required fields
-    if (questionIndex === undefined || userAnswer === undefined) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
-        success: false,
-        message: 'Question index and user answer are required',
-        code: 'MISSING_ANSWER_DATA'
-      });
-    }
-
-    console.log(`📝 Submitting answer for attempt ${attemptId}, question ${questionIndex}`);
-
-    const result = await submitQuizAnswerService(attemptId, userId, {
-      questionIndex: parseInt(questionIndex),
-      userAnswer,
-      timeSpent: parseInt(timeSpent) || 0
+    const userId = req.user.id;
+    const { questionId, answer, timeSpent = 0 } = req.body;
+    
+    console.log(`📝 Submitting answer for attempt: ${attemptId}, question: ${questionId}`);
+    
+    // Get quiz attempt
+    const attempt = await QuizAttempt.findOne({
+      _id: attemptId,
+      userId,
+      quizId,
+      status: 'in_progress'
     });
-
-    res.status(HTTP_STATUS_CODES.OK).json({
+    
+    if (!attempt) {
+      return next(HttpError.notFound('Quiz attempt not found or already completed'));
+    }
+    
+    // Get quiz to check correct answer
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return next(HttpError.notFound('Quiz not found'));
+    }
+    
+    // Find the question
+    const question = quiz.questions.find(q => q.id === parseInt(questionId));
+    if (!question) {
+      return next(HttpError.notFound('Question not found'));
+    }
+    
+    // Check if answer is correct
+    const isCorrect = checkAnswer(question, answer);
+    const pointsEarned = isCorrect ? (question.points || 1) : 0;
+    
+    // Submit answer to attempt
+    await attempt.submitAnswer(questionId, answer, isCorrect, pointsEarned, timeSpent);
+    
+    res.status(200).json({
       success: true,
       message: 'Answer submitted successfully',
       result: {
-        questionIndex: result.questionIndex,
-        isCorrect: result.isCorrect,
-        correctAnswer: result.correctAnswer,
-        explanation: result.explanation,
-        pointsEarned: result.pointsEarned,
-        currentScore: result.currentScore,
-        progress: result.progress
+        questionId,
+        isCorrect,
+        pointsEarned,
+        currentScore: attempt.score,
+        answeredQuestions: attempt.answers.length
       }
     });
-
+    
   } catch (error) {
-    console.error('❌ Submit quiz answer controller error:', error);
+    console.error('❌ Submit quiz answer error:', error);
     next(error);
   }
 };
 
 /**
- * @route POST /api/quizzes/:id/attempt/:attemptId/complete
- * @description Complete a quiz attempt and get final results
+ * Get all quizzes for a specific document
+ */
+export const getAllQuizzesForDocument = async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    const userId = req.user.id;
+    const { difficulty, questionType, excludeUsed = false, limit = 20 } = req.query;
+    
+    const quizzes = await getAvailableQuizzes(documentId, userId, {
+      difficulty,
+      questionType,
+      excludeUsed: excludeUsed === 'true',
+      limit: parseInt(limit)
+    });
+    
+    res.status(200).json({
+      success: true,
+      quizzes,
+      total: quizzes.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Get document quizzes error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get quiz statistics for a document
+ */
+export const getDocumentQuizStats = async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    const userId = req.user.id;
+    
+    const stats = await getQuizCollectionStats(documentId, userId);
+    
+    res.status(200).json({
+      success: true,
+      stats
+    });
+    
+  } catch (error) {
+    console.error('❌ Get document quiz stats error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Select a random quiz for the user
+ */
+export const selectQuizForDocument = async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    const userId = req.user.id;
+    const { difficulty, questionType } = req.body;
+    
+    const selectedQuiz = await selectRandomQuiz(documentId, userId, {
+      difficulty,
+      questionType,
+      excludeUsed: true
+    });
+    
+    res.status(200).json({
+      success: true,
+      quiz: {
+        id: selectedQuiz._id,
+        title: selectedQuiz.title,
+        difficulty: selectedQuiz.difficulty,
+        questionType: selectedQuiz.aiMetadata?.questionType,
+        questionCount: selectedQuiz.questions.length,
+        estimatedTime: selectedQuiz.estimatedTime,
+        questions: selectedQuiz.questions.map((q, index) => ({
+          id: q.id || index + 1,
+          question: q.question,
+          options: q.options,
+          type: selectedQuiz.aiMetadata?.questionType || 'multiple_choice'
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Select quiz error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Complete a quiz attempt
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
  */
 export const completeQuizAttempt = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
-    const { attemptId } = req.params;
-
-    console.log(`🏁 Completing quiz attempt ${attemptId}`);
-
-    const result = await completeQuizAttemptService(attemptId, userId);
-
-    res.status(HTTP_STATUS_CODES.OK).json({
+    const { id: quizId, attemptId } = req.params;
+    const userId = req.user.id;
+    
+    console.log(`🏁 Completing quiz attempt: ${attemptId}`);
+    
+    // Get quiz attempt
+    const attempt = await QuizAttempt.findOne({
+      _id: attemptId,
+      userId,
+      quizId,
+      status: 'in_progress'
+    });
+    
+    if (!attempt) {
+      return next(HttpError.notFound('Quiz attempt not found or already completed'));
+    }
+    
+    // Get quiz for completion processing
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return next(HttpError.notFound('Quiz not found'));
+    }
+    
+    // Complete the attempt
+    await attempt.complete(quiz);
+    
+    // Update quiz analytics
+    await quiz.updateAnalytics(attempt.percentage, attempt.timeSpent / (1000 * 60)); // Convert to minutes
+    
+    console.log(`✅ Quiz attempt completed: ${attempt._id} (${attempt.percentage}%)`);
+    
+    res.status(200).json({
       success: true,
       message: 'Quiz completed successfully',
-      results: result.results,
-      quiz: result.quiz
+      result: {
+        attemptId: attempt._id,
+        score: attempt.score,
+        percentage: attempt.percentage,
+        pointsEarned: attempt.pointsEarned,
+        timeSpent: attempt.timeSpent,
+        performanceLevel: attempt.performanceLevel,
+        completedAt: attempt.completedAt
+      }
     });
-
+    
   } catch (error) {
-    console.error('❌ Complete quiz attempt controller error:', error);
+    console.error('❌ Complete quiz attempt error:', error);
     next(error);
   }
 };
 
 /**
- * @route GET /api/quizzes/:id/attempt/:attemptId/results
- * @description Get results for a completed quiz attempt
+ * Get results for a completed quiz attempt
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
  */
 export const getQuizAttemptResults = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
-    const { attemptId } = req.params;
-
-    console.log(`📊 Getting results for attempt ${attemptId}`);
-
-    const result = await getQuizAttemptResultsService(attemptId, userId);
-
-    res.status(HTTP_STATUS_CODES.OK).json({
-      success: true,
-      results: result.results
+    const { id: quizId, attemptId } = req.params;
+    const userId = req.user.id;
+    
+    console.log(`📊 Getting results for attempt: ${attemptId}`);
+    
+    // Get completed quiz attempt
+    const attempt = await QuizAttempt.findOne({
+      _id: attemptId,
+      userId,
+      quizId,
+      status: 'completed'
+    }).populate('quizId', 'title questions');
+    
+    if (!attempt) {
+      return next(HttpError.notFound('Quiz attempt not found or not completed'));
+    }
+    
+    // Build detailed results
+    const quiz = attempt.quizId;
+    const detailedResults = attempt.answers.map(answer => {
+      const question = quiz.questions.find(q => q.id === answer.questionId);
+      return {
+        questionId: answer.questionId,
+        question: question?.question || 'Question not found',
+        userAnswer: answer.userAnswer,
+        correctAnswer: question?.correctAnswer || 'Unknown',
+        isCorrect: answer.isCorrect,
+        pointsEarned: answer.pointsEarned,
+        explanation: question?.explanation || 'No explanation available',
+        timeSpent: answer.timeSpent
+      };
     });
-
+    
+    res.status(200).json({
+      success: true,
+      results: {
+        attemptId: attempt._id,
+        quiz: {
+          id: quiz._id,
+          title: quiz.title
+        },
+        score: attempt.score,
+        percentage: attempt.percentage,
+        pointsEarned: attempt.pointsEarned,
+        timeSpent: attempt.timeSpent,
+        timeSpentFormatted: attempt.timeSpentFormatted,
+        performanceLevel: attempt.performanceLevel,
+        completedAt: attempt.completedAt,
+        feedback: attempt.feedback,
+        strengths: attempt.strengths,
+        weaknesses: attempt.weaknesses,
+        detailedResults,
+        summary: {
+          totalQuestions: quiz.questions.length,
+          correctAnswers: attempt.score,
+          incorrectAnswers: quiz.questions.length - attempt.score,
+          accuracy: attempt.accuracy,
+          hasPassed: attempt.hasPassed
+        }
+      }
+    });
+    
   } catch (error) {
-    console.error('❌ Get quiz attempt results controller error:', error);
+    console.error('❌ Get quiz attempt results error:', error);
     next(error);
   }
 };
 
 // ==========================================
-// ANALYTICS CONTROLLERS (PLACEHOLDER)
+// QUIZ ANALYTICS AND STATISTICS
 // ==========================================
 
+/**
+ * Get user's quiz performance statistics
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
 export const getUserQuizStats = async (req, res, next) => {
   try {
-    res.status(HTTP_STATUS_CODES.NOT_IMPLEMENTED).json({
-      success: false,
-      message: 'Quiz statistics functionality coming soon',
-      feature: 'getUserQuizStats'
+    const userId = req.user.id;
+    
+    console.log(`📈 Getting quiz stats for user: ${userId}`);
+    
+    // Get quiz statistics
+    const quizStats = await Quiz.getUserStats(userId);
+    
+    // Get quiz attempt statistics
+    const attemptStats = await QuizAttempt.getUserStats(userId);
+    
+    // Get recent performance
+    const recentAttempts = await QuizAttempt.find({
+      userId,
+      status: 'completed'
+    })
+    .sort({ completedAt: -1 })
+    .limit(10)
+    .populate('quizId', 'title difficulty')
+    .lean();
+    
+    res.status(200).json({
+      success: true,
+      stats: {
+        quizzes: quizStats[0] || {
+          totalQuizzes: 0,
+          activeQuizzes: 0,
+          totalAttempts: 0,
+          categoriesUsed: []
+        },
+        attempts: attemptStats[0] || {
+          totalAttempts: 0,
+          averageScore: 0,
+          totalPointsEarned: 0,
+          averageTimeSpent: 0,
+          bestScore: 0,
+          completionRate: 0
+        },
+        recentPerformance: recentAttempts.map(attempt => ({
+          attemptId: attempt._id,
+          quiz: {
+            id: attempt.quizId._id,
+            title: attempt.quizId.title,
+            difficulty: attempt.quizId.difficulty
+          },
+          percentage: attempt.percentage,
+          pointsEarned: attempt.pointsEarned,
+          completedAt: attempt.completedAt
+        }))
+      }
     });
+    
   } catch (error) {
+    console.error('❌ Get user quiz stats error:', error);
     next(error);
   }
 };
 
+/**
+ * Get user's quiz attempt history
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
 export const getQuizAttemptHistory = async (req, res, next) => {
   try {
-    res.status(HTTP_STATUS_CODES.NOT_IMPLEMENTED).json({
-      success: false,
-      message: 'Quiz history functionality coming soon',
-      feature: 'getQuizAttemptHistory'
+    const userId = req.user.id;
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      sortBy = 'completedAt',
+      sortOrder = 'desc'
+    } = req.query;
+    
+    console.log(`📋 Getting quiz attempt history for user: ${userId}`);
+    
+    // Build query
+    const query = { userId };
+    if (status) query.status = status;
+    
+    // Execute query with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    const attempts = await QuizAttempt.find(query)
+      .populate('quizId', 'title difficulty estimatedTime')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+    
+    // Get total count
+    const totalCount = await QuizAttempt.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      attempts: attempts.map(attempt => ({
+        id: attempt._id,
+        quiz: attempt.quizId ? {
+          id: attempt.quizId._id,
+          title: attempt.quizId.title,
+          difficulty: attempt.quizId.difficulty,
+          estimatedTime: attempt.quizId.estimatedTime
+        } : null,
+        score: attempt.score,
+        percentage: attempt.percentage,
+        pointsEarned: attempt.pointsEarned,
+        timeSpent: attempt.timeSpent,
+        timeSpentFormatted: attempt.timeSpentFormatted,
+        performanceLevel: attempt.performanceLevel,
+        status: attempt.status,
+        startedAt: attempt.startedAt,
+        completedAt: attempt.completedAt
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        pages: Math.ceil(totalCount / parseInt(limit))
+      }
     });
+    
   } catch (error) {
+    console.error('❌ Get quiz attempt history error:', error);
     next(error);
   }
+};
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+/**
+ * Check if user's answer is correct
+ * @param {Object} question - Question object
+ * @param {string} userAnswer - User's answer
+ * @returns {boolean} Whether answer is correct
+ */
+const checkAnswer = (question, userAnswer) => {
+  try {
+    // For multiple choice, check against correctAnswer or correctAnswerIndex
+    if (question.options && question.options.length > 0) {
+      // Check direct answer match
+      if (question.correctAnswer === userAnswer) {
+        return true;
+      }
+      
+      // Check index-based answer
+      if (typeof question.correctAnswerIndex === 'number') {
+        const correctOption = question.options[question.correctAnswerIndex];
+        return correctOption === userAnswer;
+      }
+      
+      return false;
+    }
+    
+    // For fill-in-the-blank and short answer, do case-insensitive comparison
+    if (typeof userAnswer === 'string' && typeof question.correctAnswer === 'string') {
+      return userAnswer.toLowerCase().trim() === question.correctAnswer.toLowerCase().trim();
+    }
+    
+    // Direct comparison
+    return userAnswer === question.correctAnswer;
+    
+  } catch (error) {
+    console.error('❌ Error checking answer:', error);
+    return false;
+  }
+};
+
+/**
+ * Determine device type from user agent
+ * @param {string} userAgent - User agent string
+ * @returns {string} Device type
+ */
+const getDeviceType = (userAgent) => {
+  if (!userAgent) return 'unknown';
+  
+  const ua = userAgent.toLowerCase();
+  
+  if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
+    return 'mobile';
+  }
+  
+  if (ua.includes('tablet') || ua.includes('ipad')) {
+    return 'tablet';
+  }
+  
+  return 'desktop';
+};
+
+export default {
+  generateQuiz,
+  getAllQuizzes,
+  getQuizById,
+  getAllQuizzesForDocument,
+  getDocumentQuizStats,
+  selectQuizForDocument,
+  startQuizAttempt,
+  submitQuizAnswer,
+  completeQuizAttempt,
+  getQuizAttemptResults,
+  getUserQuizStats,
+  getQuizAttemptHistory
 };

@@ -22,6 +22,10 @@ const unlinkAsync = promisify(fs.unlink);
  * @returns {Promise<Object>} Created document
  */
 export const createDocument = async (fileData, documentData, userId) => {
+  console.log('🔍 DEBUG createDocument:');
+  console.log('  fileData.path:', fileData.path);
+  console.log('  fileData:', fileData);
+
   if (!fileData) {
     throw HttpError.badRequest('No file uploaded');
   }
@@ -107,20 +111,21 @@ export const getUserDocuments = async (userId, options = {}) => {
  * @returns {Promise<Object>} Document object
  */
 export const getDocumentById = async (documentId, userId) => {
-  const document = await Document.findOne({
-    _id: documentId,
-    userId,
-    deletedAt: null
-  });
-
-  if (!document) {
-    throw HttpError.notFound('Document not found');
+  try {
+    const document = await Document.findOne({
+      _id: documentId,
+      userId,
+      deletedAt: null
+    }).select('+file.storagePath');  // ← ADD THIS LINE
+    
+    if (!document) {
+      throw HttpError.notFound('Document not found');
+    }
+    
+    return document;
+  } catch (error) {
+    throw error;
   }
-
-  // Update view count
-  await document.recordView();
-
-  return document;
 };
 
 /**
