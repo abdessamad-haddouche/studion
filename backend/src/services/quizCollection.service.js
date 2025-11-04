@@ -19,62 +19,77 @@ import { QUIZ_GENERATION_CONFIG } from './ai.service.js';
 export const storeQuizCollection = async (quizCollection, documentId, userId) => {
   try {
     console.log(`💾 Storing quiz collection for document: ${documentId}`);
+    console.log(`👤 User ID: ${userId}`);
     console.log(`📊 Quizzes to store: ${quizCollection.quizzes.length}`);
     
-    if (!quizCollection.quizzes || quizCollection.quizzes.length === 0) {
-      throw HttpError.badRequest('No quizzes found in collection', {
-        code: 'EMPTY_QUIZ_COLLECTION'
-      });
+    if (!quizCollection || !quizCollection.quizzes || quizCollection.quizzes.length === 0) {
+      throw new Error('No quizzes provided to store');
     }
     
     const storedQuizzes = [];
     const failedQuizzes = [];
     
-    // Store each quiz as an individual Quiz document
-    for (const [index, quizData] of quizCollection.quizzes.entries()) {
+    // Store each quiz individually
+    for (let i = 0; i < quizCollection.quizzes.length; i++) {
+      const quizData = quizCollection.quizzes[i];
+      
       try {
-        console.log(`💾 Storing quiz ${index + 1}/${quizCollection.quizzes.length}: ${quizData.title}`);
+        console.log(`💾 Storing quiz ${i + 1}/${quizCollection.quizzes.length}: ${quizData.title}`);
         
-        // Create Quiz document
+        // 🔥 CRITICAL FIX: Use the exact userId parameter, don't generate new ones
         const quiz = new Quiz({
-          documentId,
-          userId,
-          title: quizData.title,
-          description: `Auto-generated ${quizData.difficulty} ${quizData.type.replace('_', ' ')} quiz`,
-          questions: quizData.questions,
-          difficulty: quizData.difficulty,
-          category: 'comprehension', // Default category
-          estimatedTime: quizData.estimatedTime || Math.ceil(quizData.questions.length * 1.5),
+          documentId: new mongoose.Types.ObjectId(documentId),
+          userId: new mongoose.Types.ObjectId(userId), // ✅ USE PASSED userId
+          
+          // Basic info
+          title: quizData.title || `Generated Quiz ${i + 1}`,
+          description: quizData.description || `AI-generated quiz from document`,
+          
+          // Questions - store as simple mixed array
+          questions: quizData.questions || [],
+          
+          // Classification
+          difficulty: quizData.difficulty || 'mixed',
+          category: 'comprehension',
+          
+          // Settings
+          estimatedTime: quizData.estimatedTime || Math.ceil((quizData.questions?.length || 10) * 1.5),
+          passingScore: 70,
+          
+          // Status
           status: 'active',
           
-          // Add metadata for tracking
+          // AI metadata - CRITICAL for quiz selection
           aiMetadata: {
-            model: 'deepseek-chat',
+            model: 'deepseek-coder',
+            questionType: determineQuestionType(quizData),
+            type: determineQuestionType(quizData),
             generationType: 'comprehensive_collection',
             originalQuizId: quizData.quizId,
-            questionType: quizData.type,
-            generatedAt: new Date()
+            generatedAt: new Date(),
+            tokensUsed: 0,
+            confidence: 0.85
           }
         });
         
         // Save to database
         const savedQuiz = await quiz.save();
+        
+        console.log(`✅ Stored quiz: ${savedQuiz._id} (${savedQuiz.questions.length} questions)`);
+        
         storedQuizzes.push({
           quizId: savedQuiz._id,
-          originalQuizId: quizData.quizId,
-          title: quizData.title,
-          difficulty: quizData.difficulty,
-          type: quizData.type,
-          questionCount: quizData.questions.length
+          title: savedQuiz.title,
+          questionCount: savedQuiz.questions.length,
+          difficulty: savedQuiz.difficulty,
+          type: quizData.type
         });
         
-        console.log(`✅ Stored quiz: ${savedQuiz._id} (${quizData.questions.length} questions)`);
-        
       } catch (error) {
-        console.error(`❌ Failed to store quiz ${index + 1}:`, error.message);
+        console.error(`❌ Failed to store quiz ${i + 1}:`, error.message);
+        
         failedQuizzes.push({
-          originalQuizId: quizData.quizId || `quiz_${index + 1}`,
-          title: quizData.title || 'Unknown Quiz',
+          quizData: quizData.title || `Quiz ${i + 1}`,
           error: error.message
         });
       }
@@ -89,25 +104,49 @@ export const storeQuizCollection = async (quizCollection, documentId, userId) =>
       storedQuizzes,
       failedQuizzes,
       summary: {
-        totalQuizzes: quizCollection.quizzes.length,
+        totalAttempted: quizCollection.quizzes.length,
         successfullyStored: storedQuizzes.length,
-        failed: failedQuizzes.length,
-        successRate: Math.round((storedQuizzes.length / quizCollection.quizzes.length) * 100)
+        failed: failedQuizzes.length
       }
     };
     
   } catch (error) {
-    console.error('❌ Quiz collection storage error:', error);
+    console.error(`❌ Quiz collection storage failed:`, error);
     
-    if (error.name === 'HttpError') {
-      throw error;
-    }
-    
-    throw HttpError.internalServerError(`Failed to store quiz collection: ${error.message}`, {
-      code: 'QUIZ_COLLECTION_STORAGE_ERROR',
-      context: { originalError: error.message }
-    });
+    return {
+      success: false,
+      error: error.message,
+      storedQuizzes: [],
+      failedQuizzes: [],
+      summary: {
+        totalAttempted: 0,
+        successfullyStored: 0,
+        failed: 0
+      }
+    };
   }
+};
+
+/**
+ * Determine question type from quiz data
+ */
+const determineQuestionType = (quizData) => {
+  const title = (quizData.title || '').toLowerCase();
+  
+  if (title.includes('multiple choice') || title.includes('multiple-choice')) {
+    return 'multiple_choice';
+  }
+  
+  if (title.includes('true false') || title.includes('true/false') || title.includes('true-false')) {
+    return 'true_false';
+  }
+  
+  if (title.includes('fill') || title.includes('blank')) {
+    return 'fill_blank';
+  }
+  
+  // Fallback: check quiz type or default
+  return quizData.type || 'multiple_choice';
 };
 
 /**
@@ -118,68 +157,72 @@ export const storeQuizCollection = async (quizCollection, documentId, userId) =>
  * @param {Object} filters - Query filters
  * @returns {Promise<Array>} Available quizzes
  */
-export const getAvailableQuizzes = async (documentId, userId, filters = {}) => {
+export const getAvailableQuizzes = async (documentId, userId, options = {}) => {
   try {
     const {
       difficulty,
       questionType,
-      excludeUsed = true,
-      limit = 10
-    } = filters;
+      excludeUsed = false,
+      limit = 20
+    } = options;
     
     console.log(`🔍 Getting available quizzes for document: ${documentId}`);
-    console.log(`🎯 Filters:`, { difficulty, questionType, excludeUsed, limit });
+    console.log(`👤 User ID: ${userId}`);
+    console.log(`🎯 Filters:`, JSON.stringify({
+      difficulty,
+      questionType,
+      excludeUsed,
+      limit
+    }, null, 2));
     
-    // Build query
+    // Build query - FIXED user ID usage
     const query = {
-      documentId,
-      userId,
+      documentId: new mongoose.Types.ObjectId(documentId),
+      userId: new mongoose.Types.ObjectId(userId), // ✅ USE EXACT USER ID
       status: 'active',
       deletedAt: null
     };
     
     // Add difficulty filter
-    if (difficulty) {
+    if (difficulty && difficulty !== 'mixed') {
       query.difficulty = difficulty;
     }
     
-    // Add question type filter (stored in aiMetadata)
+    // Add question type filter - check multiple fields
     if (questionType) {
-      query['aiMetadata.questionType'] = questionType;
+      query.$or = [
+        { 'aiMetadata.questionType': questionType },
+        { 'aiMetadata.type': questionType },
+        { 'type': questionType }
+      ];
     }
     
-    // Exclude used quizzes if requested
-    if (excludeUsed) {
-      query['analytics.attemptCount'] = { $eq: 0 };
-    }
+    console.log(`🔍 DEBUG MongoDB Query:`, JSON.stringify(query, null, 2));
     
     // Execute query
     const quizzes = await Quiz.find(query)
-      .sort({ createdAt: -1 })
       .limit(limit)
-      .select('title difficulty estimatedTime analytics.attemptCount aiMetadata.questionType questions');
+      .sort({ createdAt: -1 })
+      .lean();
     
     console.log(`✅ Found ${quizzes.length} available quizzes`);
     
-    // Transform for frontend
-    const transformedQuizzes = quizzes.map(quiz => ({
+    // Transform to simple format
+    const availableQuizzes = quizzes.map(quiz => ({
       quizId: quiz._id,
       title: quiz.title,
       difficulty: quiz.difficulty,
-      questionType: quiz.aiMetadata?.questionType || 'unknown',
-      questionCount: quiz.questions.length,
+      questionType: quiz.aiMetadata?.questionType || quiz.aiMetadata?.type || 'mixed',
+      questionCount: quiz.questions?.length || 0,
       estimatedTime: quiz.estimatedTime,
-      attemptCount: quiz.analytics?.attemptCount || 0,
-      isUsed: (quiz.analytics?.attemptCount || 0) > 0
+      createdAt: quiz.createdAt
     }));
     
-    return transformedQuizzes;
+    return availableQuizzes;
     
   } catch (error) {
-    console.error('❌ Error getting available quizzes:', error);
-    throw HttpError.internalServerError(`Failed to get available quizzes: ${error.message}`, {
-      code: 'GET_QUIZZES_ERROR'
-    });
+    console.error(`❌ Error getting available quizzes:`, error);
+    throw error;
   }
 };
 
@@ -191,29 +234,21 @@ export const getAvailableQuizzes = async (documentId, userId, filters = {}) => {
  * @param {Object} criteria - Selection criteria
  * @returns {Promise<Object>} Selected quiz
  */
-export const selectRandomQuiz = async (documentId, userId, criteria = {}) => {
+export const selectRandomQuiz = async (documentId, userId, options = {}) => {
   try {
-    const {
-      difficulty = 'medium',
-      questionType,
-      excludeUsed = true
-    } = criteria;
-    
     console.log(`🎲 Selecting random quiz for document: ${documentId}`);
-    console.log(`🎯 Criteria:`, { difficulty, questionType, excludeUsed });
+    console.log(`🎯 Criteria:`, options);
     
     // Get available quizzes
     const availableQuizzes = await getAvailableQuizzes(documentId, userId, {
-      difficulty,
-      questionType,
-      excludeUsed,
-      limit: 100 // Get more options for better randomization
+      ...options,
+      limit: 100
     });
     
     if (availableQuizzes.length === 0) {
       throw HttpError.notFound('No available quizzes found matching criteria', {
         code: 'NO_AVAILABLE_QUIZZES',
-        context: { criteria }
+        context: { criteria: options }
       });
     }
     
@@ -225,27 +260,19 @@ export const selectRandomQuiz = async (documentId, userId, criteria = {}) => {
     const fullQuiz = await Quiz.findById(selectedQuizInfo.quizId);
     
     if (!fullQuiz) {
-      throw HttpError.notFound('Selected quiz not found', {
-        code: 'QUIZ_NOT_FOUND'
-      });
+      throw HttpError.notFound('Selected quiz not found');
     }
     
-    console.log(`✅ Selected random quiz: ${fullQuiz.title} (${fullQuiz.questions.length} questions)`);
+    console.log(`✅ Selected quiz: ${fullQuiz.title} (${fullQuiz.questions.length} questions)`);
     
     return fullQuiz;
     
   } catch (error) {
-    console.error('❌ Error selecting random quiz:', error);
-    
-    if (error.name === 'HttpError') {
-      throw error;
-    }
-    
-    throw HttpError.internalServerError(`Failed to select random quiz: ${error.message}`, {
-      code: 'SELECT_QUIZ_ERROR'
-    });
+    console.error(`❌ Error selecting random quiz:`, error);
+    throw error;
   }
 };
+
 
 /**
  * 📊 GET QUIZ COLLECTION STATISTICS
@@ -257,13 +284,13 @@ export const selectRandomQuiz = async (documentId, userId, criteria = {}) => {
 export const getQuizCollectionStats = async (documentId, userId) => {
   try {
     console.log(`📊 Getting quiz collection stats for document: ${documentId}`);
+    console.log(`👤 User ID: ${userId}`);
     
     const stats = await Quiz.aggregate([
       {
         $match: {
           documentId: new mongoose.Types.ObjectId(documentId),
-          userId: new mongoose.Types.ObjectId(userId),
-          status: 'active',
+          userId: new mongoose.Types.ObjectId(userId), // ✅ USE EXACT USER ID
           deletedAt: null
         }
       },
@@ -272,73 +299,31 @@ export const getQuizCollectionStats = async (documentId, userId) => {
           _id: null,
           totalQuizzes: { $sum: 1 },
           totalQuestions: { $sum: { $size: '$questions' } },
-          byDifficulty: {
-            $push: {
-              difficulty: '$difficulty',
-              questionType: '$aiMetadata.questionType',
-              attemptCount: { $ifNull: ['$analytics.attemptCount', 0] }
-            }
-          },
-          averageEstimatedTime: { $avg: '$estimatedTime' },
-          totalAttempts: { $sum: { $ifNull: ['$analytics.attemptCount', 0] } }
+          difficulties: { $addToSet: '$difficulty' },
+          questionTypes: { $addToSet: '$aiMetadata.questionType' },
+          avgEstimatedTime: { $avg: '$estimatedTime' }
         }
       }
     ]);
     
-    if (stats.length === 0) {
-      return {
-        totalQuizzes: 0,
-        totalQuestions: 0,
-        breakdown: {},
-        averageEstimatedTime: 0,
-        totalAttempts: 0,
-        usageRate: 0
-      };
-    }
-    
-    const result = stats[0];
-    
-    // Calculate breakdown by difficulty and type
-    const breakdown = {};
-    for (const item of result.byDifficulty) {
-      if (!breakdown[item.difficulty]) {
-        breakdown[item.difficulty] = {};
-      }
-      
-      const type = item.questionType || 'unknown';
-      if (!breakdown[item.difficulty][type]) {
-        breakdown[item.difficulty][type] = {
-          count: 0,
-          attempts: 0
-        };
-      }
-      
-      breakdown[item.difficulty][type].count++;
-      breakdown[item.difficulty][type].attempts += item.attemptCount;
-    }
-    
-    // Calculate usage rate
-    const usedQuizzes = result.byDifficulty.filter(item => item.attemptCount > 0).length;
-    const usageRate = result.totalQuizzes > 0 ? Math.round((usedQuizzes / result.totalQuizzes) * 100) : 0;
-    
-    console.log(`✅ Quiz collection stats calculated: ${result.totalQuizzes} quizzes, ${usageRate}% usage rate`);
-    
-    return {
-      totalQuizzes: result.totalQuizzes,
-      totalQuestions: result.totalQuestions,
-      breakdown,
-      averageEstimatedTime: Math.round(result.averageEstimatedTime || 0),
-      totalAttempts: result.totalAttempts,
-      usageRate
+    const result = stats[0] || {
+      totalQuizzes: 0,
+      totalQuestions: 0,
+      difficulties: [],
+      questionTypes: [],
+      avgEstimatedTime: 0
     };
     
+    console.log(`📊 Stats result:`, result);
+    
+    return result;
+    
   } catch (error) {
-    console.error('❌ Error getting quiz collection stats:', error);
-    throw HttpError.internalServerError(`Failed to get quiz collection stats: ${error.message}`, {
-      code: 'QUIZ_STATS_ERROR'
-    });
+    console.error(`❌ Error getting quiz collection stats:`, error);
+    throw error;
   }
 };
+
 
 /**
  * 🗑️ CLEANUP UNUSED QUIZZES

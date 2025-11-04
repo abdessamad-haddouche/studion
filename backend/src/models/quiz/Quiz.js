@@ -168,22 +168,45 @@ const quizSchema = new mongoose.Schema({
       type: String,
       default: null
     },
-    tokensUsed: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
-    generationTime: {
-      type: Number, // in milliseconds
-      default: null,
-      min: 0
-    },
-    confidence: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: null
-    }
+   questionType: {
+    type: String,
+    enum: ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'mixed'],
+    default: 'multiple_choice'
+  },
+  type: {
+    type: String,
+    enum: ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'mixed'],
+    default: 'multiple_choice'
+  },
+  generationType: {
+    type: String,
+    default: 'ai_generated'
+  },
+  originalQuizId: {
+    type: String,
+    default: null
+  },
+  // END OF ADDED FIELDS 🔥
+  tokensUsed: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  generationTime: {
+    type: Number, // in milliseconds
+    default: null,
+    min: 0
+  },
+  confidence: {
+    type: Number,
+    min: 0,
+    max: 1,
+    default: null
+  },
+  generatedAt: {
+    type: Date,
+    default: null
+  }
   },
   
   // ==========================================
@@ -233,6 +256,8 @@ quizSchema.index({ userId: 1, createdAt: -1, deletedAt: 1 });
 quizSchema.index({ difficulty: 1, category: 1 });
 quizSchema.index({ 'analytics.attemptCount': -1 });
 quizSchema.index({ title: 'text', description: 'text' });
+quizSchema.index({ 'aiMetadata.questionType': 1 });
+quizSchema.index({ 'aiMetadata.type': 1 });
 
 // ==========================================
 // VALIDATION MIDDLEWARE

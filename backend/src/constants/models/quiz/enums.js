@@ -38,7 +38,8 @@ export const QUESTION_TYPES = Object.freeze([
   'multiple_choice',    // Multiple choice with 4 options
   'true_false',         // True/False questions
   'fill_in_blank',      // Fill in the blank
-  'short_answer'        // Short text answer
+  'short_answer',       // Short text answer
+  'mixed'
 ]);
 
 // ==========================================
@@ -51,7 +52,8 @@ export const QUESTION_TYPES = Object.freeze([
 export const QUIZ_DIFFICULTY_LEVELS = Object.freeze([
   'easy',          // Basic comprehension
   'medium',        // Application and analysis
-  'hard'           // Synthesis and evaluation
+  'hard',           // Synthesis and evaluation
+  'mixed',
 ]);
 
 /**

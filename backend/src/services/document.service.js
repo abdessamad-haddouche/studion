@@ -114,9 +114,9 @@ export const getDocumentById = async (documentId, userId) => {
   try {
     const document = await Document.findOne({
       _id: documentId,
-      userId,
+      userId,  // This parameter comes from the controller
       deletedAt: null
-    }).select('+file.storagePath');  // ← ADD THIS LINE
+    }).select('+file.storagePath');
     
     if (!document) {
       throw HttpError.notFound('Document not found');

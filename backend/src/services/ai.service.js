@@ -316,18 +316,27 @@ Respond ONLY with this JSON format:
 export const generateComprehensiveQuizCollection = async (filePath, options = {}) => {
   try {
     const startTime = Date.now();
+    console.log(`⏱️  TIMER START: Comprehensive quiz generation started at ${new Date().toISOString()}`);
     
     console.log(`🏭 Generating comprehensive quiz collection from: ${filePath}`);
     console.log(`📊 Target: ${QUIZ_GENERATION_CONFIG.totalQuizzes} quizzes (${QUIZ_GENERATION_CONFIG.totalQuestions} questions)`);
     
+    // File Resolution Timer
+    const fileResolutionStart = Date.now();
     const resolvedPath = resolveFilePath(filePath);
     const fileStats = await getDocumentStats(resolvedPath);
+    const fileResolutionTime = Date.now() - fileResolutionStart;
+    console.log(`⏱️  File resolution completed in ${fileResolutionTime}ms`);
     
     if (!fileStats.isSupported) {
       throw HttpError.badRequest(`Unsupported file type: ${fileStats.fileExtension}`);
     }
 
+    // Text Extraction Timer
+    const extractionStart = Date.now();
     const extractionResult = await extractDocumentText(resolvedPath);
+    const extractionTime = Date.now() - extractionStart;
+    console.log(`⏱️  Text extraction completed in ${extractionTime}ms`);
     
     if (!extractionResult.success) {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
@@ -335,17 +344,27 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
     
     console.log(`✅ Text extracted successfully (${extractionResult.text.length} characters)`);
 
+    // Prompt Building Timer
+    const promptStart = Date.now();
     const prompt = buildComprehensiveQuizPrompt(extractionResult.text);
     const messages = [{ role: 'user', content: prompt }];
+    const promptTime = Date.now() - promptStart;
+    console.log(`⏱️  Prompt building completed in ${promptTime}ms`);
 
-    console.log(`🤖 Calling DeepSeek API for comprehensive quiz generation...`);
+    console.log(`🤖 TIMER: Calling DeepSeek API for comprehensive quiz generation...`);
     
+    // AI API Call Timer (THE MAIN ONE)
+    const aiStartTime = Date.now();
     const response = await callDeepSeekAPI(messages, {
       maxTokens: 4096,  // Reduced for speed
       temperature: 0.3  // Lower for faster generation
     });
+    const aiEndTime = Date.now();
+    const aiDuration = aiEndTime - aiStartTime;
+    console.log(`⚡ TIMER: DeepSeek API responded in ${aiDuration}ms (${(aiDuration/1000).toFixed(2)}s)`);
 
-    const endTime = Date.now();
+    // Response Processing Timer
+    const processingStart = Date.now();
     let rawResponse = response.choices[0]?.message?.content || '';
     
     console.log(`✅ Comprehensive quiz generation completed (${rawResponse.length} characters)`);
@@ -360,7 +379,23 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
       throw HttpError.badRequest('No valid quizzes found in AI response');
     }
 
+    const processingTime = Date.now() - processingStart;
+    console.log(`⏱️  Response parsing completed in ${processingTime}ms`);
     console.log(`✅ Quiz collection parsing completed (${quizCollection.quizzes.length} quizzes generated)`);
+
+    // Final Timing Summary
+    const endTime = Date.now();
+    const totalDuration = endTime - startTime;
+    
+    console.log(`✅ TIMER END: Total comprehensive processing completed in ${totalDuration}ms (${(totalDuration/1000).toFixed(2)}s)`);
+    console.log(`📊 DETAILED TIMING BREAKDOWN:`);
+    console.log(`   🔍 File Resolution: ${fileResolutionTime}ms (${(fileResolutionTime/1000).toFixed(2)}s)`);
+    console.log(`   📖 Text Extraction: ${extractionTime}ms (${(extractionTime/1000).toFixed(2)}s)`);
+    console.log(`   📝 Prompt Building: ${promptTime}ms (${(promptTime/1000).toFixed(2)}s)`);
+    console.log(`   🤖 AI API Call: ${aiDuration}ms (${(aiDuration/1000).toFixed(2)}s) ⭐ MAIN BOTTLENECK`);
+    console.log(`   🔄 Response Parsing: ${processingTime}ms (${(processingTime/1000).toFixed(2)}s)`);
+    console.log(`   📊 Total Time: ${totalDuration}ms (${(totalDuration/1000).toFixed(2)}s)`);
+    console.log(`   🎯 AI Percentage: ${((aiDuration/totalDuration)*100).toFixed(1)}% of total time`);
 
     return {
       success: true,
@@ -368,15 +403,26 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
-        processingTime: endTime - startTime,
+        processingTime: totalDuration,
         documentStats: fileStats,
         expectedQuizzes: QUIZ_GENERATION_CONFIG.totalQuizzes,
-        actualQuizzes: quizCollection.quizzes.length
+        actualQuizzes: quizCollection.quizzes.length,
+        timingBreakdown: {
+          totalTime: totalDuration,
+          fileResolutionTime: fileResolutionTime,
+          textExtractionTime: extractionTime,
+          promptBuildingTime: promptTime,
+          aiApiTime: aiDuration,
+          responseParsingTime: processingTime,
+          aiPercentage: ((aiDuration/totalDuration)*100).toFixed(1)
+        }
       },
       rawResponse: rawResponse
     };
 
   } catch (error) {
+    const errorTime = Date.now() - startTime;
+    console.error(`❌ TIMER ERROR: Comprehensive quiz generation failed after ${errorTime}ms (${(errorTime/1000).toFixed(2)}s)`);
     console.error('❌ Comprehensive quiz generation error:', error);
     
     if (error.name === 'HttpError') {
@@ -394,10 +440,23 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
  * Build SUPER FAST quiz prompt - 3 quizzes, 20 questions each, progressive difficulty
  */
 const buildComprehensiveQuizPrompt = (documentText) => {
-  // Take only 600 characters for maximum speed
-  const truncatedText = documentText.substring(0, 600);
+  // Use more text for better context - 1500 chars is still fast
+  const truncatedText = documentText.substring(0, 1500);
   
-  return `Generate 2 quizzes from this text. Each quiz has 10 questions:
+  return `TASK: Generate EXACTLY 2 complete multiple choice quizzes. Each quiz MUST have 10 questions with 4 options each.
+
+❌ DO NOT ask about:
+- Document metadata (title, author, chapter names)
+- Administrative details (semester, course codes)
+- "What is the title of..." questions
+
+✅ FOCUS ON:
+- Core concepts and practical applications
+- Problem-solving and analysis
+- Key principles and how they work
+- Real-world scenarios and decision-making
+
+GENERATE EXACTLY THIS JSON STRUCTURE - 2 QUIZZES, 10 QUESTIONS EACH:
 
 {
   "quizzes": [
@@ -408,10 +467,91 @@ const buildComprehensiveQuizPrompt = (documentText) => {
       "questions": [
         {
           "id": 1,
-          "question": "Question 1?",
+          "question": "Question about core concept 1?",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correctAnswer": "Option A",
+          "correctAnswerIndex": 0,
+          "explanation": "Brief explanation",
+          "points": 1
+        },
+        {
+          "id": 2,
+          "question": "Question about core concept 2?",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correctAnswer": "Option B",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief explanation",
+          "points": 1
+        },
+        {
+          "id": 3,
+          "question": "Question 3?",
           "options": ["A", "B", "C", "D"],
           "correctAnswer": "A",
           "correctAnswerIndex": 0,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 4,
+          "question": "Question 4?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "C",
+          "correctAnswerIndex": 2,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 5,
+          "question": "Question 5?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "B",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 6,
+          "question": "Question 6?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "D",
+          "correctAnswerIndex": 3,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 7,
+          "question": "Question 7?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "A",
+          "correctAnswerIndex": 0,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 8,
+          "question": "Question 8?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "B",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 9,
+          "question": "Question 9?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "C",
+          "correctAnswerIndex": 2,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 10,
+          "question": "Question 10?",
+          "options": ["A", "B", "C", "D"],
+          "correctAnswer": "D",
+          "correctAnswerIndex": 3,
           "explanation": "Brief",
           "points": 1
         }
@@ -424,10 +564,91 @@ const buildComprehensiveQuizPrompt = (documentText) => {
       "questions": [
         {
           "id": 1,
-          "question": "Statement?",
+          "question": "True/False statement about concept 1?",
           "options": ["True", "False"],
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
+          "explanation": "Brief explanation",
+          "points": 1
+        },
+        {
+          "id": 2,
+          "question": "Statement 2?",
+          "options": ["True", "False"],
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 3,
+          "question": "Statement 3?",
+          "options": ["True", "False"],
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 4,
+          "question": "Statement 4?",
+          "options": ["True", "False"],
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 5,
+          "question": "Statement 5?",
+          "options": ["True", "False"],
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 6,
+          "question": "Statement 6?",
+          "options": ["True", "False"],
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 7,
+          "question": "Statement 7?",
+          "options": ["True", "False"],
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 8,
+          "question": "Statement 8?",
+          "options": ["True", "False"],
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 9,
+          "question": "Statement 9?",
+          "options": ["True", "False"],
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Brief",
+          "points": 1
+        },
+        {
+          "id": 10,
+          "question": "Statement 10?",
+          "options": ["True", "False"],
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
           "explanation": "Brief",
           "points": 1
         }
@@ -436,13 +657,17 @@ const buildComprehensiveQuizPrompt = (documentText) => {
   ]
 }
 
-CRITICAL:
-- 2 quizzes only
-- 10 questions per quiz (20 total)
-- Very brief explanations
-- Start with JSON immediately
+CRITICAL REQUIREMENTS:
+- EXACTLY 2 quizzes
+- EXACTLY 10 questions per quiz
+- First quiz: multiple choice with 4 options each
+- Second quiz: true/false with 2 options each
+- Focus on PRACTICAL KNOWLEDGE not metadata
+- Complete JSON structure as shown above
+- No truncation - generate ALL 20 questions
 
-Text: ${truncatedText}`;
+Document content:
+${truncatedText}`;
 };
 
 /**
@@ -523,7 +748,17 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
       difficulty: quiz.difficulty || expectedDifficulty,
       type: quiz.type || expectedType,
       estimatedTime: quiz.estimatedTime || Math.ceil(validatedQuestions.length * 1.5),
-      questions: validatedQuestions
+      questions: validatedQuestions,
+      // ✅ ENSURE AI METADATA IS PROPERLY SET
+      aiMetadata: {
+        questionType: expectedType,  // ✅ THIS IS KEY FOR SEARCH
+        type: expectedType,          // ✅ BACKUP FIELD
+        generationType: 'bulk_generation',
+        model: 'deepseek-chat',
+        originalQuestionCount: validatedQuestions.length,
+        generatedAt: new Date().toISOString(),
+        difficulty: expectedDifficulty
+      }
     };
     
   } catch (error) {

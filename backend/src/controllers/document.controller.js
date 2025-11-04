@@ -275,7 +275,7 @@ export const processDocumentComprehensively = async (documentId) => {
 export const processPendingDocument  = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     console.log(`🔧 Processing triggered for document: ${documentId}`);
     
@@ -400,7 +400,7 @@ export const getAllDocuments = async (req, res, next) => {
 export const getDocumentById = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     const document = await getDocumentByIdService(documentId, userId);
     

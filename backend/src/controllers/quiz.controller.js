@@ -3,7 +3,7 @@
  * @module controllers/quiz-enhanced
  * @description Quiz controller that selects from comprehensive pre-generated quiz collection
  */
-
+import mongoose from 'mongoose';
 import Quiz from '#models/quiz/Quiz.js';
 import QuizAttempt from '#models/quiz/QuizAttempt.js';
 import Document from '#models/document/Document.js';
@@ -11,7 +11,7 @@ import { HttpError } from '#exceptions/index.js';
 import { 
   getAvailableQuizzes, 
   selectRandomQuiz, 
-  getQuizCollectionStats 
+  getQuizCollectionStats
 } from '#services/quizCollection.service.js';
 
 // ==========================================
@@ -27,7 +27,7 @@ import {
  */
 export const generateQuiz = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const {
       documentId,
       difficulty = 'medium',
@@ -47,7 +47,7 @@ export const generateQuiz = async (req, res, next) => {
     // Verify document exists and belongs to user
     const document = await Document.findOne({
       _id: documentId,
-      userId,
+      userId,  // This should work with userId from JWT
       deletedAt: null
     });
     
@@ -120,7 +120,7 @@ export const generateQuiz = async (req, res, next) => {
  */
 const generateCustomQuiz = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const {
       documentId,
       difficulty = 'medium',
@@ -237,7 +237,7 @@ const generateCustomQuiz = async (req, res, next) => {
  */
 export const getAllQuizzes = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const {
       status = 'active',
       difficulty,
@@ -347,7 +347,7 @@ export const getAllQuizzes = async (req, res, next) => {
 export const getQuizById = async (req, res, next) => {
   try {
     const quizId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     console.log(`🔍 Getting quiz: ${quizId} for user: ${userId}`);
     
@@ -421,7 +421,7 @@ export const getQuizById = async (req, res, next) => {
 export const startQuizAttempt = async (req, res, next) => {
   try {
     const quizId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     console.log(`🚀 Starting quiz attempt: ${quizId} for user: ${userId}`);
     
@@ -481,7 +481,7 @@ export const startQuizAttempt = async (req, res, next) => {
 export const submitQuizAnswer = async (req, res, next) => {
   try {
     const { id: quizId, attemptId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { questionId, answer, timeSpent = 0 } = req.body;
     
     console.log(`📝 Submitting answer for attempt: ${attemptId}, question: ${questionId}`);
@@ -541,7 +541,7 @@ export const submitQuizAnswer = async (req, res, next) => {
 export const getAllQuizzesForDocument = async (req, res, next) => {
   try {
     const { documentId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { difficulty, questionType, excludeUsed = false, limit = 20 } = req.query;
     
     const quizzes = await getAvailableQuizzes(documentId, userId, {
@@ -568,8 +568,9 @@ export const getAllQuizzesForDocument = async (req, res, next) => {
  */
 export const getDocumentQuizStats = async (req, res, next) => {
   try {
+
     const { documentId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     const stats = await getQuizCollectionStats(documentId, userId);
     
@@ -590,7 +591,7 @@ export const getDocumentQuizStats = async (req, res, next) => {
 export const selectQuizForDocument = async (req, res, next) => {
   try {
     const { documentId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { difficulty, questionType } = req.body;
     
     const selectedQuiz = await selectRandomQuiz(documentId, userId, {
@@ -632,7 +633,7 @@ export const selectQuizForDocument = async (req, res, next) => {
 export const completeQuizAttempt = async (req, res, next) => {
   try {
     const { id: quizId, attemptId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     console.log(`🏁 Completing quiz attempt: ${attemptId}`);
     
@@ -691,7 +692,7 @@ export const completeQuizAttempt = async (req, res, next) => {
 export const getQuizAttemptResults = async (req, res, next) => {
   try {
     const { id: quizId, attemptId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     console.log(`📊 Getting results for attempt: ${attemptId}`);
     
@@ -770,7 +771,7 @@ export const getQuizAttemptResults = async (req, res, next) => {
  */
 export const getUserQuizStats = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     console.log(`📈 Getting quiz stats for user: ${userId}`);
     
@@ -835,7 +836,7 @@ export const getUserQuizStats = async (req, res, next) => {
  */
 export const getQuizAttemptHistory = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const {
       page = 1,
       limit = 20,
