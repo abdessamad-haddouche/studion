@@ -150,6 +150,7 @@ export const processDocumentWithAI = async (filePath, options = {}) => {
     }
 
     const extractionResult = await extractDocumentText(resolvedPath);
+
     
     if (!extractionResult.success) {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
@@ -195,10 +196,12 @@ Please respond in JSON format:
       summary: parsedResult.summary,
       keyPoints: parsedResult.keyPoints || [],
       topics: parsedResult.topics || [],
+      extractedText: extractionResult.text,
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
         wordCount: extractionResult.metadata.wordCount,
+        pageCount: extractionResult.metadata.pageCount,
         processingTime: Date.now()
       }
     };
@@ -440,211 +443,224 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
  * Build SUPER FAST quiz prompt - 3 quizzes, 20 questions each, progressive difficulty
  */
 const buildComprehensiveQuizPrompt = (documentText) => {
-  // Use more text for better context - 1500 chars is still fast
-  const truncatedText = documentText.substring(0, 1500);
+  // Use more text for better context - 2000 chars for richer concept extraction
+  const truncatedText = documentText.substring(0, 2000);
   
-  return `TASK: Generate EXACTLY 2 complete quizzes based on this document content.
+  return `TASK: Generate EXACTLY 2 complete quizzes testing CORE CONCEPTS from this educational content.
 
 CRITICAL REQUIREMENTS:
-1. EVERY question MUST have correctAnswer field
-2. EVERY question MUST have correctAnswerIndex field
-3. Multiple choice: 4 options, correct answer must match one option exactly
-4. True/False: options ["True", "False"], correct answer must be "True" or "False"
+1. Focus on CONCEPTS, PRINCIPLES, and KNOWLEDGE - NOT document metadata
+2. Questions should test UNDERSTANDING of the subject matter
+3. Avoid questions about "this document", "the author", "this chapter", etc.
+4. EVERY question MUST have correctAnswer field
+5. EVERY question MUST have correctAnswerIndex field
+6. Multiple choice: 4 options, correct answer must match one option exactly
+7. True/False: options ["True", "False"], correct answer must be "True" or "False"
+
+EXAMPLE OF GOOD QUESTIONS (concept-focused):
+✅ "What is the primary purpose of financial ratio analysis?"
+✅ "Which financial statement shows a company's profitability over time?"
+✅ "What does a current ratio below 1.0 typically indicate?"
+
+EXAMPLE OF BAD QUESTIONS (document-focused):
+❌ "What is this document about?"
+❌ "Who wrote this chapter?"
+❌ "How many sections does this document have?"
 
 GENERATE EXACTLY THIS JSON STRUCTURE:
 
 {
   "quizzes": [
     {
-      "title": "Multiple Choice Quiz",
-      "difficulty": "mixed",
+      "title": "Core Concepts Quiz",
+      "difficulty": "mixed", 
       "type": "multiple_choice",
       "questions": [
         {
           "id": 1,
-          "question": "What is the primary purpose of financial analysis?",
-          "options": ["Tax preparation", "Evaluate financial health and identify risks", "Employee management", "Marketing strategy"],
-          "correctAnswer": "Evaluate financial health and identify risks",
+          "question": "What is the primary purpose of financial ratio analysis?",
+          "options": ["To calculate taxes", "To evaluate company performance and financial health", "To determine employee salaries", "To set product prices"],
+          "correctAnswer": "To evaluate company performance and financial health",
           "correctAnswerIndex": 1,
-          "explanation": "Financial analysis primarily evaluates company health",
+          "explanation": "Financial ratio analysis helps assess a company's financial performance and health",
           "points": 1
         },
         {
           "id": 2,
-          "question": "Which statement shows revenues and expenses over time?",
-          "options": ["Balance sheet", "Income statement", "Cash flow", "Equity statement"],
-          "correctAnswer": "Income statement",
+          "question": "Which financial statement primarily shows profitability over a period?",
+          "options": ["Balance Sheet", "Income Statement", "Statement of Cash Flows", "Statement of Equity"],
+          "correctAnswer": "Income Statement",
           "correctAnswerIndex": 1,
-          "explanation": "Income statement shows revenues and expenses",
+          "explanation": "The Income Statement shows revenues, expenses, and profit over a specific period",
           "points": 1
         },
         {
           "id": 3,
-          "question": "What does a current ratio of 0.8 indicate?",
-          "options": ["Excellent liquidity", "Adequate working capital", "Potential liquidity problems", "Strong cash position"],
+          "question": "What does a current ratio below 1.0 typically suggest?",
+          "options": ["Strong financial position", "Potential liquidity problems", "High profitability", "Low debt levels"],
           "correctAnswer": "Potential liquidity problems",
-          "correctAnswerIndex": 2,
-          "explanation": "Current ratio below 1.0 suggests liquidity issues",
+          "correctAnswerIndex": 1,
+          "explanation": "A current ratio below 1.0 indicates current liabilities exceed current assets",
           "points": 1
         },
         {
           "id": 4,
-          "question": "Which ratio best assesses immediate payment ability?",
-          "options": ["Debt-to-equity ratio", "Quick ratio", "Return on equity", "Inventory turnover"],
+          "question": "Which ratio measures a company's ability to pay short-term obligations?",
+          "options": ["Debt-to-equity ratio", "Quick ratio", "Return on assets", "Gross profit margin"],
           "correctAnswer": "Quick ratio",
           "correctAnswerIndex": 1,
-          "explanation": "Quick ratio measures immediate liquidity",
+          "explanation": "The quick ratio measures immediate liquidity and ability to pay short-term debts",
           "points": 1
         },
         {
           "id": 5,
-          "question": "What does declining gross profit margin typically indicate?",
-          "options": ["Improving efficiency", "Rising costs or pricing pressure", "Increased market share", "Better inventory management"],
+          "question": "What does a declining gross profit margin indicate?",
+          "options": ["Improving efficiency", "Rising costs or pricing pressure", "Increased sales volume", "Better inventory management"],
           "correctAnswer": "Rising costs or pricing pressure",
           "correctAnswerIndex": 1,
-          "explanation": "Declining margins often indicate cost or pricing issues",
+          "explanation": "Declining gross margins suggest costs are rising faster than prices",
           "points": 1
         },
         {
           "id": 6,
-          "question": "What is the main objective of financial structure analysis?",
-          "options": ["Employee satisfaction", "Assess debt and equity balance", "Tax calculations", "Marketing effectiveness"],
-          "correctAnswer": "Assess debt and equity balance",
+          "question": "What is the main focus of liquidity analysis?",
+          "options": ["Long-term profitability", "Short-term payment ability", "Market share growth", "Employee productivity"],
+          "correctAnswer": "Short-term payment ability",
           "correctAnswerIndex": 1,
-          "explanation": "Financial structure analysis examines debt vs equity",
+          "explanation": "Liquidity analysis focuses on a company's ability to meet short-term obligations",
           "points": 1
         },
         {
           "id": 7,
-          "question": "What risk does increasing debt-to-equity ratio signal?",
-          "options": ["Decreased risk", "Improved creditworthiness", "Higher financial leverage and risk", "Reduced interest"],
-          "correctAnswer": "Higher financial leverage and risk",
-          "correctAnswerIndex": 2,
-          "explanation": "Higher debt ratios increase financial risk",
+          "question": "Which type of analysis compares financial data across multiple periods?",
+          "options": ["Vertical analysis", "Horizontal analysis", "Ratio analysis", "Variance analysis"],
+          "correctAnswer": "Horizontal analysis",
+          "correctAnswerIndex": 1,
+          "explanation": "Horizontal analysis examines trends by comparing data across time periods",
           "points": 1
         },
         {
           "id": 8,
-          "question": "Which approach examines relationships between financial items?",
-          "options": ["Ratio analysis", "Trend analysis", "Vertical analysis", "Comparative analysis"],
-          "correctAnswer": "Ratio analysis",
-          "correctAnswerIndex": 0,
-          "explanation": "Ratio analysis examines relationships between items",
+          "question": "What does return on equity (ROE) measure?",
+          "options": ["Asset efficiency", "Debt management", "Profitability relative to shareholders' equity", "Liquidity position"],
+          "correctAnswer": "Profitability relative to shareholders' equity",
+          "correctAnswerIndex": 2,
+          "explanation": "ROE measures how effectively a company generates profit from shareholders' investments",
           "points": 1
         },
         {
           "id": 9,
-          "question": "What does cash flow analysis provide beyond income analysis?",
-          "options": ["Profitability trends", "Timing and adequacy of cash movements", "Revenue recognition", "Expense classification"],
-          "correctAnswer": "Timing and adequacy of cash movements",
+          "question": "Which factor is most important for comprehensive financial analysis?",
+          "options": ["Only quantitative ratios", "Both quantitative and qualitative factors", "Only historical data", "Only industry comparisons"],
+          "correctAnswer": "Both quantitative and qualitative factors",
           "correctAnswerIndex": 1,
-          "explanation": "Cash flow shows actual cash timing and adequacy",
+          "explanation": "Effective analysis requires both numerical data and qualitative insights",
           "points": 1
         },
         {
           "id": 10,
-          "question": "Which is most important for comprehensive financial diagnosis?",
-          "options": ["Only quantitative data", "Both quantitative and qualitative factors", "Only historical data", "Only projections"],
-          "correctAnswer": "Both quantitative and qualitative factors",
+          "question": "What is the purpose of benchmarking in financial analysis?",
+          "options": ["To reduce costs", "To compare performance against standards or competitors", "To increase revenue", "To hire employees"],
+          "correctAnswer": "To compare performance against standards or competitors",
           "correctAnswerIndex": 1,
-          "explanation": "Comprehensive analysis needs both quantitative and qualitative",
+          "explanation": "Benchmarking provides context by comparing performance to relevant standards",
           "points": 1
         }
       ]
     },
     {
-      "title": "True False Quiz",
+      "title": "Concept Validation Quiz",
       "difficulty": "mixed",
-      "type": "true_false",
+      "type": "true_false", 
       "questions": [
         {
           "id": 1,
-          "question": "Financial diagnosis focuses solely on analyzing past performance without considering future risks.",
+          "question": "Financial analysis only considers quantitative data and ignores qualitative factors.",
           "options": ["True", "False"],
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
-          "explanation": "Financial diagnosis must consider both past and future",
+          "explanation": "Effective financial analysis incorporates both quantitative and qualitative factors",
           "points": 1
         },
         {
           "id": 2,
-          "question": "The balance sheet provides a snapshot of a company's financial position at a specific point in time.",
+          "question": "The balance sheet provides a snapshot of financial position at a specific point in time.",
           "options": ["True", "False"],
-          "correctAnswer": "True",
+          "correctAnswer": "True", 
           "correctAnswerIndex": 0,
-          "explanation": "Balance sheet is indeed a point-in-time snapshot",
+          "explanation": "The balance sheet shows assets, liabilities, and equity at a specific date",
           "points": 1
         },
         {
           "id": 3,
-          "question": "Ratio analysis can be effectively conducted using only the income statement without the balance sheet.",
+          "question": "A high inventory turnover ratio always indicates excellent inventory management.",
           "options": ["True", "False"],
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
-          "explanation": "Ratio analysis typically requires multiple statements",
+          "explanation": "Very high turnover might indicate stockouts or inadequate inventory levels",
           "points": 1
         },
         {
           "id": 4,
-          "question": "A high inventory turnover ratio always indicates efficient inventory management.",
+          "question": "Liquidity ratios measure a company's ability to meet short-term obligations.",
           "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Very high turnover might indicate stockouts or lost sales",
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Liquidity ratios assess the ability to pay short-term debts and obligations",
           "points": 1
         },
         {
           "id": 5,
-          "question": "Financial analysis should consider both quantitative data and qualitative factors for comprehensive diagnosis.",
+          "question": "Profitability and cash flow always move in the same direction.",
           "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Comprehensive analysis requires both quantitative and qualitative",
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Companies can be profitable but have cash flow problems due to timing differences",
           "points": 1
         },
         {
           "id": 6,
-          "question": "The primary goal of financial analysis is to identify opportunities for cost reduction only.",
+          "question": "Vertical analysis expresses each line item as a percentage of a base amount.",
           "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Financial analysis has broader goals than just cost reduction",
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Vertical analysis shows proportional relationships using percentages",
           "points": 1
         },
         {
           "id": 7,
-          "question": "Vertical analysis expresses each financial statement item as a percentage of a base amount for comparison.",
+          "question": "Industry comparison is unnecessary when analyzing financial ratios.",
           "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Vertical analysis uses percentages of base amounts",
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Industry benchmarks provide essential context for ratio interpretation",
           "points": 1
         },
         {
           "id": 8,
-          "question": "A company with positive net income always has strong cash flow.",
+          "question": "Working capital represents the difference between current assets and current liabilities.",
           "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Net income and cash flow can differ significantly",
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Working capital = Current Assets - Current Liabilities",
           "points": 1
         },
         {
           "id": 9,
-          "question": "Financial structure analysis examines how a company's assets are financed through debt and equity.",
+          "question": "Financial leverage always improves return on equity.",
           "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Financial structure analysis does examine debt and equity financing",
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Leverage can increase ROE but also increases financial risk",
           "points": 1
         },
         {
           "id": 10,
-          "question": "Trend analysis compares financial data only within the same accounting period.",
+          "question": "Trend analysis helps identify patterns in financial performance over time.",
           "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Trend analysis compares data across multiple periods",
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Trend analysis reveals performance patterns across multiple periods",
           "points": 1
         }
       ]
@@ -652,8 +668,10 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
   ]
 }
 
-Document content (use this as reference for creating relevant questions):
-${truncatedText}`;
+CONTENT TO ANALYZE FOR CORE CONCEPTS:
+${truncatedText}
+
+Remember: Generate questions that test understanding of the CONCEPTS and PRINCIPLES discussed in the content, NOT about the document itself.`;
 };
 
 /**

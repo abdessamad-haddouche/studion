@@ -484,9 +484,9 @@ export const submitQuizAnswer = async (req, res, next) => {
     const userId = req.user.userId;
     const { questionId, answer, timeSpent = 0 } = req.body;
     
-    console.log(`📝 Submitting answer for attempt: ${attemptId}, question: ${questionId}`);
+    console.log(`📝 Submitting answer: Attempt=${attemptId}, Question=${questionId}, Answer=${answer}`);
     
-    // Get quiz attempt
+    // 1. Get quiz attempt
     const attempt = await QuizAttempt.findOne({
       _id: attemptId,
       userId,
@@ -498,25 +498,90 @@ export const submitQuizAnswer = async (req, res, next) => {
       return next(HttpError.notFound('Quiz attempt not found or already completed'));
     }
     
-    // Get quiz to check correct answer
+    // 2. Get quiz to check correct answer
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return next(HttpError.notFound('Quiz not found'));
     }
     
-    // Find the question
-    const question = quiz.questions.find(q => q.id === parseInt(questionId));
+    // 3. Find the question in the quiz
+    const question = quiz.questions.find(q => q.id.toString() === questionId.toString());
     if (!question) {
       return next(HttpError.notFound('Question not found'));
     }
     
-    // Check if answer is correct
-    const isCorrect = checkAnswer(question, answer);
+    console.log(`🔍 Question validation:`, {
+      questionId: question.id,
+      userAnswer: answer,
+      correctAnswer: question.correctAnswer,
+      correctAnswerIndex: question.correctAnswerIndex,
+      questionType: quiz.aiMetadata?.questionType
+    });
+    
+    // 4. ✅ FIXED ANSWER VALIDATION (handles both formats)
+    const isCorrect = validateAnswerCorrectly(question, answer, quiz.aiMetadata?.questionType);
     const pointsEarned = isCorrect ? (question.points || 1) : 0;
     
-    // Submit answer to attempt
-    await attempt.submitAnswer(questionId, answer, isCorrect, pointsEarned, timeSpent);
+    console.log(`✅ Answer validation result: isCorrect=${isCorrect}, pointsEarned=${pointsEarned}`);
     
+    // 5. Create answer data
+    const answerData = {
+      questionId: questionId,
+      userAnswer: answer,
+      isCorrect: isCorrect,
+      pointsEarned: pointsEarned,
+      timeSpent: timeSpent,
+      submittedAt: new Date()
+    };
+    
+    // 6. Update or add answer
+    const existingAnswerIndex = attempt.answers.findIndex(
+      existingAnswer => existingAnswer.questionId.toString() === questionId.toString()
+    );
+    
+    if (existingAnswerIndex !== -1) {
+      attempt.answers[existingAnswerIndex] = answerData;
+      console.log(`🔄 Updated existing answer for question ${questionId}`);
+    } else {
+      attempt.answers.push(answerData);
+      console.log(`➕ Added new answer for question ${questionId}`);
+    }
+    
+    // 7. 🔧 FIX: Properly calculate and save points
+    const totalQuestions = quiz.questions.length;
+    const answeredQuestions = attempt.answers.length;
+    const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
+    const totalPointsEarned = attempt.answers.reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
+    const currentPercentage = Math.round((correctAnswers / totalQuestions) * 100);
+    
+    // Update attempt with proper values
+    attempt.score = correctAnswers;
+    attempt.percentage = currentPercentage;
+    attempt.pointsEarned = totalPointsEarned;  // ✅ ADD THIS LINE
+    attempt.lastAnsweredAt = new Date();
+    
+    console.log(`📊 Score calculation:`, {
+      correctAnswers,
+      totalQuestions,
+      percentage: currentPercentage,
+      totalPointsEarned
+    });
+    
+    // 8. Check if quiz is complete
+    const isComplete = answeredQuestions >= totalQuestions;
+    
+    if (isComplete) {
+      attempt.status = 'completed';
+      attempt.completedAt = new Date();
+      console.log(`🎯 Quiz completed! Final score: ${correctAnswers}/${totalQuestions} (${currentPercentage}%) - ${totalPointsEarned} points`);
+    }
+    
+    // 9. Save the updated attempt
+    await attempt.save();
+    
+    console.log(`💾 Attempt saved with pointsEarned: ${attempt.pointsEarned}`);
+    
+    // 10. Send response
     res.status(200).json({
       success: true,
       message: 'Answer submitted successfully',
@@ -524,14 +589,122 @@ export const submitQuizAnswer = async (req, res, next) => {
         questionId,
         isCorrect,
         pointsEarned,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
         currentScore: attempt.score,
-        answeredQuestions: attempt.answers.length
+        answeredQuestions: attempt.answers.length,
+        totalQuestions: totalQuestions,
+        totalPointsEarned: attempt.pointsEarned,
+        isQuizComplete: isComplete,
+        percentage: attempt.percentage
       }
     });
     
   } catch (error) {
     console.error('❌ Submit quiz answer error:', error);
     next(error);
+  }
+};
+
+/**
+ * 🔧 ADD THIS NEW HELPER FUNCTION TO YOUR CONTROLLER:
+ * Properly validate if the user's answer is correct
+ */
+const validateAnswerCorrectly = (question, userAnswer, questionType = 'multiple_choice') => {
+  try {
+    console.log(`\n🔍 ===== VALIDATION DEBUG START =====`);
+    console.log(`🔍 Question ID: ${question.id}`);
+    console.log(`🔍 Question Type: ${questionType}`);
+    console.log(`🔍 User Answer: "${userAnswer}" (type: ${typeof userAnswer})`);
+    
+    // 🔍 DEBUG: Check what correctAnswerIndex actually contains
+    console.log(`🔍 question.correctAnswerIndex: ${question.correctAnswerIndex}`);
+    console.log(`🔍 typeof question.correctAnswerIndex: ${typeof question.correctAnswerIndex}`);
+    console.log(`🔍 question.correctAnswerIndex === undefined: ${question.correctAnswerIndex === undefined}`);
+    console.log(`🔍 question.correctAnswerIndex === null: ${question.correctAnswerIndex === null}`);
+    
+    // 🔍 DEBUG: Show the full question object structure
+    console.log(`🔍 Full question object keys:`, Object.keys(question));
+    console.log(`🔍 Full question object:`, JSON.stringify(question, null, 2));
+    
+    const correctIndex = question.correctAnswerIndex;
+    
+    if (correctIndex === undefined || correctIndex === null) {
+      console.error(`❌ MISSING correctAnswerIndex for question ${question.id}`);
+      console.error(`❌ Question object:`, question);
+      return false;
+    }
+    
+    // Convert user answer to integer
+    let userIndex;
+    
+    if (questionType === 'true_false') {
+      console.log(`🔍 Processing TRUE/FALSE question`);
+      if (typeof userAnswer === 'string') {
+        const lower = userAnswer.toLowerCase().trim();
+        if (lower === 'true') {
+          userIndex = 0;
+          console.log(`🔍 Converted "true" to index 0`);
+        } else if (lower === 'false') {
+          userIndex = 1;
+          console.log(`🔍 Converted "false" to index 1`);
+        } else {
+          userIndex = parseInt(userAnswer);
+          console.log(`🔍 Parsed string "${userAnswer}" to integer ${userIndex}`);
+        }
+      } else {
+        userIndex = parseInt(userAnswer);
+        console.log(`🔍 Parsed non-string userAnswer to integer ${userIndex}`);
+      }
+      
+      // Validate range for true/false
+      if (userIndex < 0 || userIndex > 1) {
+        console.error(`❌ True/False index out of range: ${userIndex}`);
+        return false;
+      }
+      
+    } else {
+      console.log(`🔍 Processing MULTIPLE CHOICE question`);
+      userIndex = parseInt(userAnswer);
+      console.log(`🔍 Parsed userAnswer "${userAnswer}" to integer ${userIndex}`);
+      
+      if (isNaN(userIndex)) {
+        console.error(`❌ Could not parse userAnswer to valid number: "${userAnswer}"`);
+        return false;
+      }
+      
+      // Validate range for multiple choice
+      if (userIndex < 0 || userIndex > 3) {
+        console.error(`❌ Multiple choice index out of range: ${userIndex}`);
+        return false;
+      }
+    }
+    
+    // 🔍 DEBUG: Show the comparison values
+    console.log(`🔍 Final comparison:`);
+    console.log(`🔍   userIndex: ${userIndex} (type: ${typeof userIndex})`);
+    console.log(`🔍   correctIndex: ${correctIndex} (type: ${typeof correctIndex})`);
+    console.log(`🔍   userIndex === correctIndex: ${userIndex === correctIndex}`);
+    console.log(`🔍   userIndex == correctIndex: ${userIndex == correctIndex}`);
+    
+    // THE ACTUAL COMPARISON
+    const isCorrect = userIndex === correctIndex;
+    
+    console.log(`🎯 VALIDATION RESULT: ${isCorrect}`);
+    
+    if (question.options && question.options.length > 0) {
+      console.log(`🔍 User selected option: "${question.options[userIndex] || 'INVALID INDEX'}"`);
+      console.log(`🔍 Correct option: "${question.options[correctIndex] || 'INVALID INDEX'}"`);
+    }
+    
+    console.log(`🔍 ===== VALIDATION DEBUG END =====\n`);
+    
+    return isCorrect;
+    
+  } catch (error) {
+    console.error(`❌ VALIDATION ERROR:`, error);
+    console.error(`❌ Error stack:`, error.stack);
+    return false;
   }
 };
 

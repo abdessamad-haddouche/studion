@@ -81,12 +81,12 @@ export const uploadDocument = async (req, res, next) => {
     const documentData = {
       title: req.body.title,
       description: req.body.description,
-      type: req.body.type,
+      type: req.body.type,  // type must be determined by the ai
       category: req.body.category,
       difficulty: req.body.difficulty,
-      tags: req.body.tags
+      tags: req.body.tags // tags must be determined by the ai
     };
-    
+
     console.log(`📄 Uploaded file: ${req.file.originalname} (${req.file.size} bytes)`);
     
     // Create document record
@@ -168,6 +168,10 @@ export const processDocumentComprehensively = async (documentId) => {
     // STEP 1: Generate AI Summary
     console.log(`📝 Step 1: Generating AI summary...`);
     const summaryResult = await processDocumentWithAI(document.file.storagePath);
+
+    console.log("This is summary result");
+    console.log(summaryResult);
+
     
     if (!summaryResult.success) {
       throw new Error(`AI summarization failed: ${summaryResult.error}`);
@@ -176,12 +180,56 @@ export const processDocumentComprehensively = async (documentId) => {
     console.log(`✅ AI summary generated (${summaryResult.summary.length} characters)`);
     
     // Update document with summary
+    document.content.extractedText = summaryResult.extractedText;
     document.content.summary = summaryResult.summary;
     document.content.keyPoints = summaryResult.keyPoints;
     document.content.topics = summaryResult.topics;
+
+    // update file metadata
+    document.file.metadata.pageCount = summaryResult.metadata.pageCount;
+    document.file.metadata.wordCount = summaryResult.metadata.wordCount;
+    // document.file.metadata.language = "";
+    document.complexity = "";
+    document.quality = "";
+
+
+
+    // 🔥 DIRECT MONGODB TEST - BYPASS MONGOOSE
+    try {
+      console.log(`🧪 TESTING: Direct MongoDB update...`);
+      
+      const directResult = await Document.updateOne(
+        { _id: document._id },
+        { 
+          $set: { 
+            'content.extractedText': summaryResult.extractedText,
+            'content.summary': summaryResult.summary 
+          }
+        }
+      );
+      
+      console.log(`🧪 Direct update result:`, directResult);
+      
+      // Check if it worked
+      const testDoc = await Document.findById(document._id);
+      console.log(`🧪 After direct update - extractedText length: ${testDoc.content.extractedText?.length || 'NULL'}`);
+      
+    } catch (directError) {
+      console.error(`❌ Direct update failed:`, directError);
+    }
+    
     document.processing.aiMetadata = summaryResult.metadata;
     document.processing.stage = 'processing';
-    await document.save();
+    
+    try {
+      console.log(`💾 Attempting to save document with extracted text...`);
+      await document.save();
+      console.log(`✅ Document saved successfully with extracted text`);
+    } catch (saveError) {
+      console.error(`❌ CRITICAL: Document save failed:`, saveError);
+      console.error(`❌ Save error details:`, JSON.stringify(saveError, null, 2));
+      throw saveError;
+    }
     
     // STEP 2: Generate Comprehensive Quiz Collection
     console.log(`🧪 Step 2: Generating comprehensive quiz collection...`);

@@ -42,10 +42,10 @@ export const createDocument = async (fileData, documentData, userId) => {
       mimeType: fileData.mimetype
     },
     classification: {
-      type: documentData.type || undefined,
-      category: documentData.category || undefined,
-      difficulty: documentData.difficulty || undefined,
-      tags: documentData.tags ? documentData.tags.split(',').map(tag => tag.trim()) : []
+      type: documentData.type || undefined, // needs to be determined by ai
+      category: documentData.category || undefined, // needs to be determined by ai
+      difficulty: documentData.difficulty || undefined, // needs to be determined by ai
+      tags: documentData.tags ? documentData.tags.split(',').map(tag => tag.trim()) : [] // needs to be determined by ai
     },
     status: 'pending'
   });
