@@ -168,45 +168,67 @@ const quizSchema = new mongoose.Schema({
       type: String,
       default: null
     },
-   questionType: {
-    type: String,
-    enum: ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'mixed'],
-    default: 'multiple_choice'
-  },
-  type: {
-    type: String,
-    enum: ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'mixed'],
-    default: 'multiple_choice'
-  },
-  generationType: {
-    type: String,
-    default: 'ai_generated'
-  },
-  originalQuizId: {
-    type: String,
-    default: null
-  },
-  // END OF ADDED FIELDS 🔥
-  tokensUsed: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  generationTime: {
-    type: Number, // in milliseconds
-    default: null,
-    min: 0
-  },
-  confidence: {
-    type: Number,
-    min: 0,
-    max: 1,
-    default: null
-  },
-  generatedAt: {
-    type: Date,
-    default: null
-  }
+    questionType: {
+      type: String,
+      enum: ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'mixed'],
+      default: 'multiple_choice'
+    },
+    type: {
+      type: String,
+      enum: ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'mixed'],
+      default: 'multiple_choice'
+    },
+    generationType: {
+      type: String,
+      default: 'ai_generated'
+    },
+    originalQuizId: {
+      type: String,
+      default: null
+    },
+    
+    // 🔧 ADD THESE NEW FIELDS FOR CORRECT ANSWER VALIDATION:
+    hasCorrectAnswers: {
+      type: Boolean,
+      default: false,
+      index: true  // For quick filtering
+    },
+    correctAnswersValidated: {
+      type: Boolean,
+      default: false
+    },
+    answerValidationErrors: {
+      type: [String],
+      default: []
+    },
+    questionValidationStats: {
+      totalQuestions: { type: Number, default: 0 },
+      questionsWithCorrectAnswers: { type: Number, default: 0 },
+      questionsWithValidOptions: { type: Number, default: 0 },
+      validationPercentage: { type: Number, default: 0 }
+    },
+    
+    // Existing fields...
+    tokensUsed: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    generationTime: {
+      type: Number,
+      default: null,
+      min: 0
+    },
+    confidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: null
+    },
+    generatedAt: {
+      type: Date,
+      default: null
+    }
   },
   
   // ==========================================

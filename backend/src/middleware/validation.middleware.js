@@ -12,16 +12,21 @@ import { HttpError } from '#exceptions/index.js';
  * @param {string} paramName - Parameter name to validate (default: 'id')
  * @returns {Function} Express middleware function
  */
-export const validateObjectId = (paramName = 'id') => {
+export const validateObjectId = (paramNames = 'id') => {
   return (req, res, next) => {
-    const id = req.params[paramName];
+    // Handle both single string and array of strings
+    const params = Array.isArray(paramNames) ? paramNames : [paramNames];
     
-    if (!id) {
-      return next(HttpError.badRequest(`Missing ${paramName} parameter`));
-    }
-    
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(HttpError.badRequest(`Invalid ${paramName} format`));
+    for (const paramName of params) {
+      const id = req.params[paramName];
+      
+      if (!id) {
+        return next(HttpError.badRequest(`Missing ${paramName} parameter`));
+      }
+      
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(HttpError.badRequest(`Invalid ${paramName} format`));
+      }
     }
     
     next();

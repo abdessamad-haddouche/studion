@@ -443,20 +443,15 @@ const buildComprehensiveQuizPrompt = (documentText) => {
   // Use more text for better context - 1500 chars is still fast
   const truncatedText = documentText.substring(0, 1500);
   
-  return `TASK: Generate EXACTLY 2 complete multiple choice quizzes. Each quiz MUST have 10 questions with 4 options each.
+  return `TASK: Generate EXACTLY 2 complete quizzes based on this document content.
 
-❌ DO NOT ask about:
-- Document metadata (title, author, chapter names)
-- Administrative details (semester, course codes)
-- "What is the title of..." questions
+CRITICAL REQUIREMENTS:
+1. EVERY question MUST have correctAnswer field
+2. EVERY question MUST have correctAnswerIndex field
+3. Multiple choice: 4 options, correct answer must match one option exactly
+4. True/False: options ["True", "False"], correct answer must be "True" or "False"
 
-✅ FOCUS ON:
-- Core concepts and practical applications
-- Problem-solving and analysis
-- Key principles and how they work
-- Real-world scenarios and decision-making
-
-GENERATE EXACTLY THIS JSON STRUCTURE - 2 QUIZZES, 10 QUESTIONS EACH:
+GENERATE EXACTLY THIS JSON STRUCTURE:
 
 {
   "quizzes": [
@@ -467,92 +462,92 @@ GENERATE EXACTLY THIS JSON STRUCTURE - 2 QUIZZES, 10 QUESTIONS EACH:
       "questions": [
         {
           "id": 1,
-          "question": "Question about core concept 1?",
-          "options": ["Option A", "Option B", "Option C", "Option D"],
-          "correctAnswer": "Option A",
-          "correctAnswerIndex": 0,
-          "explanation": "Brief explanation",
+          "question": "What is the primary purpose of financial analysis?",
+          "options": ["Tax preparation", "Evaluate financial health and identify risks", "Employee management", "Marketing strategy"],
+          "correctAnswer": "Evaluate financial health and identify risks",
+          "correctAnswerIndex": 1,
+          "explanation": "Financial analysis primarily evaluates company health",
           "points": 1
         },
         {
           "id": 2,
-          "question": "Question about core concept 2?",
-          "options": ["Option A", "Option B", "Option C", "Option D"],
-          "correctAnswer": "Option B",
+          "question": "Which statement shows revenues and expenses over time?",
+          "options": ["Balance sheet", "Income statement", "Cash flow", "Equity statement"],
+          "correctAnswer": "Income statement",
           "correctAnswerIndex": 1,
-          "explanation": "Brief explanation",
+          "explanation": "Income statement shows revenues and expenses",
           "points": 1
         },
         {
           "id": 3,
-          "question": "Question 3?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "A",
-          "correctAnswerIndex": 0,
-          "explanation": "Brief",
+          "question": "What does a current ratio of 0.8 indicate?",
+          "options": ["Excellent liquidity", "Adequate working capital", "Potential liquidity problems", "Strong cash position"],
+          "correctAnswer": "Potential liquidity problems",
+          "correctAnswerIndex": 2,
+          "explanation": "Current ratio below 1.0 suggests liquidity issues",
           "points": 1
         },
         {
           "id": 4,
-          "question": "Question 4?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "C",
-          "correctAnswerIndex": 2,
-          "explanation": "Brief",
+          "question": "Which ratio best assesses immediate payment ability?",
+          "options": ["Debt-to-equity ratio", "Quick ratio", "Return on equity", "Inventory turnover"],
+          "correctAnswer": "Quick ratio",
+          "correctAnswerIndex": 1,
+          "explanation": "Quick ratio measures immediate liquidity",
           "points": 1
         },
         {
           "id": 5,
-          "question": "Question 5?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "B",
+          "question": "What does declining gross profit margin typically indicate?",
+          "options": ["Improving efficiency", "Rising costs or pricing pressure", "Increased market share", "Better inventory management"],
+          "correctAnswer": "Rising costs or pricing pressure",
           "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "explanation": "Declining margins often indicate cost or pricing issues",
           "points": 1
         },
         {
           "id": 6,
-          "question": "Question 6?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "D",
-          "correctAnswerIndex": 3,
-          "explanation": "Brief",
+          "question": "What is the main objective of financial structure analysis?",
+          "options": ["Employee satisfaction", "Assess debt and equity balance", "Tax calculations", "Marketing effectiveness"],
+          "correctAnswer": "Assess debt and equity balance",
+          "correctAnswerIndex": 1,
+          "explanation": "Financial structure analysis examines debt vs equity",
           "points": 1
         },
         {
           "id": 7,
-          "question": "Question 7?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "A",
-          "correctAnswerIndex": 0,
-          "explanation": "Brief",
+          "question": "What risk does increasing debt-to-equity ratio signal?",
+          "options": ["Decreased risk", "Improved creditworthiness", "Higher financial leverage and risk", "Reduced interest"],
+          "correctAnswer": "Higher financial leverage and risk",
+          "correctAnswerIndex": 2,
+          "explanation": "Higher debt ratios increase financial risk",
           "points": 1
         },
         {
           "id": 8,
-          "question": "Question 8?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "B",
-          "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "question": "Which approach examines relationships between financial items?",
+          "options": ["Ratio analysis", "Trend analysis", "Vertical analysis", "Comparative analysis"],
+          "correctAnswer": "Ratio analysis",
+          "correctAnswerIndex": 0,
+          "explanation": "Ratio analysis examines relationships between items",
           "points": 1
         },
         {
           "id": 9,
-          "question": "Question 9?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "C",
-          "correctAnswerIndex": 2,
-          "explanation": "Brief",
+          "question": "What does cash flow analysis provide beyond income analysis?",
+          "options": ["Profitability trends", "Timing and adequacy of cash movements", "Revenue recognition", "Expense classification"],
+          "correctAnswer": "Timing and adequacy of cash movements",
+          "correctAnswerIndex": 1,
+          "explanation": "Cash flow shows actual cash timing and adequacy",
           "points": 1
         },
         {
           "id": 10,
-          "question": "Question 10?",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "D",
-          "correctAnswerIndex": 3,
-          "explanation": "Brief",
+          "question": "Which is most important for comprehensive financial diagnosis?",
+          "options": ["Only quantitative data", "Both quantitative and qualitative factors", "Only historical data", "Only projections"],
+          "correctAnswer": "Both quantitative and qualitative factors",
+          "correctAnswerIndex": 1,
+          "explanation": "Comprehensive analysis needs both quantitative and qualitative",
           "points": 1
         }
       ]
@@ -564,92 +559,92 @@ GENERATE EXACTLY THIS JSON STRUCTURE - 2 QUIZZES, 10 QUESTIONS EACH:
       "questions": [
         {
           "id": 1,
-          "question": "True/False statement about concept 1?",
+          "question": "Financial diagnosis focuses solely on analyzing past performance without considering future risks.",
           "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Brief explanation",
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Financial diagnosis must consider both past and future",
           "points": 1
         },
         {
           "id": 2,
-          "question": "Statement 2?",
+          "question": "The balance sheet provides a snapshot of a company's financial position at a specific point in time.",
           "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "correctAnswer": "True",
+          "correctAnswerIndex": 0,
+          "explanation": "Balance sheet is indeed a point-in-time snapshot",
           "points": 1
         },
         {
           "id": 3,
-          "question": "Statement 3?",
+          "question": "Ratio analysis can be effectively conducted using only the income statement without the balance sheet.",
           "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Brief",
+          "correctAnswer": "False",
+          "correctAnswerIndex": 1,
+          "explanation": "Ratio analysis typically requires multiple statements",
           "points": 1
         },
         {
           "id": 4,
-          "question": "Statement 4?",
+          "question": "A high inventory turnover ratio always indicates efficient inventory management.",
           "options": ["True", "False"],
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "explanation": "Very high turnover might indicate stockouts or lost sales",
           "points": 1
         },
         {
           "id": 5,
-          "question": "Statement 5?",
+          "question": "Financial analysis should consider both quantitative data and qualitative factors for comprehensive diagnosis.",
           "options": ["True", "False"],
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
-          "explanation": "Brief",
+          "explanation": "Comprehensive analysis requires both quantitative and qualitative",
           "points": 1
         },
         {
           "id": 6,
-          "question": "Statement 6?",
+          "question": "The primary goal of financial analysis is to identify opportunities for cost reduction only.",
           "options": ["True", "False"],
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "explanation": "Financial analysis has broader goals than just cost reduction",
           "points": 1
         },
         {
           "id": 7,
-          "question": "Statement 7?",
+          "question": "Vertical analysis expresses each financial statement item as a percentage of a base amount for comparison.",
           "options": ["True", "False"],
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
-          "explanation": "Brief",
+          "explanation": "Vertical analysis uses percentages of base amounts",
           "points": 1
         },
         {
           "id": 8,
-          "question": "Statement 8?",
+          "question": "A company with positive net income always has strong cash flow.",
           "options": ["True", "False"],
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "explanation": "Net income and cash flow can differ significantly",
           "points": 1
         },
         {
           "id": 9,
-          "question": "Statement 9?",
+          "question": "Financial structure analysis examines how a company's assets are financed through debt and equity.",
           "options": ["True", "False"],
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
-          "explanation": "Brief",
+          "explanation": "Financial structure analysis does examine debt and equity financing",
           "points": 1
         },
         {
           "id": 10,
-          "question": "Statement 10?",
+          "question": "Trend analysis compares financial data only within the same accounting period.",
           "options": ["True", "False"],
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
-          "explanation": "Brief",
+          "explanation": "Trend analysis compares data across multiple periods",
           "points": 1
         }
       ]
@@ -657,16 +652,7 @@ GENERATE EXACTLY THIS JSON STRUCTURE - 2 QUIZZES, 10 QUESTIONS EACH:
   ]
 }
 
-CRITICAL REQUIREMENTS:
-- EXACTLY 2 quizzes
-- EXACTLY 10 questions per quiz
-- First quiz: multiple choice with 4 options each
-- Second quiz: true/false with 2 options each
-- Focus on PRACTICAL KNOWLEDGE not metadata
-- Complete JSON structure as shown above
-- No truncation - generate ALL 20 questions
-
-Document content:
+Document content (use this as reference for creating relevant questions):
 ${truncatedText}`;
 };
 
@@ -682,6 +668,7 @@ const parseComprehensiveQuizCollection = (rawResponse) => {
     const jsonEnd = cleanedResponse.lastIndexOf('}') + 1;
     
     if (jsonStart === -1 || jsonEnd === 0) {
+      console.error('❌ No JSON object found in AI response');
       throw new Error('No JSON object found in response');
     }
     
@@ -689,15 +676,32 @@ const parseComprehensiveQuizCollection = (rawResponse) => {
     const quizData = JSON.parse(cleanedResponse);
     
     if (!quizData.quizzes) {
+      console.error('❌ Invalid quiz structure: missing quizzes array');
       throw new Error('Invalid quiz structure: missing quizzes array');
     }
     
     const allQuizzes = [];
     
-    for (const quiz of quizData.quizzes) {
+    for (let i = 0; i < quizData.quizzes.length; i++) {
+      const quiz = quizData.quizzes[i];
+      console.log(`🔍 Processing quiz ${i + 1}: ${quiz.title} (${quiz.type})`);
+      
+      // Check if quiz has questions with correct answers
+      if (quiz.questions && quiz.questions.length > 0) {
+        const questionsWithCorrectAnswers = quiz.questions.filter(q => q.correctAnswer);
+        console.log(`📊 Quiz ${i + 1}: ${questionsWithCorrectAnswers.length}/${quiz.questions.length} questions have correctAnswer fields`);
+        
+        if (questionsWithCorrectAnswers.length === 0) {
+          console.error(`❌ Quiz ${i + 1}: NO questions have correct answers!`);
+        }
+      }
+      
       const validatedQuiz = validateQuiz(quiz, quiz.difficulty, quiz.type);
       if (validatedQuiz) {
         allQuizzes.push(validatedQuiz);
+        console.log(`✅ Quiz ${i + 1} validated successfully with ${validatedQuiz.questions.length} questions`);
+      } else {
+        console.error(`❌ Quiz ${i + 1} validation failed`);
       }
     }
     
@@ -713,6 +717,7 @@ const parseComprehensiveQuizCollection = (rawResponse) => {
     
   } catch (error) {
     console.error('❌ JSON parsing error:', error.message);
+    console.error('❌ Raw response preview:', rawResponse.substring(0, 500));
     return {
       quizzes: [],
       metadata: { totalQuizzes: 0, totalQuestions: 0 }
@@ -776,7 +781,9 @@ const validateQuestion = (question, questionId, questionType) => {
       throw new Error(`Question ${questionId}: missing question text`);
     }
     
+    // 🔧 CRITICAL FIX: Ensure correctAnswer exists and is valid
     if (!question.correctAnswer) {
+      console.error(`❌ Question ${questionId}: missing correctAnswer field`);
       throw new Error(`Question ${questionId}: missing correct answer`);
     }
     
@@ -785,30 +792,42 @@ const validateQuestion = (question, questionId, questionType) => {
       question: question.question.trim(),
       options: question.options || [],
       correctAnswer: question.correctAnswer,
-      correctAnswerIndex: question.correctAnswerIndex || 0,
+      correctAnswerIndex: question.correctAnswerIndex !== undefined ? question.correctAnswerIndex : 0,
       explanation: question.explanation || 'No explanation provided',
       points: question.points || 1
     };
     
-    // Type-specific validation
+    // 🔧 CRITICAL FIX: Type-specific validation with better error handling
     switch (questionType) {
       case 'multiple_choice':
         if (!Array.isArray(question.options) || question.options.length !== 4) {
           throw new Error(`Question ${questionId}: multiple choice must have exactly 4 options`);
         }
+        
+        // Find correct answer index
         const correctIndex = question.options.indexOf(question.correctAnswer);
         if (correctIndex === -1) {
-          throw new Error(`Question ${questionId}: correct answer not found in options`);
+          console.error(`❌ Question ${questionId}: correctAnswer "${question.correctAnswer}" not found in options:`, question.options);
+          throw new Error(`Question ${questionId}: correct answer "${question.correctAnswer}" not found in options`);
         }
+        
         validatedQuestion.correctAnswerIndex = correctIndex;
+        console.log(`✅ Question ${questionId}: correctAnswer="${question.correctAnswer}" at index ${correctIndex}`);
         break;
         
       case 'true_false':
         validatedQuestion.options = ['True', 'False'];
-        if (!['True', 'False'].includes(question.correctAnswer)) {
+        
+        // Normalize the correct answer
+        const normalizedAnswer = question.correctAnswer.toString();
+        if (!['True', 'False'].includes(normalizedAnswer)) {
+          console.error(`❌ Question ${questionId}: true/false answer must be 'True' or 'False', got:`, question.correctAnswer);
           throw new Error(`Question ${questionId}: true/false answer must be 'True' or 'False'`);
         }
-        validatedQuestion.correctAnswerIndex = question.correctAnswer === 'True' ? 0 : 1;
+        
+        validatedQuestion.correctAnswer = normalizedAnswer;
+        validatedQuestion.correctAnswerIndex = normalizedAnswer === 'True' ? 0 : 1;
+        console.log(`✅ Question ${questionId}: correctAnswer="${normalizedAnswer}" at index ${validatedQuestion.correctAnswerIndex}`);
         break;
         
       case 'fill_blank':

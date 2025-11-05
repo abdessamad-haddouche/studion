@@ -52,8 +52,8 @@ const SCHEMA_OPTIONS = {
 
 const answerSchema = new mongoose.Schema({
   questionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: [true, 'Answer must reference a question']
+    type: mongoose.Schema.Types.Mixed,
+    required: [true, 'Question ID is required']
   },
   
   userAnswer: {
