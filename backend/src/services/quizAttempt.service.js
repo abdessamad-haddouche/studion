@@ -10,6 +10,7 @@ import { HttpError } from '#exceptions/index.js';
 import { calculatePointsEarned } from '#constants/models/quiz/index.js';
 import transactionService from '#services/transaction.service.js';
 import userProgressService from '#services/userProgress.service.js';
+import { analyzeQuizPerformance } from '#services/performanceAnalysis.service.js';
 
 
 /**
@@ -204,8 +205,49 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
     // 🎯 CRITICAL: Complete the attempt using MODEL METHOD
     await attempt.complete();
 
-    // Update quiz analytics
+    // 🆕 ADD PERFORMANCE ANALYSIS RIGHT AFTER COMPLETION
     const quiz = await Quiz.findById(attempt.quizId);
+    if (quiz && quiz.questions && quiz.questions.length > 0) {
+      console.log(`📊 Running performance analysis for ${quiz.questions.length} questions...`);
+      
+      try {
+        const { strengths, weaknesses } = analyzeQuizPerformance(attempt.answers, quiz.questions);
+        
+        // Update attempt with analysis results
+        attempt.strengths = strengths;
+        attempt.weaknesses = weaknesses;
+        
+        console.log(`📈 Performance analysis results:`);
+        console.log(`  💪 Strengths: ${strengths.length} areas`);
+        console.log(`  📚 Weaknesses: ${weaknesses.length} areas`);
+        
+        if (strengths.length > 0) {
+          strengths.forEach(s => console.log(`    ✅ ${s.area}: ${s.score}% (${s.correctAnswers}/${s.totalQuestions})`));
+        }
+        
+        if (weaknesses.length > 0) {
+          weaknesses.forEach(w => console.log(`    ❌ ${w.area}: ${w.score}% (${w.correctAnswers}/${w.totalQuestions})`));
+        }
+        
+        // Save the updated attempt with strengths/weaknesses
+        await attempt.save();
+        console.log(`💾 Performance analysis saved to quiz attempt`);
+        
+      } catch (analysisError) {
+        console.error(`⚠️ Performance analysis failed (non-critical):`, analysisError);
+        // Set empty arrays if analysis fails
+        attempt.strengths = [];
+        attempt.weaknesses = [];
+        await attempt.save();
+      }
+    } else {
+      console.log(`⚠️ No quiz questions found for performance analysis`);
+      attempt.strengths = [];
+      attempt.weaknesses = [];
+      await attempt.save();
+    }
+
+    // Update quiz analytics
     if (quiz && typeof quiz.updateAnalytics === 'function') {
       await quiz.updateAnalytics(attempt.percentage, attempt.durationMinutes);
     }
@@ -230,7 +272,8 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
         timeSpent: attempt.timeSpent || 0,
         metadata: {
           attemptId: attempt._id,
-          source: 'quiz_completion',
+          source: 'web', // 🔧 FIXED: Use 'web' instead of 'quiz_completion'
+          originalSource: 'quiz_completion',
           ...metadata
         }
       });
@@ -243,7 +286,7 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
       // Don't fail the quiz completion if points fail
     }
 
-    // 🎯 ADD THIS SECTION RIGHT HERE:
+    // 🎯 UPDATE USER PROGRESS
     try {
       console.log(`📊 Updating user progress...`);
       

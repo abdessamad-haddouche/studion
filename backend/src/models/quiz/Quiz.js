@@ -99,14 +99,25 @@ const quizSchema = new mongoose.Schema({
   // QUIZ QUESTIONS - SIMPLIFIED STRUCTURE
   // ==========================================
   questions: {
-    type: [mongoose.Schema.Types.Mixed], // Simple mixed type to avoid subdocument issues
+    type: [mongoose.Schema.Types.Mixed],
     required: [true, 'Quiz must have at least one question'],
     validate: {
       validator: function(questions) {
-        return questions.length >= QUIZ_VALIDATION_RULES.QUESTIONS_COUNT.MIN && 
-               questions.length <= QUIZ_VALIDATION_RULES.QUESTIONS_COUNT.MAX;
+        const basicValidation = questions.length >= QUIZ_VALIDATION_RULES.QUESTIONS_COUNT.MIN && 
+                              questions.length <= QUIZ_VALIDATION_RULES.QUESTIONS_COUNT.MAX;
+        
+        // Enhanced validation to include skillCategory and topicArea
+        const enhancedValidation = questions.every(q => 
+          q.question && 
+          q.options && 
+          q.correctAnswerIndex !== undefined &&
+          q.skillCategory && // NEW: Must have skill category
+          q.topicArea       // NEW: Must have topic area
+        );
+        
+        return basicValidation && enhancedValidation;
       },
-      message: QUIZ_VALIDATION_RULES.QUESTIONS_COUNT.ERROR_MESSAGE
+      message: QUIZ_VALIDATION_RULES.QUESTIONS_COUNT.ERROR_MESSAGE + ' Each question must include skillCategory and topicArea.'
     }
   },
   

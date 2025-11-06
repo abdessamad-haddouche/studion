@@ -70,10 +70,13 @@ export const createPointsEarningTransaction = async (transactionData) => {
         provider: 'internal'
       },
       metadata: {
-        source: metadata.source || 'web',
+        source: 'web', // 🔧 FIXED: Use 'web' instead of 'quiz_completion'
         sessionId: metadata.sessionId,
         ipAddress: metadata.ipAddress,
-        userAgent: metadata.userAgent
+        userAgent: metadata.userAgent,
+        // 🔧 ADD: Keep track of the original source
+        originalSource: metadata.source || 'quiz_completion',
+        transactionContext: metadata.transactionContext || 'quiz_completion'
       },
       completedAt: new Date()
     });

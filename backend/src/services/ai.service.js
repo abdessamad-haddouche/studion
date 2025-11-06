@@ -454,8 +454,18 @@ CRITICAL REQUIREMENTS:
 3. Avoid questions about "this document", "the author", "this chapter", etc.
 4. EVERY question MUST have correctAnswer field
 5. EVERY question MUST have correctAnswerIndex field
-6. Multiple choice: 4 options, correct answer must match one option exactly
-7. True/False: options ["True", "False"], correct answer must be "True" or "False"
+6. 🆕 EVERY question MUST have skillCategory and topicArea fields
+7. Multiple choice: 4 options, correct answer must match one option exactly
+8. True/False: options ["True", "False"], correct answer must be "True" or "False"
+
+🆕 SKILL CATEGORIES (choose one for each question):
+- factual_recall: Basic facts, definitions, and memorization
+- conceptual_understanding: Understanding relationships and concepts
+- analytical_thinking: Analysis, interpretation, and evaluation
+- procedural_knowledge: How-to knowledge and processes
+- critical_thinking: Judgment, evaluation, and decision-making
+
+🆕 TOPIC AREAS: Extract the main subject/topic from the document content (e.g., "financial_analysis", "project_management", "data_structures")
 
 EXAMPLE OF GOOD QUESTIONS (concept-focused):
 ✅ "What is the primary purpose of financial ratio analysis?"
@@ -483,7 +493,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "To evaluate company performance and financial health",
           "correctAnswerIndex": 1,
           "explanation": "Financial ratio analysis helps assess a company's financial performance and health",
-          "points": 1
+          "points": 1,
+          "skillCategory": "conceptual_understanding",
+          "topicArea": "financial_analysis"
         },
         {
           "id": 2,
@@ -492,7 +504,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Income Statement",
           "correctAnswerIndex": 1,
           "explanation": "The Income Statement shows revenues, expenses, and profit over a specific period",
-          "points": 1
+          "points": 1,
+          "skillCategory": "factual_recall",
+          "topicArea": "financial_statements"
         },
         {
           "id": 3,
@@ -501,7 +515,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Potential liquidity problems",
           "correctAnswerIndex": 1,
           "explanation": "A current ratio below 1.0 indicates current liabilities exceed current assets",
-          "points": 1
+          "points": 1,
+          "skillCategory": "analytical_thinking",
+          "topicArea": "liquidity_analysis"
         },
         {
           "id": 4,
@@ -510,7 +526,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Quick ratio",
           "correctAnswerIndex": 1,
           "explanation": "The quick ratio measures immediate liquidity and ability to pay short-term debts",
-          "points": 1
+          "points": 1,
+          "skillCategory": "factual_recall",
+          "topicArea": "liquidity_ratios"
         },
         {
           "id": 5,
@@ -519,7 +537,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Rising costs or pricing pressure",
           "correctAnswerIndex": 1,
           "explanation": "Declining gross margins suggest costs are rising faster than prices",
-          "points": 1
+          "points": 1,
+          "skillCategory": "analytical_thinking",
+          "topicArea": "profitability_analysis"
         },
         {
           "id": 6,
@@ -528,7 +548,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Short-term payment ability",
           "correctAnswerIndex": 1,
           "explanation": "Liquidity analysis focuses on a company's ability to meet short-term obligations",
-          "points": 1
+          "points": 1,
+          "skillCategory": "conceptual_understanding",
+          "topicArea": "liquidity_analysis"
         },
         {
           "id": 7,
@@ -537,7 +559,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Horizontal analysis",
           "correctAnswerIndex": 1,
           "explanation": "Horizontal analysis examines trends by comparing data across time periods",
-          "points": 1
+          "points": 1,
+          "skillCategory": "procedural_knowledge",
+          "topicArea": "financial_analysis_methods"
         },
         {
           "id": 8,
@@ -546,7 +570,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Profitability relative to shareholders' equity",
           "correctAnswerIndex": 2,
           "explanation": "ROE measures how effectively a company generates profit from shareholders' investments",
-          "points": 1
+          "points": 1,
+          "skillCategory": "conceptual_understanding",
+          "topicArea": "profitability_ratios"
         },
         {
           "id": 9,
@@ -555,7 +581,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "Both quantitative and qualitative factors",
           "correctAnswerIndex": 1,
           "explanation": "Effective analysis requires both numerical data and qualitative insights",
-          "points": 1
+          "points": 1,
+          "skillCategory": "critical_thinking",
+          "topicArea": "comprehensive_analysis"
         },
         {
           "id": 10,
@@ -564,7 +592,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "To compare performance against standards or competitors",
           "correctAnswerIndex": 1,
           "explanation": "Benchmarking provides context by comparing performance to relevant standards",
-          "points": 1
+          "points": 1,
+          "skillCategory": "procedural_knowledge",
+          "topicArea": "benchmarking"
         }
       ]
     },
@@ -580,7 +610,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
           "explanation": "Effective financial analysis incorporates both quantitative and qualitative factors",
-          "points": 1
+          "points": 1,
+          "skillCategory": "conceptual_understanding",
+          "topicArea": "financial_analysis_principles"
         },
         {
           "id": 2,
@@ -589,7 +621,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "True", 
           "correctAnswerIndex": 0,
           "explanation": "The balance sheet shows assets, liabilities, and equity at a specific date",
-          "points": 1
+          "points": 1,
+          "skillCategory": "factual_recall",
+          "topicArea": "balance_sheet"
         },
         {
           "id": 3,
@@ -598,7 +632,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
           "explanation": "Very high turnover might indicate stockouts or inadequate inventory levels",
-          "points": 1
+          "points": 1,
+          "skillCategory": "analytical_thinking",
+          "topicArea": "inventory_management"
         },
         {
           "id": 4,
@@ -607,7 +643,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
           "explanation": "Liquidity ratios assess the ability to pay short-term debts and obligations",
-          "points": 1
+          "points": 1,
+          "skillCategory": "factual_recall",
+          "topicArea": "liquidity_ratios"
         },
         {
           "id": 5,
@@ -616,7 +654,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
           "explanation": "Companies can be profitable but have cash flow problems due to timing differences",
-          "points": 1
+          "points": 1,
+          "skillCategory": "conceptual_understanding",
+          "topicArea": "profitability_vs_cashflow"
         },
         {
           "id": 6,
@@ -625,7 +665,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
           "explanation": "Vertical analysis shows proportional relationships using percentages",
-          "points": 1
+          "points": 1,
+          "skillCategory": "procedural_knowledge",
+          "topicArea": "vertical_analysis"
         },
         {
           "id": 7,
@@ -634,7 +676,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
           "explanation": "Industry benchmarks provide essential context for ratio interpretation",
-          "points": 1
+          "points": 1,
+          "skillCategory": "critical_thinking",
+          "topicArea": "industry_comparison"
         },
         {
           "id": 8,
@@ -643,7 +687,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
           "explanation": "Working capital = Current Assets - Current Liabilities",
-          "points": 1
+          "points": 1,
+          "skillCategory": "factual_recall",
+          "topicArea": "working_capital"
         },
         {
           "id": 9,
@@ -652,7 +698,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "False",
           "correctAnswerIndex": 1,
           "explanation": "Leverage can increase ROE but also increases financial risk",
-          "points": 1
+          "points": 1,
+          "skillCategory": "analytical_thinking",
+          "topicArea": "financial_leverage"
         },
         {
           "id": 10,
@@ -661,7 +709,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "correctAnswer": "True",
           "correctAnswerIndex": 0,
           "explanation": "Trend analysis reveals performance patterns across multiple periods",
-          "points": 1
+          "points": 1,
+          "skillCategory": "procedural_knowledge",
+          "topicArea": "trend_analysis"
         }
       ]
     }
@@ -671,7 +721,7 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
 CONTENT TO ANALYZE FOR CORE CONCEPTS:
 ${truncatedText}
 
-Remember: Generate questions that test understanding of the CONCEPTS and PRINCIPLES discussed in the content, NOT about the document itself.`;
+Remember: Generate questions that test understanding of the CONCEPTS and PRINCIPLES discussed in the content, NOT about the document itself. EVERY question MUST include skillCategory and topicArea fields.`;
 };
 
 /**
@@ -804,6 +854,17 @@ const validateQuestion = (question, questionId, questionType) => {
       console.error(`❌ Question ${questionId}: missing correctAnswer field`);
       throw new Error(`Question ${questionId}: missing correct answer`);
     }
+
+    // 🆕 VALIDATE SKILL CATEGORY AND TOPIC AREA
+    if (!question.skillCategory) {
+      console.warn(`⚠️ Question ${questionId}: missing skillCategory, using default`);
+      question.skillCategory = 'factual_recall';
+    }
+
+    if (!question.topicArea) {
+      console.warn(`⚠️ Question ${questionId}: missing topicArea, using default`);
+      question.topicArea = 'general_knowledge';
+    }
     
     const validatedQuestion = {
       id: questionId,
@@ -812,17 +873,19 @@ const validateQuestion = (question, questionId, questionType) => {
       correctAnswer: question.correctAnswer,
       correctAnswerIndex: question.correctAnswerIndex !== undefined ? question.correctAnswerIndex : 0,
       explanation: question.explanation || 'No explanation provided',
-      points: question.points || 1
+      points: question.points || 1,
+      // 🆕 ADD THE NEW FIELDS
+      skillCategory: question.skillCategory,
+      topicArea: question.topicArea
     };
     
-    // 🔧 CRITICAL FIX: Type-specific validation with better error handling
+    // Rest of your existing validation logic remains the same...
     switch (questionType) {
       case 'multiple_choice':
         if (!Array.isArray(question.options) || question.options.length !== 4) {
           throw new Error(`Question ${questionId}: multiple choice must have exactly 4 options`);
         }
         
-        // Find correct answer index
         const correctIndex = question.options.indexOf(question.correctAnswer);
         if (correctIndex === -1) {
           console.error(`❌ Question ${questionId}: correctAnswer "${question.correctAnswer}" not found in options:`, question.options);
@@ -836,7 +899,6 @@ const validateQuestion = (question, questionId, questionType) => {
       case 'true_false':
         validatedQuestion.options = ['True', 'False'];
         
-        // Normalize the correct answer
         const normalizedAnswer = question.correctAnswer.toString();
         if (!['True', 'False'].includes(normalizedAnswer)) {
           console.error(`❌ Question ${questionId}: true/false answer must be 'True' or 'False', got:`, question.correctAnswer);

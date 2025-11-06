@@ -368,7 +368,7 @@ const transactionSchema = new mongoose.Schema({
     
     source: {
       type: String,
-      enum: ['web', 'mobile', 'api', 'admin'],
+      enum: ['web', 'mobile', 'api', 'admin', 'quiz_completion'],
       default: 'web'
     },
     

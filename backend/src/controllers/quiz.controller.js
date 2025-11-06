@@ -569,31 +569,17 @@ export const submitQuizAnswer = async (req, res, next) => {
       totalPointsEarned
     });
     
-    // 8. Check if quiz is complete
+    // 8. 🚫 REMOVED AUTO-COMPLETION - Just check if ready
     const isComplete = answeredQuestions >= totalQuestions;
     
     if (isComplete) {
-      attempt.status = 'completed';
-      attempt.completedAt = new Date();
-      console.log(`🎯 Quiz completed! Final score: ${correctAnswers}/${totalQuestions} (${currentPercentage}%) - ${totalPointsEarned} points`);
-      
-      // 🎯 ADD USER PROGRESS UPDATE HERE:
-      try {
-        console.log(`📊 Quiz auto-completed, calling service for progress update...`);
-        
-        const serviceResult = await quizAttemptService.completeQuizAttempt(attemptId, userId, {
-          userAgent: req.get('User-Agent'),
-          ip: req.ip
-        });
-        
-        console.log(`✅ Service completed successfully:`, serviceResult);
-        
-      } catch (serviceError) {
-        console.error(`⚠️ Service error during auto-completion:`, serviceError);
-      }
+      console.log(`🎯 Quiz ready for completion! All ${totalQuestions} questions answered.`);
+      console.log(`📊 Final stats: ${correctAnswers}/${totalQuestions} correct (${currentPercentage}%)`);
+      // DON'T change status or call completion service here
+      // Let the client call the completion endpoint explicitly
     }
     
-    // 9. Save the updated attempt
+    // 9. Save the updated attempt (keep status as 'in_progress')
     await attempt.save();
     
     console.log(`💾 Attempt saved with pointsEarned: ${attempt.pointsEarned}`);

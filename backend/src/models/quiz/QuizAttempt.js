@@ -527,6 +527,34 @@ quizAttemptSchema.methods.generateFeedback = function() {
   return this.save();
 };
 
+/**
+ * Get comprehensive quiz attempt results
+ * @returns {Object} Detailed results object
+ */
+quizAttemptSchema.methods.getResults = function() {
+  return {
+    attemptId: this._id,
+    quizId: this.quizId,
+    userId: this.userId,
+    status: this.status,
+    score: this.score,
+    percentage: this.percentage,
+    pointsEarned: this.pointsEarned,
+    timeSpent: this.timeSpent,
+    timeSpentFormatted: this.timeSpentFormatted,
+    performanceLevel: this.performanceLevel,
+    startedAt: this.startedAt,
+    completedAt: this.completedAt,
+    answers: this.answers,
+    feedback: this.feedback.overall || '',
+    strengths: this.strengths,
+    weaknesses: this.weaknesses,
+    passed: this.hasPassed,
+    accuracy: this.accuracy,
+    durationMinutes: Math.round(this.timeSpent / (1000 * 60))
+  };
+};
+
 // ==========================================
 // STATIC METHODS
 // ==========================================
