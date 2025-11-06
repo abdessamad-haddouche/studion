@@ -584,23 +584,38 @@ export const submitQuizAnswer = async (req, res, next) => {
     
     console.log(`💾 Attempt saved with pointsEarned: ${attempt.pointsEarned}`);
     
-    // 10. Send response
+    // 🆕 GET PERSONALIZED FEEDBACK
+    const feedback = {
+      questionId,
+      isCorrect,
+      pointsEarned,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation,
+      // 🆕 PERSONALIZED STRENGTH/WEAKNESS
+      personalizedFeedback: isCorrect ? {
+        type: 'strength',
+        message: question.strength,
+        skillCategory: question.skillCategory,
+        topicArea: question.topicArea
+      } : {
+        type: 'weakness', 
+        message: question.weakness,
+        skillCategory: question.skillCategory,
+        topicArea: question.topicArea
+      },
+      currentScore: attempt.score,
+      answeredQuestions: attempt.answers.length,
+      totalQuestions: totalQuestions,
+      totalPointsEarned: attempt.pointsEarned,
+      isQuizComplete: isComplete,
+      percentage: attempt.percentage
+    };
+    
+    // 10. Send enhanced response with personalized feedback
     res.status(200).json({
       success: true,
       message: 'Answer submitted successfully',
-      result: {
-        questionId,
-        isCorrect,
-        pointsEarned,
-        correctAnswer: question.correctAnswer,
-        explanation: question.explanation,
-        currentScore: attempt.score,
-        answeredQuestions: attempt.answers.length,
-        totalQuestions: totalQuestions,
-        totalPointsEarned: attempt.pointsEarned,
-        isQuizComplete: isComplete,
-        percentage: attempt.percentage
-      }
+      result: feedback
     });
     
   } catch (error) {
@@ -900,7 +915,7 @@ export const getQuizAttemptResults = async (req, res, next) => {
       return next(HttpError.notFound('Quiz attempt not found or not completed'));
     }
     
-    // Build detailed results
+    // Build detailed results with personalized feedback
     const quiz = attempt.quizId;
     const detailedResults = attempt.answers.map(answer => {
       const question = quiz.questions.find(q => q.id === answer.questionId);
@@ -912,7 +927,14 @@ export const getQuizAttemptResults = async (req, res, next) => {
         isCorrect: answer.isCorrect,
         pointsEarned: answer.pointsEarned,
         explanation: question?.explanation || 'No explanation available',
-        timeSpent: answer.timeSpent
+        timeSpent: answer.timeSpent,
+        // 🆕 PERSONALIZED FEEDBACK
+        personalizedFeedback: {
+          type: answer.isCorrect ? 'strength' : 'weakness',
+          message: answer.isCorrect ? question?.strength : question?.weakness,
+          skillCategory: question?.skillCategory,
+          topicArea: question?.topicArea
+        }
       };
     });
     
@@ -934,7 +956,7 @@ export const getQuizAttemptResults = async (req, res, next) => {
         feedback: attempt.feedback,
         strengths: attempt.strengths,
         weaknesses: attempt.weaknesses,
-        detailedResults,
+        detailedResults, // Now includes personalized feedback
         summary: {
           totalQuestions: quiz.questions.length,
           correctAnswers: attempt.score,

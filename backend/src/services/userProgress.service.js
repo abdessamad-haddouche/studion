@@ -20,11 +20,28 @@ export const updateQuizProgress = async (userId, quizResults) => {
     console.log(`📊 Updating user progress for: ${userId}`);
     console.log(`📈 Quiz results: ${percentage}% (${score} correct, ${pointsEarned} points)`);
 
-    // Find the user
-    const user = await Student.findById(userId);
+    // 🔧 FIX: Enhanced user lookup to handle both Student and BaseUser collections
+    console.log(`🔍 DEBUG: Looking for user with ID: ${userId}`);
+    
+    let user = await Student.findById(userId);
     if (!user) {
+      console.log(`⚠️ DEBUG: User not found in Student collection, trying BaseUser...`);
+      // Try BaseUser collection as fallback
+      const { BaseUser } = await import('#models/users/index.js');
+      user = await BaseUser.findById(userId);
+    }
+    
+    if (!user) {
+      console.error(`❌ DEBUG: User not found in any collection. UserID: ${userId}`);
+      // Let's check what's actually in the database
+      console.log(`🔍 DEBUG: Checking database for user existence...`);
+      const allUsers = await Student.find({}).limit(5);
+      console.log(`🔍 DEBUG: Sample users in database:`, allUsers.map(u => ({ id: u._id, email: u.email, userType: u.userType })));
+      
       throw HttpError.notFound('User not found');
     }
+    
+    console.log(`✅ DEBUG: User found - ID: ${user._id}, Type: ${user.userType || 'unknown'}`);
 
     // Calculate new progress values
     const currentProgress = user.progress;
@@ -60,22 +77,40 @@ export const updateQuizProgress = async (userId, quizResults) => {
       newStudyStreak = 1;
     }
 
-    // Update user progress
-    const updatedUser = await Student.findByIdAndUpdate(
-      userId,
-      {
-        $set: {
-          'progress.quizzesCompleted': newQuizzesCompleted,
-          'progress.averageScore': Math.round(newAverageScore * 100) / 100, // Round to 2 decimals
-          'progress.bestScore': newBestScore,
-          'progress.totalPoints': newTotalPoints,
-          'progress.studyStreak': newStudyStreak,
-          'progress.lastStudyDate': today,
-          'analytics.lastActiveAt': today,
-        }
-      },
-      { new: true }
-    );
+    // 🔧 FIX: Update user using the correct model type
+    let updatedUser;
+    const updateData = {
+      $set: {
+        'progress.quizzesCompleted': newQuizzesCompleted,
+        'progress.averageScore': Math.round(newAverageScore * 100) / 100, // Round to 2 decimals
+        'progress.bestScore': newBestScore,
+        'progress.totalPoints': newTotalPoints,
+        'progress.studyStreak': newStudyStreak,
+        'progress.lastStudyDate': today,
+        'analytics.lastActiveAt': today,
+      }
+    };
+
+    try {
+      if (user.userType === 'student' || user.constructor.name === 'Student') {
+        console.log(`🔧 DEBUG: Updating as Student model`);
+        updatedUser = await Student.findByIdAndUpdate(userId, updateData, { new: true });
+      } else {
+        console.log(`🔧 DEBUG: Updating as BaseUser model`);
+        const { BaseUser } = await import('#models/users/index.js');
+        updatedUser = await BaseUser.findByIdAndUpdate(userId, updateData, { new: true });
+      }
+      
+      if (!updatedUser) {
+        throw new Error('Failed to update user - user not found during update');
+      }
+      
+      console.log(`✅ DEBUG: User successfully updated using ${user.constructor.name} model`);
+      
+    } catch (updateError) {
+      console.error(`❌ DEBUG: User update failed:`, updateError);
+      throw updateError;
+    }
 
     console.log(`✅ User progress updated:`);
     console.log(`  📊 Quizzes completed: ${currentProgress.quizzesCompleted} → ${newQuizzesCompleted}`);

@@ -50,11 +50,28 @@ export const createPointsEarningTransaction = async (transactionData) => {
       });
     }
 
-    // 2. Get user to validate existence
-    const user = await Student.findById(userId);
+    // 🔧 FIX: Try to find user in BaseUser collection first, then Student
+    console.log(`🔍 DEBUG: Looking for user with ID: ${userId}`);
+    
+    let user = await Student.findById(userId);
     if (!user) {
+      console.log(`⚠️ DEBUG: User not found in Student collection, trying BaseUser...`);
+      // Try BaseUser collection as fallback
+      const { BaseUser } = await import('#models/users/index.js');
+      user = await BaseUser.findById(userId);
+    }
+    
+    if (!user) {
+      console.error(`❌ DEBUG: User not found in any collection. UserID: ${userId}`);
+      // Let's check what's actually in the database
+      console.log(`🔍 DEBUG: Checking database for user existence...`);
+      const allUsers = await Student.find({}).limit(5);
+      console.log(`🔍 DEBUG: Sample users in database:`, allUsers.map(u => ({ id: u._id, email: u.email, userType: u.userType })));
+      
       throw HttpError.notFound('User not found');
     }
+    
+    console.log(`✅ DEBUG: User found - ID: ${user._id}, Type: ${user.userType || 'unknown'}`);
 
     // 3. Create transaction
     const transaction = new Transaction({
@@ -70,11 +87,10 @@ export const createPointsEarningTransaction = async (transactionData) => {
         provider: 'internal'
       },
       metadata: {
-        source: 'web', // 🔧 FIXED: Use 'web' instead of 'quiz_completion'
+        source: 'web',
         sessionId: metadata.sessionId,
         ipAddress: metadata.ipAddress,
         userAgent: metadata.userAgent,
-        // 🔧 ADD: Keep track of the original source
         originalSource: metadata.source || 'quiz_completion',
         transactionContext: metadata.transactionContext || 'quiz_completion'
       },
@@ -87,19 +103,34 @@ export const createPointsEarningTransaction = async (transactionData) => {
     }
 
     await transaction.save();
+    console.log(`✅ DEBUG: Transaction saved: ${transaction._id}`);
 
-    // 4. Update user points (without session)
-    const pointsUpdate = {
-      $inc: {
-        'progress.totalPoints': pointsEarned
-      },
-      $set: {
-        'progress.lastPointsEarned': pointsEarned,
-        'progress.lastPointsEarnedAt': new Date()
+    // 4. Update user points - Try both Student and BaseUser update methods
+    try {
+      const pointsUpdate = {
+        $inc: {
+          'progress.totalPoints': pointsEarned
+        },
+        $set: {
+          'progress.lastPointsEarned': pointsEarned,
+          'progress.lastPointsEarnedAt': new Date()
+        }
+      };
+
+      let updateResult;
+      if (user.userType === 'student' || user.constructor.name === 'Student') {
+        updateResult = await Student.findByIdAndUpdate(userId, pointsUpdate, { new: true });
+      } else {
+        const { BaseUser } = await import('#models/users/index.js');
+        updateResult = await BaseUser.findByIdAndUpdate(userId, pointsUpdate, { new: true });
       }
-    };
-
-    await Student.findByIdAndUpdate(userId, pointsUpdate);
+      
+      console.log(`✅ DEBUG: User points updated. New total: ${user.progress.totalPoints + pointsEarned}`);
+      
+    } catch (updateError) {
+      console.error(`❌ DEBUG: User update failed:`, updateError);
+      throw updateError;
+    }
 
     console.log(`✅ Points transaction completed: +${pointsEarned} points`);
 

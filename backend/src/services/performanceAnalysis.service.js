@@ -1,7 +1,7 @@
 /**
  * Performance Analysis Service
  * @module services/performanceAnalysis
- * @description Analyzes quiz performance and determines strengths/weaknesses without AI calls
+ * @description Analyzes quiz performance and determines strengths/weaknesses
  */
 
 /**
@@ -15,7 +15,6 @@ export const analyzeQuizPerformance = (userAnswers, quizQuestions) => {
     console.log(`📊 Analyzing performance: ${userAnswers.length} answers, ${quizQuestions.length} questions`);
     
     const skillPerformance = {};
-    const topicPerformance = {};
     
     // Process each answer
     userAnswers.forEach((answer) => {
@@ -30,8 +29,9 @@ export const analyzeQuizPerformance = (userAnswers, quizQuestions) => {
         return;
       }
       
-      const skillCategory = question.skillCategory || 'unknown';
-      const topicArea = question.topicArea || 'general';
+      // Use the question's skillCategory and topicArea directly - no mapping!
+      const skillCategory = question.skillCategory || 'unknown_skill';
+      const topicArea = question.topicArea || 'unknown_topic';
       
       // Track skill performance
       if (!skillPerformance[skillCategory]) {
@@ -42,13 +42,15 @@ export const analyzeQuizPerformance = (userAnswers, quizQuestions) => {
         skillPerformance[skillCategory].correct++;
       }
       
-      // Track topic performance  
-      if (!topicPerformance[topicArea]) {
-        topicPerformance[topicArea] = { correct: 0, total: 0 };
-      }
-      topicPerformance[topicArea].total++;
-      if (answer.isCorrect) {
-        topicPerformance[topicArea].correct++;
+      // Track topic performance (only if different from skill)
+      if (topicArea !== skillCategory) {
+        if (!skillPerformance[topicArea]) {
+          skillPerformance[topicArea] = { correct: 0, total: 0 };
+        }
+        skillPerformance[topicArea].total++;
+        if (answer.isCorrect) {
+          skillPerformance[topicArea].correct++;
+        }
       }
     });
     
@@ -56,53 +58,32 @@ export const analyzeQuizPerformance = (userAnswers, quizQuestions) => {
     const strengths = [];
     const weaknesses = [];
     
-    // Process skills
-    Object.entries(skillPerformance).forEach(([skill, performance]) => {
+    Object.entries(skillPerformance).forEach(([area, performance]) => {
       const score = Math.round((performance.correct / performance.total) * 100);
       
-      if (score >= 75 && performance.total >= 2) {
-        strengths.push({
-          area: skill,
-          score,
-          totalQuestions: performance.total,
-          correctAnswers: performance.correct
-        });
-      } else if (score < 60) {
-        weaknesses.push({
-          area: skill,
-          score,
-          totalQuestions: performance.total,
-          correctAnswers: performance.correct
-        });
-      }
-    });
-    
-    // Process topics
-    Object.entries(topicPerformance).forEach(([topic, performance]) => {
-      const score = Math.round((performance.correct / performance.total) * 100);
+      console.log(`📊 ${area}: ${performance.correct}/${performance.total} = ${score}%`);
       
-      if (score >= 75 && performance.total >= 2) {
-        strengths.push({
-          area: topic,
-          score,
-          totalQuestions: performance.total,
-          correctAnswers: performance.correct
-        });
-      } else if (score < 60) {
-        weaknesses.push({
-          area: topic,
-          score,
-          totalQuestions: performance.total,
-          correctAnswers: performance.correct
-        });
+      const areaData = {
+        area: area, // Use the raw area name - no validation!
+        score,
+        totalQuestions: performance.total,
+        correctAnswers: performance.correct
+      };
+      
+      if (score >= 75 && performance.total >= 1) {
+        strengths.push(areaData);
+        console.log(`💪 Strength: ${area} (${score}%)`);
+      } else if (score < 60 && performance.total >= 1) {
+        weaknesses.push(areaData);
+        console.log(`📚 Weakness: ${area} (${score}%)`);
       }
     });
     
     console.log(`✅ Performance analysis complete: ${strengths.length} strengths, ${weaknesses.length} weaknesses`);
     
     return { 
-      strengths: strengths.sort((a, b) => b.score - a.score), // Sort by score descending
-      weaknesses: weaknesses.sort((a, b) => a.score - b.score) // Sort by score ascending
+      strengths: strengths.sort((a, b) => b.score - a.score),
+      weaknesses: weaknesses.sort((a, b) => a.score - b.score)
     };
     
   } catch (error) {

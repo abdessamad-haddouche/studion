@@ -98,7 +98,7 @@ const callDeepSeekAPI = async (messages, options = {}) => {
 
     // 🔥 ADD SHORTER TIMEOUT AND BETTER ERROR HANDLING
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
       method: 'POST',
@@ -317,8 +317,9 @@ Respond ONLY with this JSON format:
  * 🔥 NEW FUNCTION: Generate comprehensive quiz collection
  */
 export const generateComprehensiveQuizCollection = async (filePath, options = {}) => {
+  const startTime = Date.now();
+  
   try {
-    const startTime = Date.now();
     console.log(`⏱️  TIMER START: Comprehensive quiz generation started at ${new Date().toISOString()}`);
     
     console.log(`🏭 Generating comprehensive quiz collection from: ${filePath}`);
@@ -455,8 +456,9 @@ CRITICAL REQUIREMENTS:
 4. EVERY question MUST have correctAnswer field
 5. EVERY question MUST have correctAnswerIndex field
 6. 🆕 EVERY question MUST have skillCategory and topicArea fields
-7. Multiple choice: 4 options, correct answer must match one option exactly
-8. True/False: options ["True", "False"], correct answer must be "True" or "False"
+7. 🆕 EVERY question MUST have personalized strength and weakness descriptions specific to that question
+8. Multiple choice: 4 options, correct answer must match one option exactly
+9. True/False: options ["True", "False"], correct answer must be "True" or "False"
 
 🆕 SKILL CATEGORIES (choose one for each question):
 - factual_recall: Basic facts, definitions, and memorization
@@ -467,15 +469,13 @@ CRITICAL REQUIREMENTS:
 
 🆕 TOPIC AREAS: Extract the main subject/topic from the document content (e.g., "financial_analysis", "project_management", "data_structures")
 
-EXAMPLE OF GOOD QUESTIONS (concept-focused):
-✅ "What is the primary purpose of financial ratio analysis?"
-✅ "Which financial statement shows a company's profitability over time?"
-✅ "What does a current ratio below 1.0 typically indicate?"
+🆕 PERSONALIZED STRENGTH/WEAKNESS DESCRIPTIONS:
+- strength: Write a specific, encouraging message about what the user demonstrates they understand well if they answer correctly. Be specific to the question content, not generic.
+- weakness: Write a specific, helpful message about what the user should review or study more if they answer incorrectly. Be specific to the question content, not generic.
 
-EXAMPLE OF BAD QUESTIONS (document-focused):
-❌ "What is this document about?"
-❌ "Who wrote this chapter?"
-❌ "How many sections does this document have?"
+EXAMPLES:
+❌ Generic (BAD): "strength": "analytical_thinking", "weakness": "conceptual_understanding"
+✅ Specific (GOOD): "strength": "Excellent understanding of financial ratio purposes and their role in business performance evaluation", "weakness": "Should review the fundamental purposes of financial analysis and why ratios are essential for evaluating company health"
 
 GENERATE EXACTLY THIS JSON STRUCTURE:
 
@@ -495,7 +495,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Financial ratio analysis helps assess a company's financial performance and health",
           "points": 1,
           "skillCategory": "conceptual_understanding",
-          "topicArea": "financial_analysis"
+          "topicArea": "financial_analysis",
+          "strength": "Strong understanding of financial analysis fundamentals and the role of ratios in performance evaluation",
+          "weakness": "Should review the basic purposes of financial analysis and why ratios are crucial for business assessment"
         },
         {
           "id": 2,
@@ -506,7 +508,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "The Income Statement shows revenues, expenses, and profit over a specific period",
           "points": 1,
           "skillCategory": "factual_recall",
-          "topicArea": "financial_statements"
+          "topicArea": "financial_statements",
+          "strength": "Good knowledge of financial statement purposes and can distinguish between different statement types effectively",
+          "weakness": "Needs to study the specific functions of each financial statement, particularly income statement vs balance sheet differences"
         },
         {
           "id": 3,
@@ -517,7 +521,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "A current ratio below 1.0 indicates current liabilities exceed current assets",
           "points": 1,
           "skillCategory": "analytical_thinking",
-          "topicArea": "liquidity_analysis"
+          "topicArea": "liquidity_analysis",
+          "strength": "Excellent grasp of liquidity ratios and ability to interpret financial health indicators accurately",
+          "weakness": "Should review liquidity ratio calculations and what different ratio values indicate about company financial health"
         },
         {
           "id": 4,
@@ -528,7 +534,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "The quick ratio measures immediate liquidity and ability to pay short-term debts",
           "points": 1,
           "skillCategory": "factual_recall",
-          "topicArea": "liquidity_ratios"
+          "topicArea": "liquidity_ratios",
+          "strength": "Solid knowledge of different financial ratios and their specific purposes in financial analysis",
+          "weakness": "Needs to memorize and understand the different types of financial ratios and what each one measures specifically"
         },
         {
           "id": 5,
@@ -539,7 +547,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Declining gross margins suggest costs are rising faster than prices",
           "points": 1,
           "skillCategory": "analytical_thinking",
-          "topicArea": "profitability_analysis"
+          "topicArea": "profitability_analysis",
+          "strength": "Strong analytical skills in interpreting profitability trends and understanding cost-price relationships",
+          "weakness": "Should study how gross profit margins work and what causes them to increase or decrease over time"
         },
         {
           "id": 6,
@@ -550,7 +560,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Liquidity analysis focuses on a company's ability to meet short-term obligations",
           "points": 1,
           "skillCategory": "conceptual_understanding",
-          "topicArea": "liquidity_analysis"
+          "topicArea": "liquidity_analysis",
+          "strength": "Clear understanding of liquidity concepts and why short-term payment ability matters for businesses",
+          "weakness": "Needs to review what liquidity means in business context and why it's important for company operations"
         },
         {
           "id": 7,
@@ -561,7 +573,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Horizontal analysis examines trends by comparing data across time periods",
           "points": 1,
           "skillCategory": "procedural_knowledge",
-          "topicArea": "financial_analysis_methods"
+          "topicArea": "financial_analysis_methods",
+          "strength": "Good understanding of different financial analysis techniques and when to use horizontal vs vertical analysis",
+          "weakness": "Should review the various financial analysis methods and understand when each technique is most appropriate to use"
         },
         {
           "id": 8,
@@ -572,7 +586,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "ROE measures how effectively a company generates profit from shareholders' investments",
           "points": 1,
           "skillCategory": "conceptual_understanding",
-          "topicArea": "profitability_ratios"
+          "topicArea": "profitability_ratios",
+          "strength": "Excellent understanding of return on equity and how it measures management's effectiveness in using shareholder investments",
+          "weakness": "Needs to study profitability ratios, particularly how ROE relates shareholder equity to company earnings"
         },
         {
           "id": 9,
@@ -583,7 +599,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Effective analysis requires both numerical data and qualitative insights",
           "points": 1,
           "skillCategory": "critical_thinking",
-          "topicArea": "comprehensive_analysis"
+          "topicArea": "comprehensive_analysis",
+          "strength": "Advanced understanding that effective financial analysis requires both numbers and contextual business insights",
+          "weakness": "Should learn that financial analysis isn't just about calculations but also requires considering qualitative business factors"
         },
         {
           "id": 10,
@@ -594,7 +612,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Benchmarking provides context by comparing performance to relevant standards",
           "points": 1,
           "skillCategory": "procedural_knowledge",
-          "topicArea": "benchmarking"
+          "topicArea": "benchmarking",
+          "strength": "Good grasp of benchmarking concepts and why comparative analysis is essential for meaningful financial evaluation",
+          "weakness": "Should study benchmarking techniques and understand why comparing to industry standards provides valuable business insights"
         }
       ]
     },
@@ -612,7 +632,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Effective financial analysis incorporates both quantitative and qualitative factors",
           "points": 1,
           "skillCategory": "conceptual_understanding",
-          "topicArea": "financial_analysis_principles"
+          "topicArea": "financial_analysis_principles",
+          "strength": "Clear understanding that comprehensive financial analysis requires both numerical data and qualitative business insights",
+          "weakness": "Should learn that financial analysis extends beyond just numbers and must include qualitative business factors for complete evaluation"
         },
         {
           "id": 2,
@@ -623,7 +645,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "The balance sheet shows assets, liabilities, and equity at a specific date",
           "points": 1,
           "skillCategory": "factual_recall",
-          "topicArea": "balance_sheet"
+          "topicArea": "balance_sheet",
+          "strength": "Solid knowledge of balance sheet timing and understands it represents financial position at a specific moment",
+          "weakness": "Needs to review balance sheet fundamentals and understand that it shows financial position at one point in time, not over a period"
         },
         {
           "id": 3,
@@ -634,7 +658,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Very high turnover might indicate stockouts or inadequate inventory levels",
           "points": 1,
           "skillCategory": "analytical_thinking",
-          "topicArea": "inventory_management"
+          "topicArea": "inventory_management",
+          "strength": "Advanced analytical thinking - understands that high ratios aren't always positive and can indicate inventory shortages",
+          "weakness": "Should study inventory management ratios more deeply and learn that extremely high turnover can signal inadequate stock levels"
         },
         {
           "id": 4,
@@ -645,7 +671,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Liquidity ratios assess the ability to pay short-term debts and obligations",
           "points": 1,
           "skillCategory": "factual_recall",
-          "topicArea": "liquidity_ratios"
+          "topicArea": "liquidity_ratios",
+          "strength": "Good foundational knowledge of what liquidity ratios measure and their importance for short-term financial health",
+          "weakness": "Needs to review liquidity ratio concepts and understand how they measure a company's ability to pay immediate obligations"
         },
         {
           "id": 5,
@@ -656,7 +684,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Companies can be profitable but have cash flow problems due to timing differences",
           "points": 1,
           "skillCategory": "conceptual_understanding",
-          "topicArea": "profitability_vs_cashflow"
+          "topicArea": "profitability_vs_cashflow",
+          "strength": "Sophisticated understanding of the difference between accounting profits and actual cash movements in business operations",
+          "weakness": "Should study the relationship between profitability and cash flow and learn why they can differ due to accounting timing"
         },
         {
           "id": 6,
@@ -667,7 +697,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Vertical analysis shows proportional relationships using percentages",
           "points": 1,
           "skillCategory": "procedural_knowledge",
-          "topicArea": "vertical_analysis"
+          "topicArea": "vertical_analysis",
+          "strength": "Good understanding of vertical analysis technique and how it uses percentages to show proportional financial relationships",
+          "weakness": "Needs to review vertical analysis methodology and understand how it expresses financial statement items as percentages"
         },
         {
           "id": 7,
@@ -678,7 +710,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Industry benchmarks provide essential context for ratio interpretation",
           "points": 1,
           "skillCategory": "critical_thinking",
-          "topicArea": "industry_comparison"
+          "topicArea": "industry_comparison",
+          "strength": "Excellent critical thinking - recognizes that financial ratios need industry context to be meaningful and actionable",
+          "weakness": "Should learn that financial ratios must be compared to industry standards to provide meaningful insights about company performance"
         },
         {
           "id": 8,
@@ -689,7 +723,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Working capital = Current Assets - Current Liabilities",
           "points": 1,
           "skillCategory": "factual_recall",
-          "topicArea": "working_capital"
+          "topicArea": "working_capital",
+          "strength": "Accurate knowledge of working capital calculation and understanding of this fundamental liquidity measure",
+          "weakness": "Needs to memorize working capital formula and understand what current assets minus current liabilities represents"
         },
         {
           "id": 9,
@@ -700,7 +736,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Leverage can increase ROE but also increases financial risk",
           "points": 1,
           "skillCategory": "analytical_thinking",
-          "topicArea": "financial_leverage"
+          "topicArea": "financial_leverage",
+          "strength": "Strong analytical understanding that financial leverage involves trade-offs between returns and risk",
+          "weakness": "Should study financial leverage concepts and learn that debt can amplify both gains and losses, affecting risk levels"
         },
         {
           "id": 10,
@@ -711,7 +749,9 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
           "explanation": "Trend analysis reveals performance patterns across multiple periods",
           "points": 1,
           "skillCategory": "procedural_knowledge",
-          "topicArea": "trend_analysis"
+          "topicArea": "trend_analysis",
+          "strength": "Good understanding of trend analysis purpose and how it reveals patterns in financial performance over multiple time periods",
+          "weakness": "Should review trend analysis techniques and understand how they help identify patterns in financial data over time"
         }
       ]
     }
@@ -721,7 +761,15 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
 CONTENT TO ANALYZE FOR CORE CONCEPTS:
 ${truncatedText}
 
-Remember: Generate questions that test understanding of the CONCEPTS and PRINCIPLES discussed in the content, NOT about the document itself. EVERY question MUST include skillCategory and topicArea fields.`;
+IMPORTANT REMINDERS:
+1. Make strength descriptions encouraging and specific about what knowledge the user demonstrates
+2. Make weakness descriptions helpful and specific about what the user should study or review
+3. Each strength/weakness should be unique to that specific question - no generic responses
+4. Focus descriptions on the actual concept being tested, not just the skill category
+5. Keep descriptions between 15-50 words for readability
+6. Use positive, learning-focused language that helps students improve
+
+Remember: Generate questions that test understanding of the CONCEPTS and PRINCIPLES discussed in the content, with personalized strength/weakness feedback for each question that relates directly to what that specific question tests.`;
 };
 
 /**
@@ -843,6 +891,9 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
 /**
  * Validate individual question
  */
+/**
+ * Validate individual question
+ */
 const validateQuestion = (question, questionId, questionType) => {
   try {
     if (!question.question || typeof question.question !== 'string') {
@@ -865,6 +916,17 @@ const validateQuestion = (question, questionId, questionType) => {
       console.warn(`⚠️ Question ${questionId}: missing topicArea, using default`);
       question.topicArea = 'general_knowledge';
     }
+
+    // 🆕 VALIDATE PERSONALIZED STRENGTH/WEAKNESS
+    if (!question.strength || question.strength.length < 10) {
+      console.warn(`⚠️ Question ${questionId}: missing or too short strength description`);
+      question.strength = `Good understanding of ${question.topicArea || 'the concept being tested'}`;
+    }
+
+    if (!question.weakness || question.weakness.length < 10) {
+      console.warn(`⚠️ Question ${questionId}: missing or too short weakness description`);
+      question.weakness = `Needs to review ${question.topicArea || 'the fundamental concepts'} covered in this question`;
+    }
     
     const validatedQuestion = {
       id: questionId,
@@ -874,9 +936,10 @@ const validateQuestion = (question, questionId, questionType) => {
       correctAnswerIndex: question.correctAnswerIndex !== undefined ? question.correctAnswerIndex : 0,
       explanation: question.explanation || 'No explanation provided',
       points: question.points || 1,
-      // 🆕 ADD THE NEW FIELDS
       skillCategory: question.skillCategory,
-      topicArea: question.topicArea
+      topicArea: question.topicArea,
+      strength: question.strength.trim(),
+      weakness: question.weakness.trim()
     };
     
     // Rest of your existing validation logic remains the same...

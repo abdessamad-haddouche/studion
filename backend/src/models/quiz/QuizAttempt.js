@@ -86,32 +86,28 @@ const answerSchema = new mongoose.Schema({
 const performanceAreaSchema = new mongoose.Schema({
   area: {
     type: String,
-    enum: {
-      values: SUBJECT_AREAS,
-      message: 'Invalid subject area'
-    },
-    required: [true, 'Performance area is required']
+    required: [true, 'Performance area is required'],
+    trim: true
   },
-  
   score: {
     type: Number,
     min: 0,
     max: 100,
     required: [true, 'Performance score is required']
   },
-  
   totalQuestions: {
     type: Number,
     min: 0,
     required: [true, 'Total questions for this area is required']
   },
-  
   correctAnswers: {
     type: Number,
     min: 0,
     required: [true, 'Correct answers for this area is required']
   }
 }, { _id: false });
+
+
 
 // ==========================================
 // MAIN QUIZ ATTEMPT SCHEMA

@@ -90,7 +90,8 @@ export const SUBJECT_AREAS = Object.freeze([
   'conceptual_understanding', // Understanding concepts
   'procedural_knowledge',     // Knowing how to do things
   'analytical_thinking',      // Breaking down information
-  'critical_evaluation'       // Making judgments
+  'critical_evaluation',       // Making judgments
+  'critical_thinking',
 ]);
 
 // ==========================================
