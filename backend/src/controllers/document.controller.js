@@ -150,12 +150,6 @@ export const processDocumentComprehensively = async (documentId) => {
       throw HttpError.notFound('Document not found');
     }
 
-    console.log('🔍 DOCUMENT DEBUG:');
-    console.log('  document:', document);
-    console.log('  document.file:', document.file);
-    console.log('  document.file.storagePath:', document.file?.storagePath);
-    
-    console.log(`📊 Document file path: ${document.file.storagePath}`);
     
     // Update status to processing
     document.status = 'processing';
@@ -163,13 +157,10 @@ export const processDocumentComprehensively = async (documentId) => {
     document.processing.startedAt = new Date();
     await document.save();
     
-    console.log(`📊 Document file path: ${document.file.storagePath}`);
     
     // STEP 1: Generate AI Summary
-    console.log(`📝 Step 1: Generating AI summary...`);
     const summaryResult = await processDocumentWithAI(document.file.storagePath);
 
-    console.log("This is summary result");
     console.log(summaryResult);
 
     
@@ -177,7 +168,6 @@ export const processDocumentComprehensively = async (documentId) => {
       throw new Error(`AI summarization failed: ${summaryResult.error}`);
     }
     
-    console.log(`✅ AI summary generated (${summaryResult.summary.length} characters)`);
     
     // Update document with summary
     document.content.extractedText = summaryResult.extractedText;
@@ -212,7 +202,6 @@ export const processDocumentComprehensively = async (documentId) => {
       
       // Check if it worked
       const testDoc = await Document.findById(document._id);
-      console.log(`🧪 After direct update - extractedText length: ${testDoc.content.extractedText?.length || 'NULL'}`);
       
     } catch (directError) {
       console.error(`❌ Direct update failed:`, directError);
@@ -222,7 +211,6 @@ export const processDocumentComprehensively = async (documentId) => {
     document.processing.stage = 'processing';
     
     try {
-      console.log(`💾 Attempting to save document with extracted text...`);
       await document.save();
       console.log(`✅ Document saved successfully with extracted text`);
     } catch (saveError) {
@@ -232,17 +220,14 @@ export const processDocumentComprehensively = async (documentId) => {
     }
     
     // STEP 2: Generate Comprehensive Quiz Collection
-    console.log(`🧪 Step 2: Generating comprehensive quiz collection...`);
     const quizCollectionResult = await generateComprehensiveQuizCollection(document.file.storagePath);
     
     if (!quizCollectionResult.success) {
       throw new Error(`Quiz collection generation failed: ${quizCollectionResult.error}`);
     }
     
-    console.log(`✅ Quiz collection generated (${quizCollectionResult.quizCollection.quizzes.length} quizzes)`);
     
     // STEP 3: Store Individual Quizzes
-    console.log(`💾 Step 3: Storing individual quizzes...`);
     const storageResult = await storeQuizCollection(
       quizCollectionResult.quizCollection,
       document._id,
@@ -253,7 +238,6 @@ export const processDocumentComprehensively = async (documentId) => {
       throw new Error(`Quiz storage failed: ${storageResult.error}`);
     }
     
-    console.log(`✅ Quizzes stored (${storageResult.storedQuizzes.length} successful)`);
     
     // STEP 4: Mark document as completed
     document.status = 'completed';

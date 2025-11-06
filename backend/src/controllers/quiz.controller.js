@@ -13,6 +13,8 @@ import {
   selectRandomQuiz, 
   getQuizCollectionStats
 } from '#services/quizCollection.service.js';
+import quizAttemptService from '#services/quizAttempt.service.js';
+
 
 // ==========================================
 // ENHANCED QUIZ GENERATION (FROM PRE-GENERATED COLLECTION)
@@ -557,7 +559,7 @@ export const submitQuizAnswer = async (req, res, next) => {
     // Update attempt with proper values
     attempt.score = correctAnswers;
     attempt.percentage = currentPercentage;
-    attempt.pointsEarned = totalPointsEarned;  // ✅ ADD THIS LINE
+    attempt.pointsEarned = totalPointsEarned;
     attempt.lastAnsweredAt = new Date();
     
     console.log(`📊 Score calculation:`, {
@@ -574,6 +576,21 @@ export const submitQuizAnswer = async (req, res, next) => {
       attempt.status = 'completed';
       attempt.completedAt = new Date();
       console.log(`🎯 Quiz completed! Final score: ${correctAnswers}/${totalQuestions} (${currentPercentage}%) - ${totalPointsEarned} points`);
+      
+      // 🎯 ADD USER PROGRESS UPDATE HERE:
+      try {
+        console.log(`📊 Quiz auto-completed, calling service for progress update...`);
+        
+        const serviceResult = await quizAttemptService.completeQuizAttempt(attemptId, userId, {
+          userAgent: req.get('User-Agent'),
+          ip: req.ip
+        });
+        
+        console.log(`✅ Service completed successfully:`, serviceResult);
+        
+      } catch (serviceError) {
+        console.error(`⚠️ Service error during auto-completion:`, serviceError);
+      }
     }
     
     // 9. Save the updated attempt
@@ -809,6 +826,7 @@ export const completeQuizAttempt = async (req, res, next) => {
     const userId = req.user.userId;
     
     console.log(`🏁 Completing quiz attempt: ${attemptId}`);
+    console.log(`🔍 DEBUG: userId=${userId}, quizId=${quizId}`);
     
     // Get quiz attempt
     const attempt = await QuizAttempt.findOne({
@@ -819,8 +837,11 @@ export const completeQuizAttempt = async (req, res, next) => {
     });
     
     if (!attempt) {
+      console.log(`🚨 DEBUG: Quiz attempt not found or completed`);
       return next(HttpError.notFound('Quiz attempt not found or already completed'));
     }
+
+    console.log(`✅ DEBUG: Found attempt, calling service...`);
     
     // Get quiz for completion processing
     const quiz = await Quiz.findById(quizId);
@@ -828,11 +849,23 @@ export const completeQuizAttempt = async (req, res, next) => {
       return next(HttpError.notFound('Quiz not found'));
     }
     
-    // Complete the attempt
-    await attempt.complete(quiz);
+    // 🎯 ADD THIS TRY/CATCH BLOCK:
+    try {
+      // Complete the attempt
+      const result = await quizAttemptService.completeQuizAttempt(attemptId, userId, {
+        userAgent: req.get('User-Agent'),
+        ip: req.ip
+      });
+      
+      console.log(`🎯 DEBUG: SERVICE RESULT:`, result); // ADD THIS
+      
+    } catch (serviceError) {
+      console.error(`🚨 DEBUG: SERVICE ERROR:`, serviceError); // ADD THIS
+      throw serviceError;
+    }
     
     // Update quiz analytics
-    await quiz.updateAnalytics(attempt.percentage, attempt.timeSpent / (1000 * 60)); // Convert to minutes
+    await quiz.updateAnalytics(attempt.percentage, attempt.timeSpent / (1000 * 60));
     
     console.log(`✅ Quiz attempt completed: ${attempt._id} (${attempt.percentage}%)`);
     

@@ -9,6 +9,8 @@ import QuizAttempt from '#models/quiz/QuizAttempt.js';
 import { HttpError } from '#exceptions/index.js';
 import { calculatePointsEarned } from '#constants/models/quiz/index.js';
 import transactionService from '#services/transaction.service.js';
+import userProgressService from '#services/userProgress.service.js';
+
 
 /**
  * Start a new quiz attempt
@@ -239,6 +241,23 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
     } catch (pointsError) {
       console.error(`⚠️ Points award failed (non-critical):`, pointsError);
       // Don't fail the quiz completion if points fail
+    }
+
+    // 🎯 ADD THIS SECTION RIGHT HERE:
+    try {
+      console.log(`📊 Updating user progress...`);
+      
+      await userProgressService.updateQuizProgress(userId, {
+        score: attempt.score,
+        percentage: attempt.percentage,
+        pointsEarned: pointsEarned,
+        timeSpent: attempt.timeSpent
+      });
+      
+      console.log(`✅ User progress updated successfully`);
+      
+    } catch (progressError) {
+      console.error(`⚠️ User progress update failed (non-critical):`, progressError);
     }
 
     // Add points to results
