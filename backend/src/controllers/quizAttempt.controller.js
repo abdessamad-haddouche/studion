@@ -1,5 +1,5 @@
 /**
- * Quiz Attempt Controller
+ * Quiz Attempt Controller - PROPERLY USING SERVICE LAYER
  * @module controllers/quizAttempt
  * @description Handles quiz attempt operations - start, submit answers, complete attempts
  */
@@ -8,6 +8,7 @@ import QuizAttempt from '#models/quizAttempt/QuizAttempt.js';
 import Quiz from '#models/quiz/Quiz.js';
 import { HttpError } from '#exceptions/index.js';
 import { getQuizCollectionStats } from '#services/quizCollection.service.js';
+import quizAttemptService from '#services/quizAttempt.service.js';
 
 /**
  * @desc Start a new quiz attempt
@@ -24,100 +25,26 @@ export const startQuizAttempt = async (req, res, next) => {
       deviceType: detectDeviceType(req.get('User-Agent'))
     };
 
-    console.log(`🚀 Starting quiz attempt for user: ${userId}, quiz: ${quizId}`);
+    // 🎯 CALL SERVICE LAYER
+    const result = await quizAttemptService.startQuizAttempt(quizId, userId, sessionInfo);
 
-    // Check if quiz exists and user has access
-    const quiz = await Quiz.findOne({
-      _id: quizId,
-      userId: userId,
-      status: 'active',
-      deletedAt: null
-    });
-
-    if (!quiz) {
-      throw HttpError.notFound('Quiz not found or not accessible');
-    }
-
-    // Check for existing active attempt
-    const existingAttempt = await QuizAttempt.findOne({
-      quizId: quizId,
-      userId: userId,
-      status: 'in_progress',
-      deletedAt: null
-    });
-
-    if (existingAttempt) {
-      console.log(`📋 Returning existing active attempt: ${existingAttempt._id}`);
+    if (result.isExisting) {
       return res.status(200).json({
         success: true,
         message: 'Existing attempt found',
-        attempt: {
-          id: existingAttempt._id,
-          quizId: existingAttempt.quizId,
-          status: existingAttempt.status,
-          startedAt: existingAttempt.startedAt,
-          currentQuestionIndex: existingAttempt.currentQuestionIndex,
-          progress: existingAttempt.progressPercentage,
-          timeSpent: existingAttempt.timeSpent
-        }
+        attempt: result.attempt
       });
     }
-
-    // Create quiz snapshot for consistency
-    const quizSnapshot = {
-      title: quiz.title,
-      difficulty: quiz.difficulty,
-      questionType: quiz.aiMetadata?.questionType || 'multiple_choice',
-      totalQuestions: quiz.questions.length,
-      estimatedTime: quiz.estimatedTime
-    };
-
-    // Create new attempt
-    const attempt = new QuizAttempt({
-      quizId: quizId,
-      userId: userId,
-      documentId: quiz.documentId,
-      quizSnapshot: quizSnapshot,
-      sessionInfo: sessionInfo,
-      startedAt: new Date()
-    });
-
-    const savedAttempt = await attempt.save();
-
-    console.log(`✅ Quiz attempt created: ${savedAttempt._id}`);
 
     res.status(201).json({
       success: true,
       message: 'Quiz attempt started successfully',
-      attempt: {
-        id: savedAttempt._id,
-        quizId: savedAttempt.quizId,
-        status: savedAttempt.status,
-        startedAt: savedAttempt.startedAt,
-        quizSnapshot: savedAttempt.quizSnapshot,
-        currentQuestionIndex: savedAttempt.currentQuestionIndex,
-        progress: 0,
-        timeSpent: 0
-      },
-      quiz: {
-        id: quiz._id,
-        title: quiz.title,
-        difficulty: quiz.difficulty,
-        questionType: quiz.aiMetadata?.questionType,
-        totalQuestions: quiz.questions.length,
-        estimatedTime: quiz.estimatedTime,
-        questions: quiz.questions.map((q, index) => ({
-          id: index + 1,
-          question: q.question,
-          options: q.options,
-          points: q.points || 1
-          // Note: Don't send correctAnswer or explanation during attempt
-        }))
-      }
+      attempt: result.attempt,
+      quiz: result.quiz
     });
 
   } catch (error) {
-    console.error('❌ Start quiz attempt error:', error);
+    console.error('❌ Start quiz attempt controller error:', error);
     next(error);
   }
 };
@@ -133,61 +60,26 @@ export const submitQuizAnswer = async (req, res, next) => {
     const { questionId, answer, timeSpent = 0 } = req.body;
     const userId = req.user.userId;
 
-    console.log(`📝 Submitting answer for attempt: ${attemptId}, question: ${questionId}`);
-
     // Validate required fields
-    if (!questionId || !answer) {
+    if (!questionId || answer === undefined) {
       throw HttpError.badRequest('Question ID and answer are required');
     }
 
-    // Find the attempt
-    const attempt = await QuizAttempt.findOne({
-      _id: attemptId,
-      quizId: quizId,
-      userId: userId,
-      status: 'in_progress',
-      deletedAt: null
+    // 🎯 CALL SERVICE LAYER
+    const result = await quizAttemptService.submitQuizAnswer(attemptId, userId, {
+      questionId,
+      answer,
+      timeSpent
     });
-
-    if (!attempt) {
-      throw HttpError.notFound('Active quiz attempt not found');
-    }
-
-    // Get the quiz to find the correct answer
-    const quiz = await Quiz.findById(quizId);
-    if (!quiz) {
-      throw HttpError.notFound('Quiz not found');
-    }
-
-    // Find the question
-    const question = quiz.questions.find(q => (q.id || quiz.questions.indexOf(q) + 1) === parseInt(questionId));
-    if (!question) {
-      throw HttpError.notFound('Question not found');
-    }
-
-    // Get correct answer
-    const correctAnswer = question.correctAnswer;
-
-    // Submit the answer
-    await attempt.submitAnswer(parseInt(questionId), answer, correctAnswer, parseInt(timeSpent));
-
-    console.log(`✅ Answer submitted for question ${questionId}`);
 
     res.status(200).json({
       success: true,
       message: 'Answer submitted successfully',
-      result: {
-        questionId: questionId,
-        isCorrect: attempt.validateAnswer(answer, correctAnswer),
-        currentProgress: attempt.progressPercentage,
-        questionsAnswered: attempt.answers.length,
-        totalQuestions: attempt.quizSnapshot.totalQuestions,
-        timeSpent: attempt.timeSpent
-      }
+      result: result.result
     });
 
   } catch (error) {
-    console.error('❌ Submit quiz answer error:', error);
+    console.error('❌ Submit quiz answer controller error:', error);
     next(error);
   }
 };
@@ -202,43 +94,21 @@ export const completeQuizAttempt = async (req, res, next) => {
     const { id: quizId, attemptId } = req.params;
     const userId = req.user.userId;
 
-    console.log(`🏁 Completing quiz attempt: ${attemptId}`);
-
-    // Find the attempt
-    const attempt = await QuizAttempt.findOne({
-      _id: attemptId,
-      quizId: quizId,
-      userId: userId,
-      status: 'in_progress',
-      deletedAt: null
+    // 🎯 CALL SERVICE LAYER WITH METADATA
+    const result = await quizAttemptService.completeQuizAttempt(attemptId, userId, {
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      source: 'web'
     });
-
-    if (!attempt) {
-      throw HttpError.notFound('Active quiz attempt not found');
-    }
-
-    // Complete the attempt (calculates scores)
-    await attempt.complete();
-
-    // Update quiz analytics
-    const quiz = await Quiz.findById(quizId);
-    if (quiz) {
-      await quiz.updateAnalytics(attempt.percentage, attempt.durationMinutes);
-    }
-
-    console.log(`✅ Quiz attempt completed with ${attempt.percentage}% score`);
-
-    // Get detailed results
-    const results = attempt.getResults();
 
     res.status(200).json({
       success: true,
       message: 'Quiz attempt completed successfully',
-      results: results
+      results: result.results
     });
 
   } catch (error) {
-    console.error('❌ Complete quiz attempt error:', error);
+    console.error('❌ Complete quiz attempt controller error:', error);
     next(error);
   }
 };
@@ -253,52 +123,13 @@ export const getQuizAttemptResults = async (req, res, next) => {
     const { id: quizId, attemptId } = req.params;
     const userId = req.user.userId;
 
-    console.log(`📊 Getting results for attempt: ${attemptId}`);
+    // 🎯 CALL SERVICE LAYER
+    const result = await quizAttemptService.getQuizAttemptResults(attemptId, userId);
 
-    // Find the completed attempt
-    const attempt = await QuizAttempt.findOne({
-      _id: attemptId,
-      quizId: quizId,
-      userId: userId,
-      status: 'completed',
-      deletedAt: null
-    }).populate('quizId', 'title difficulty questions');
-
-    if (!attempt) {
-      throw HttpError.notFound('Completed quiz attempt not found');
-    }
-
-    // Get detailed results with question explanations
-    const quiz = await Quiz.findById(quizId);
-    const results = attempt.getResults();
-
-    // Add question details and explanations
-    if (quiz && quiz.questions) {
-      results.questionDetails = attempt.answers.map(answer => {
-        const question = quiz.questions.find(q => 
-          (q.id || quiz.questions.indexOf(q) + 1) === answer.questionId
-        );
-        
-        return {
-          questionId: answer.questionId,
-          question: question?.question || 'Question not found',
-          userAnswer: answer.userAnswer,
-          correctAnswer: answer.correctAnswer,
-          isCorrect: answer.isCorrect,
-          explanation: question?.explanation || 'No explanation available',
-          pointsEarned: answer.pointsEarned,
-          timeSpent: answer.timeSpent
-        };
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      results: results
-    });
+    res.status(200).json(result);
 
   } catch (error) {
-    console.error('❌ Get quiz results error:', error);
+    console.error('❌ Get quiz results controller error:', error);
     next(error);
   }
 };
