@@ -115,6 +115,11 @@ export const register = async (req, res, next) => {
  * @description Login a user and get tokens
  * @access Public
  */
+/**
+ * @route POST /api/auth/login
+ * @description Login a user and get tokens
+ * @access Public
+ */
 export const login = async (req, res, next) => {
   try {
     if (!req.body.email || !req.body.password) {
@@ -143,12 +148,16 @@ export const login = async (req, res, next) => {
       sameSite: 'strict'
     });
     
+    // ✅ FIXED: Correct response structure
     res.status(HTTP_STATUS_CODES.OK).json({
       success: true,
       message: 'Login successful',
-      accessToken: authResult.accessToken,
-      expiresIn: authResult.expiresIn,
-      user: authResult.user
+      data: {
+        accessToken: authResult.accessToken,
+        refreshToken: authResult.refreshToken,
+        expiresIn: authResult.expiresIn,
+        user: authResult.user
+      }
     });
   } catch (error) {
     next(error);

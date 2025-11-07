@@ -6,6 +6,7 @@
 
 import jwt from 'jsonwebtoken';
 import { HttpError } from '#exceptions/index.js';
+import { Student, Admin } from '../models/users/index.js';
 
 // JWT secret from environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'studion-dev-secret';
@@ -16,7 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'studion-dev-secret';
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-export const authenticateJWT = (req, res, next) => {
+export const authenticateJWT = async (req, res, next) => {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
     
@@ -30,8 +31,33 @@ export const authenticateJWT = (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Add user data to request
-        req.user = decoded;
+        // Fetch full user data based on userType
+        let user;
+        if (decoded.userType === 'admin') {
+            user = await Admin.findById(decoded.userId)
+                .select('-password -security')
+                .lean();
+        } else {
+            user = await Student.findById(decoded.userId)
+                .select('-password -security')
+                .lean();
+        }
+        
+        if (!user) {
+            return next(HttpError.unauthorized('User not found'));
+        }
+        
+        // Check if user is active
+        if (user.status !== 'active') {
+            return next(HttpError.unauthorized('User account is inactive'));
+        }
+        
+        // Add full user data to request
+        req.user = {
+            ...decoded,
+            ...user,
+            fullName: `${user.name?.first || ''} ${user.name?.last || ''}`.trim()
+        };
         
         next();
     } catch (error) {
@@ -53,7 +79,7 @@ export const authenticateJWT = (req, res, next) => {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-export const optionalAuthenticateJWT = (req, res, next) => {
+export const optionalAuthenticateJWT = async (req, res, next) => {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
     
@@ -67,8 +93,26 @@ export const optionalAuthenticateJWT = (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Add user data to request
-        req.user = decoded;
+        // Fetch full user data based on userType
+        let user;
+        if (decoded.userType === 'admin') {
+            user = await Admin.findById(decoded.userId)
+                .select('-password -security')
+                .lean();
+        } else {
+            user = await Student.findById(decoded.userId)
+                .select('-password -security')
+                .lean();
+        }
+        
+        if (user && user.status === 'active') {
+            // Add full user data to request
+            req.user = {
+                ...decoded,
+                ...user,
+                fullName: `${user.name?.first || ''} ${user.name?.last || ''}`.trim()
+            };
+        }
     } catch (error) {
         // Continue without authentication on error
     }

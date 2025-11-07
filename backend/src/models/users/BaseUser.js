@@ -216,21 +216,19 @@ const baseUserSchema = new mongoose.Schema({
   // ==========================================
   // BASIC SECURITY (Login Attempts Only)
   // ==========================================
-  security: {
-    loginAttempts: {
-      type: Number,
-      default: 0,
-      select: false
-    },
-    lockUntil: {
-      type: Date,
-      select: false
-    },
-    passwordChangedAt: {
-      type: Date,
-      default: Date.now,
-      select: false
-    }
+  loginAttempts: {
+    type: Number,
+    default: 0,
+    select: false
+  },
+  lockUntil: {
+    type: Date,
+    select: false
+  },
+  passwordChangedAt: {
+    type: Date,
+    default: Date.now,
+    select: false
   },
 
   // ==========================================
@@ -318,7 +316,7 @@ baseUserSchema.virtual('initials').get(function() {
  * Check if account is locked
  */
 baseUserSchema.virtual('isLocked').get(function() {
-  return !!(this.security.lockUntil && this.security.lockUntil > Date.now());
+  return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
 /**
@@ -348,7 +346,7 @@ baseUserSchema.pre('save', async function(next) {
     // Hash password if modified
     if (this.isModified('password')) {
       this.password = await bcrypt.hash(this.password, USER_CONFIG.BCRYPT_ROUNDS);
-      this.security.passwordChangedAt = new Date();
+      this.passwordChangedAt = new Date(); // ✅ Fixed - removed security.
     }
 
     // Update lastActiveAt on login
@@ -386,33 +384,32 @@ baseUserSchema.methods.comparePassword = async function(candidatePassword) {
  */
 baseUserSchema.methods.handleFailedLogin = async function() {
   // If lockout period has expired, reset attempts
-  if (this.security.lockUntil && this.security.lockUntil < Date.now()) {
+  if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
-      $unset: { 'security.lockUntil': 1 },
-      $set: { 'security.loginAttempts': 1 }
+      $unset: { lockUntil: 1 },
+      $set: { loginAttempts: 1 }
     });
   }
 
-  const updates = { $inc: { 'security.loginAttempts': 1 } };
+  const updates = { $inc: { loginAttempts: 1 } };
 
   // Lock account if max attempts exceeded
-  if (this.security.loginAttempts + 1 >= USER_CONFIG.MAX_LOGIN_ATTEMPTS) {
+  if (this.loginAttempts + 1 >= USER_CONFIG.MAX_LOGIN_ATTEMPTS) {
     updates.$set = {
-      'security.lockUntil': Date.now() + USER_CONFIG.LOCKOUT_DURATION
+      lockUntil: Date.now() + USER_CONFIG.LOCKOUT_DURATION
     };
   }
 
   return this.updateOne(updates);
 };
-
 /**
  * Handle successful login (USER MODEL RESPONSIBILITY)
  */
 baseUserSchema.methods.handleSuccessfulLogin = function(loginInfo = {}) {
   const updates = {
     $unset: {
-      'security.loginAttempts': 1,
-      'security.lockUntil': 1
+      loginAttempts: 1,
+      lockUntil: 1
     },
     $set: {
       lastLoginAt: new Date(),

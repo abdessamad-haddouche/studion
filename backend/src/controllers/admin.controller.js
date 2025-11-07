@@ -11,7 +11,10 @@ import {
   updateUserStatus,
   deleteUser,
   getUserStatistics,
-  getSystemAnalytics
+  getSystemAnalytics,
+  createAdmin,
+  getAllAdminUsers,
+  updateAdminData
 } from '../services/admin.service.js';
 
 // ==========================================
@@ -50,7 +53,7 @@ export const getAdminDashboard = async (req, res, next) => {
 };
 
 // ==========================================
-// USER MANAGEMENT
+// ADMIN MANAGEMENT
 // ==========================================
 
 /**
@@ -88,9 +91,6 @@ export const createAdminUser = async (req, res, next) => {
     };
 
     const newAdmin = await createAdmin(adminData);
-    
-    // Record admin action
-    await currentAdmin.recordAction('user_management');
     
     res.status(201).json({
       success: true,
@@ -158,6 +158,9 @@ export const updateAdminUser = async (req, res, next) => {
   }
 };
 
+// ==========================================
+// USER MANAGEMENT
+// ==========================================
 
 /**
  * Get all users (admin only)
