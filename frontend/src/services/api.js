@@ -1,6 +1,6 @@
 /**
  * PATH: src/services/api.js
- * Enhanced API client with complete document endpoints
+ * Enhanced API client with detailed debugging
  */
 
 import axios from 'axios'
@@ -18,24 +18,43 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken')
+    
+    console.log('🚀 Making request to:', config.url)
+    console.log('🔑 Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND')
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('✅ Authorization header set')
+    } else {
+      console.log('❌ No token - request will be unauthorized')
     }
+    
     return config
   },
   (error) => {
+    console.log('❌ Request interceptor error:', error)
     return Promise.reject(error)
   }
 )
 
 // Response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ Response received:', response.status, response.config.url)
+    return response
+  },
   (error) => {
+    console.log('🚨 Response error:', error.response?.status, error.config?.url)
+    
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      console.log('🚨 401 Unauthorized - clearing token and redirecting')
       localStorage.removeItem('accessToken')
-      window.location.href = '/login'
+      
+      // Only redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        console.log('🔄 Redirecting to login page')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
@@ -44,7 +63,10 @@ api.interceptors.response.use(
 // Auth API endpoints
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => api.post('/auth/login', credentials),
+  login: (credentials) => {
+    console.log('🔐 Attempting login...')
+    return api.post('/auth/login', credentials)
+  },
   logout: () => api.post('/auth/logout'),
   refreshToken: () => api.post('/auth/refresh-token'),
   verifyToken: () => api.get('/auth/verify'),
@@ -52,18 +74,18 @@ export const authAPI = {
   resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password })
 }
 
-// Documents API - Complete endpoints
+// Documents API
 export const documentsAPI = {
-  // Basic CRUD
-  getAll: (config = {}) => api.get('/documents', config),
+  getAll: (config = {}) => {
+    console.log('📄 Fetching documents with config:', config.params)
+    return api.get('/documents', config)
+  },
   upload: (formData) => api.post('/documents', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getById: (id) => api.get(`/documents/${id}`),
   update: (id, data) => api.put(`/documents/${id}`, data),
   delete: (id, params = {}) => api.delete(`/documents/${id}`, { params }),
-  
-  // AI Processing endpoints
   getSummary: (id) => api.get(`/documents/${id}/summary`),
   process: (id) => api.post(`/documents/${id}/process`),
   generateQuiz: (id, data) => api.post(`/documents/${id}/generate-quiz`, data),
@@ -71,7 +93,7 @@ export const documentsAPI = {
   getAnalytics: (id) => api.get(`/documents/${id}/analytics`)
 }
 
-// Quizzes API
+// Add the rest of your APIs...
 export const quizzesAPI = {
   getAll: () => api.get('/quizzes'),
   generate: (documentId, options) => api.post('/quizzes/generate', { documentId, ...options }),
@@ -79,14 +101,12 @@ export const quizzesAPI = {
   getResults: (attemptId) => api.get(`/quiz-attempts/${attemptId}`)
 }
 
-// Courses API
 export const coursesAPI = {
   getAll: () => api.get('/courses'),
   getById: (id) => api.get(`/courses/${id}`),
   purchase: (id) => api.post(`/courses/${id}/purchase`)
 }
 
-// User Profile API
 export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),

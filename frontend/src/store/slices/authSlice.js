@@ -13,12 +13,13 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await authAPI.login(credentials)
       
-      // Store token in localStorage
-      if (response.data.accessToken) {
-        localStorage.setItem('accessToken', response.data.accessToken)
+      // ✅ FIXED: Store token from correct path
+      if (response.data.data.accessToken) {
+        localStorage.setItem('accessToken', response.data.data.accessToken)
+        console.log('🔥 TOKEN SAVED TO LOCALSTORAGE:', response.data.data.accessToken.substring(0, 20) + '...')
       }
       
-      return response.data
+      return response.data // This goes to action.payload
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed'
       return rejectWithValue(message)
@@ -117,12 +118,19 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(loginUser.fulfilled, (state, action) => {
+        console.log('🔥 LOGIN RESPONSE:', action.payload) // Debug
+        
         state.isLoading = false
         state.isAuthenticated = true
-        state.token = action.payload.accessToken
-        state.user = action.payload.user
+        
+        // ✅ FIXED: Access token from correct path
+        state.token = action.payload.data.accessToken  // ← Changed this line
+        state.user = action.payload.data.user           // ← Changed this line
+        
         state.loginSuccess = true
         state.error = null
+        
+        console.log('🔥 TOKEN STORED:', state.token) // Debug
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false

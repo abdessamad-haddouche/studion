@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/ModularDashboard.jsx
- * Main Modular Dashboard Component - Orchestrates all dashboard components
+ * Main Modular Dashboard Component - Fixed auth state
  */
 
 import React, { useEffect, useState } from 'react'
@@ -30,7 +30,8 @@ import {
 const ModularDashboard = () => {
   const dispatch = useDispatch()
   
-  // Redux state
+  // Redux state - ADD isAuthenticated here
+  const { isAuthenticated } = useSelector(state => state.auth) // ← ADD THIS LINE
   const hasDocuments = useSelector(state => state.documents?.hasDocuments)
   const isLoading = useSelector(state => state.documents?.isLoading)
   const error = useSelector(state => state.documents?.error)
@@ -42,7 +43,16 @@ const ModularDashboard = () => {
   // Initialize dashboard data
   useEffect(() => {
     const initializeDashboard = async () => {
+      // Only fetch if authenticated
+      if (!isAuthenticated) {
+        console.log('❌ Not authenticated, skipping dashboard init')
+        setIsInitializing(false)
+        return
+      }
+
       try {
+        console.log('✅ Authenticated, initializing dashboard...')
+        
         // First check if user has documents (quick check)
         await dispatch(checkHasDocuments()).unwrap()
         
@@ -51,15 +61,17 @@ const ModularDashboard = () => {
           dispatch(fetchUserDocuments({ limit: 6 })).unwrap(),
           dispatch(fetchDocumentStats()).unwrap()
         ])
+        
+        console.log('✅ Dashboard initialized successfully')
       } catch (error) {
-        console.error('Dashboard initialization error:', error)
+        console.error('❌ Dashboard initialization error:', error)
       } finally {
         setIsInitializing(false)
       }
     }
 
     initializeDashboard()
-  }, [dispatch])
+  }, [dispatch, isAuthenticated]) // Add isAuthenticated as dependency
 
   // Handle upload modal
   const handleUploadClick = () => {
@@ -165,6 +177,7 @@ const ModularDashboard = () => {
         <div className="mt-8 p-4 bg-slate-100 rounded-lg text-xs text-slate-600">
           <strong>Dashboard Debug:</strong> 
           <span className="ml-2">
+            isAuthenticated: {String(isAuthenticated)} | 
             hasDocuments: {String(hasDocuments)} | 
             enabledComponents: {enabledComponents.length} | 
             loading: {String(isLoading)}
