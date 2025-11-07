@@ -37,6 +37,7 @@ export const setupErrorHandlers = (app) => {
 
 // Export individual middleware
 export { default as authMiddleware } from './auth.middleware.js';
+export { default as adminMiddleware } from './admin.middleware.js';
 export { validateObjectId, validateObjectIds } from './validation.middleware.js';
 
 // Export setup functions

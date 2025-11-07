@@ -10,3 +10,6 @@ export { default as BaseUser } from './BaseUser.js';
 
 // Student Model
 export { default as Student } from './Student.js';
+
+// Admin Model
+export { default as Admin } from './Admin.js';

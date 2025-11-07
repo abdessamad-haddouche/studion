@@ -70,3 +70,17 @@ export {
   getCoursesByCategory,
   applyCourseDiscount
 } from './course.controller.js';
+
+// Admin Controller
+export {
+  getAdminDashboard,
+  getAllUsersAdmin,
+  getUserByIdAdmin,
+  updateUserStatusAdmin,
+  deleteUserAdmin,
+  getUserStatsAdmin,
+  getSystemAnalyticsAdmin,
+  createAdminUser,
+  getAllAdmins,
+  updateAdminUser
+} from './admin.controller.js';

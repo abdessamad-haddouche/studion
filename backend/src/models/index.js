@@ -5,12 +5,11 @@
  */
 
 import { Document } from './document/index.js';
-// Import other model groups as needed
-// import { User, UserProfile } from './user/index.js';
+import { Student, Admin } from './users/index.js';
 
 // Export individual models for direct importing
 export { Document };
-// export { User, UserProfile };
+export { Student, Admin };
 
 /**
  * Initialize models and attach them to Express app.locals
@@ -25,9 +24,8 @@ export const initializeModels = (app) => {
     // Attach models to app.locals.models
     app.locals.models = {
         Document,
-        // Add other models as needed
-        // User,
-        // UserProfile,
+        Student,
+        Admin
     };
     
     console.log('✅ Models initialized in app.locals');

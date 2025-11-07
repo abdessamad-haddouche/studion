@@ -11,6 +11,7 @@ import quizRoutes from './quiz.routes.js';
 import userRoutes from './user.routes.js';
 import courseRoutes from './course.routes.js';
 import transactionRoutes from './transaction.routes.js';
+import adminRoutes from './admin.routes.js';
 import { authenticateJWT } from '#middleware/auth.middleware.js';
 
 /**
@@ -30,8 +31,9 @@ export const setupRoutes = (app) => {
   app.use(`${apiPrefix}/users`, authenticateJWT, userRoutes);
   app.use(`${apiPrefix}/courses`, courseRoutes);
   app.use(`${apiPrefix}/transactions`, authenticateJWT, transactionRoutes);
+  app.use(`${apiPrefix}/admin`, authenticateJWT, adminRoutes);
   
-  // ADD THIS LINE - AI Status Route
+  // AI Status Route
   app.get(`${apiPrefix}/ai/status`, authenticateJWT, (req, res) => {
     res.status(200).json({
       success: true,
