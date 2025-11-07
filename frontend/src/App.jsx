@@ -19,6 +19,7 @@ import RegisterPage from './pages/auth/RegisterPage'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import Terms from './pages/documents/Terms'
+import Points from './pages/profile/PointsPage'
 
 // Auth checker component
 const AuthChecker = ({ children }) => {
@@ -65,6 +66,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path='/terms' element={<Terms />} /> 
+              <Route path='/points' element={<Points />} /> 
 
             </Routes>
           </div>
