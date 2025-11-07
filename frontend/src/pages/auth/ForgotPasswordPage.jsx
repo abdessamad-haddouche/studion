@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Brain } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Layout from "../../components/layout/Layout";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -15,7 +16,8 @@ export default function ForgotPassword() {
     console.log("The password sent to Gmail");
   };
 
-  return (
+  return (    
+  <Layout>
     <div className="w-full h-screen flex flex-col justify-center items-center p-5">
       <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center transform hover:scale-105 transition-transform">
         <Brain className="w-8 h-8 text-white" />
@@ -51,5 +53,6 @@ export default function ForgotPassword() {
         </form>
       </div>
     </div>
+    </Layout>
   );
 }
