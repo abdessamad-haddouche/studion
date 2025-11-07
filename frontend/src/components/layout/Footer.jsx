@@ -19,6 +19,7 @@ import {
   Users,
   Shield
 } from 'lucide-react'
+import NewsLetter from './NewsLetter'
 
 const Footer = () => {
   return (
@@ -221,17 +222,7 @@ const Footer = () => {
 
             {/* Newsletter Signup */}
             <div className="flex items-center space-x-3">
-              <span className="text-sm text-slate-400">Stay updated:</span>
-              <div className="flex">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="bg-slate-800 border border-slate-700 text-slate-300 px-3 py-2 rounded-l-lg text-sm focus:outline-none focus:border-blue-500 w-48"
-                />
-                <button className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-r-lg text-sm hover:from-blue-600 hover:to-indigo-600 transition-all">
-                  Subscribe
-                </button>
-              </div>
+              <NewsLetter />
             </div>
           </div>
         </div>
