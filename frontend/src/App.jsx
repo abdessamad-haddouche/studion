@@ -20,6 +20,7 @@ import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import Terms from './pages/documents/Terms'
 import Points from './pages/profile/PointsPage'
+import ForgotPassword from './pages/auth/ForgotPasswordPage'
 
 // Auth checker component
 const AuthChecker = ({ children }) => {
@@ -64,6 +65,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path='/terms' element={<Terms />} /> 
               <Route path='/points' element={<Points />} /> 
