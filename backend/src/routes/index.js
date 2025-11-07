@@ -13,6 +13,7 @@ import courseRoutes from './course.routes.js';
 import transactionRoutes from './transaction.routes.js';
 import adminRoutes from './admin.routes.js';
 import { authenticateJWT } from '#middleware/auth.middleware.js';
+import { setupSwaggerDocs } from '#docs/swagger/setup.js';
 
 /**
  * Setup all API routes
@@ -21,6 +22,11 @@ import { authenticateJWT } from '#middleware/auth.middleware.js';
 export const setupRoutes = (app) => {
   // API version prefix
   const apiPrefix = process.env.API_PREFIX || '/api';
+  
+  // Setup Swagger Documentation FIRST (before other routes)
+  if (process.env.NODE_ENV !== 'production') {
+    setupSwaggerDocs(app);
+  }
   
   // Auth routes (public)
   app.use(`${apiPrefix}/auth`, authRoutes);

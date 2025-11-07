@@ -4,6 +4,8 @@
  * @description Handles user authentication, registration, and account management
  */
 
+import '#docs/swagger/auth-routes-docs.js';
+
 import { HttpError } from '#exceptions/index.js';
 import { HTTP_STATUS_CODES } from '#constants/http/index.js';
 import { 

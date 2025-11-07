@@ -4,6 +4,8 @@
  * @description Handles user profile, preferences, and account management
  */
 
+import '#docs/swagger/user-routes-docs.js';
+
 import { HttpError } from '#exceptions/index.js';
 import { HTTP_STATUS_CODES } from '#constants/http/index.js';
 import userService from '#services/user.service.js';

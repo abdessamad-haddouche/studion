@@ -4,6 +4,8 @@
  * @description Admin management and dashboard functionality
  */
 
+import '#docs/swagger/admin-routes-docs.js';
+
 import { HttpError } from '#exceptions/index.js';
 import { 
   getAllUsers,

@@ -15,30 +15,23 @@ import {
     setupServerManagement
 } from '#lib/server/index.js';
 
+import app from '#app'; // Import your Express app directly
+
 // ==========================================
 // STARTUP SEQUENCE
 // ==========================================
 
-/**
- * Main server startup function
- */
 const startServer = async () => {
     try {
-        // Display startup banner
         displayStartupBanner();
         
-        // Initialize database
         await initializeDatabase();
         displayDatabaseConfig();
         
-        // Initialize HTTP server
         const server = await initializeServer();
+        
         displayServerInfo(server);
-        
-        // Setup server management
         setupServerManagement(server);
-        
-        // Display success message
         displaySuccessMessage();
         
         return server;

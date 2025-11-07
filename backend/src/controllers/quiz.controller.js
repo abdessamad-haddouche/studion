@@ -3,6 +3,9 @@
  * @module controllers/quiz-enhanced
  * @description Quiz controller that selects from comprehensive pre-generated quiz collection
  */
+
+import '#docs/swagger/quiz-routes-docs.js';
+
 import mongoose from 'mongoose';
 import Quiz from '#models/quiz/Quiz.js';
 import QuizAttempt from '#models/quiz/QuizAttempt.js';

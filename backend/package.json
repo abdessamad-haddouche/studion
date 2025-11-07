@@ -6,6 +6,7 @@
   "type": "module",
   "imports": {
     "#src/*": "./src/*",
+    "#docs/*": "./src/docs/*",
     "#app": "./app.js",
     "#config/*": "./src/config/*",
     "#lib/*": "./src/lib/*",

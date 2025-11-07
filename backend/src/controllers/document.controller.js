@@ -4,6 +4,8 @@
  * @description Enhanced document controller with bulk quiz generation after processing
  */
 
+import '#docs/swagger/document-routes-docs.js';
+
 import multer from 'multer';
 import path from 'path';
 import { HttpError } from '#exceptions/index.js';

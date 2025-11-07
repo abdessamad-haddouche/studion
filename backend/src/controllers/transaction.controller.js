@@ -4,6 +4,8 @@
  * @description Handles transaction-related HTTP requests for points and payment transactions
  */
 
+import '#docs/swagger/transaction-routes-docs.js';
+
 import { HttpError } from '#exceptions/index.js';
 import { HTTP_STATUS_CODES } from '#constants/http/index.js';
 import transactionService from '#services/transaction.service.js';

@@ -4,9 +4,11 @@
  * @description Course management with admin CRUD operations and user purchasing
  */
 
+import '#docs/swagger/course-routes-docs.js';
+
 import { HttpError } from '#exceptions/index.js';
 import { HTTP_STATUS_CODES } from '#constants/http/index.js';
-import courseService from '../services/course.service.js';
+import courseService from '#services/course.service.js';
 
 // ==========================================
 // ADMIN COURSE MANAGEMENT (CRUD)
