@@ -1,11 +1,12 @@
 /**
  * PATH: src/store/index.js
- * Updated Redux store with documents slice
+ * Updated Redux store with subscription slice
  */
 
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
 import documentsReducer from './slices/documentsSlice'
+import subscriptionReducer from './slices/subscriptionSlice' // ← ADD THIS
 
 // Simple UI slice
 import { createSlice } from '@reduxjs/toolkit'
@@ -43,6 +44,7 @@ const store = configureStore({
   reducer: {
     auth: authReducer,
     documents: documentsReducer,
+    subscription: subscriptionReducer, // ← ADD THIS
     ui: uiSlice.reducer
   },
   devTools: process.env.NODE_ENV !== 'production',

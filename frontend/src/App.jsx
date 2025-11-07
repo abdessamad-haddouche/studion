@@ -18,6 +18,7 @@ import HomePage from './pages/HomePage'
 import RegisterPage from './pages/auth/RegisterPage'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
+import PlansPage from './pages/subscription/PlansPage' // ← ADD THIS
 import Terms from './pages/documents/Terms'
 import Points from './pages/profile/PointsPage'
 import ForgotPassword from './pages/auth/ForgotPasswordPage'
@@ -67,9 +68,11 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/subscription" element={<PlansPage />} /> {/* ← ADD THIS */}
+              <Route path="/plans" element={<PlansPage />} /> {/* ← Alternative route */}
+              <Route path="/pricing" element={<PlansPage />} /> {/* ← SEO-friendly route */}
               <Route path='/terms' element={<Terms />} /> 
               <Route path='/points' element={<Points />} /> 
-
             </Routes>
           </div>
         </AuthChecker>
