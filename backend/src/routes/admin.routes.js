@@ -1,7 +1,7 @@
 /**
- * Admin Routes
+ * Updated Admin Routes - WITH COURSE MANAGEMENT
  * @module routes/admin
- * @description Admin management and dashboard routes
+ * @description Admin management and dashboard routes including course CRUD operations
  */
 
 import express from 'express';
@@ -14,6 +14,7 @@ import {
   requireAnalytics
 } from '#middleware/admin.middleware.js';
 
+// Import admin controllers
 import {
   getAdminDashboard,
   getAllUsersAdmin,
@@ -26,6 +27,24 @@ import {
   getAllAdmins,
   updateAdminUser
 } from '#controllers/admin.controller.js';
+
+// Import course controllers
+import {
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  restoreCourse,
+  getCourseAnalytics,
+  getAllCourses,
+  getCourseById
+} from '#controllers/course.controller.js';
+
+// Import course validation middleware
+import {
+  validateCourseCreation,
+  validateCourseUpdate,
+  validateCourseFilters
+} from '../middleware/course-validation.middleware.js';
 
 const router = express.Router();
 
@@ -42,6 +61,59 @@ router.use(requireAdmin);
  * @access Private (Admin only)
  */
 router.get('/dashboard', getAdminDashboard);
+
+// ==========================================
+// COURSE MANAGEMENT ROUTES (NEW)
+// ==========================================
+
+/**
+ * @route GET /api/admin/courses/analytics
+ * @description Get comprehensive course analytics and statistics
+ * @access Private (Admin only)
+ */
+router.get('/courses/analytics', getCourseAnalytics);
+
+/**
+ * @route GET /api/admin/courses
+ * @description Get all courses with admin view (including deleted)
+ * @access Private (Admin only)
+ */
+router.get('/courses', validateCourseFilters, getAllCourses);
+
+/**
+ * @route POST /api/admin/courses
+ * @description Create a new course
+ * @access Private (Admin only)
+ */
+router.post('/courses', validateCourseCreation, createCourse);
+
+/**
+ * @route GET /api/admin/courses/:id
+ * @description Get specific course by ID with all details
+ * @access Private (Admin only)
+ */
+router.get('/courses/:id', validateObjectId('id'), getCourseById);
+
+/**
+ * @route PUT /api/admin/courses/:id
+ * @description Update course information
+ * @access Private (Admin only)
+ */
+router.put('/courses/:id', validateObjectId('id'), validateCourseUpdate, updateCourse);
+
+/**
+ * @route DELETE /api/admin/courses/:id
+ * @description Delete course (soft delete by default)
+ * @access Private (Admin only, permanent deletion requires super admin)
+ */
+router.delete('/courses/:id', validateObjectId('id'), deleteCourse);
+
+/**
+ * @route POST /api/admin/courses/:id/restore
+ * @description Restore a soft-deleted course
+ * @access Private (Admin only)
+ */
+router.post('/courses/:id/restore', validateObjectId('id'), restoreCourse);
 
 // ==========================================
 // ADMIN MANAGEMENT ROUTES (Super Admin Only)
