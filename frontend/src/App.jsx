@@ -21,6 +21,7 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 import Terms from './pages/documents/Terms'
 import Points from './pages/profile/PointsPage'
 import ForgotPassword from './pages/auth/ForgotPasswordPage'
+import PrivacyPolicy from './pages/documents/Privacy'
 
 // Auth checker component
 const AuthChecker = ({ children }) => {
@@ -69,6 +70,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path='/terms' element={<Terms />} /> 
               <Route path='/points' element={<Points />} /> 
+              <Route path='/privacy' element={<PrivacyPolicy />} /> 
 
             </Routes>
           </div>
