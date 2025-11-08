@@ -1,104 +1,117 @@
 /**
  * PATH: src/components/subscription/SubscriptionConfig.js
- * Subscription Configuration - Control which components to show
+ * Complete Subscription Configuration with Quiz Features
  */
 
+// ✅ ADD THESE MISSING EXPORTS AT THE TOP
+export const SUBSCRIPTION_PLANS = ['free', 'basic', 'premium', 'pro', 'enterprise']
+
 export const SUBSCRIPTION_COMPONENTS = {
-  PRICING_HEADER: 'pricing_header',
-  PLAN_CARDS: 'plan_cards',
-  FEATURE_COMPARISON: 'feature_comparison',
-  FAQ_SECTION: 'faq_section',
-  UPGRADE_CTA: 'upgrade_cta',
-  TESTIMONIALS: 'testimonials'
+  PRICING_HEADER: 'PRICING_HEADER',
+  PLAN_CARDS: 'PLAN_CARDS', 
+  FEATURE_COMPARISON: 'FEATURE_COMPARISON',
+  FAQ_SECTION: 'FAQ_SECTION',
+  UPGRADE_CTA: 'UPGRADE_CTA',
+  TESTIMONIALS: 'TESTIMONIALS'
 }
 
-export const SUBSCRIPTION_PLANS = Object.freeze([
-  'free',
-  'basic', 
-  'premium',
-  'pro',
-  'enterprise'
-])
-
-// Plan features and limits configuration
 export const PLAN_FEATURES = {
   free: {
     name: 'Free',
     price: 0,
+    description: 'Get started with basic AI learning tools',
     documentsLimit: 5,
-    quizGeneration: true,
-    basicAnalytics: true,
     strengthsWeaknesses: false,
     prioritySupport: false,
-    customQuizTypes: false,
     teamFeatures: false,
-    apiAccess: false,
-    color: 'slate',
-    popular: false,
-    description: 'Perfect for trying out Studion'
+    advancedAnalytics: false,
+    // ✅ Quiz Features
+    quizTypes: ['true_false'],
+    showExplanations: false,
+    showStrengthsWeaknesses: false,
+    quizHistoryLimit: 5,
+    advancedQuizAnalytics: false,
+    personalizedFeedback: false,
+    color: 'slate'
   },
+
   basic: {
     name: 'Basic',
     price: 9.99,
+    description: 'Enhanced learning with more documents and features',
     documentsLimit: 8,
-    quizGeneration: true,
-    basicAnalytics: true,
     strengthsWeaknesses: false,
     prioritySupport: false,
-    customQuizTypes: true,
     teamFeatures: false,
-    apiAccess: false,
-    color: 'blue',
-    popular: false,
-    description: 'Great for regular learners'
+    advancedAnalytics: false,
+    // ✅ Quiz Features
+    quizTypes: ['true_false', 'multiple_choice'],
+    showExplanations: true,
+    showStrengthsWeaknesses: false,
+    quizHistoryLimit: 20,
+    advancedQuizAnalytics: false,
+    personalizedFeedback: false,
+    color: 'blue'
   },
+
   premium: {
-    name: 'Premium', 
+    name: 'Premium',
     price: 19.99,
+    description: 'Advanced learning with analytics and insights',
     documentsLimit: 25,
-    quizGeneration: true,
-    basicAnalytics: true,
-    strengthsWeaknesses: true, // 🎯 Premium feature
-    prioritySupport: true,
-    customQuizTypes: true,
+    strengthsWeaknesses: true,
+    prioritySupport: false,
     teamFeatures: false,
-    apiAccess: false,
-    color: 'purple',
-    popular: true,
-    description: 'Most popular for serious students'
+    advancedAnalytics: true,
+    // ✅ Quiz Features
+    quizTypes: ['true_false', 'multiple_choice'],
+    showExplanations: true,
+    showStrengthsWeaknesses: true,
+    quizHistoryLimit: -1, // Unlimited
+    advancedQuizAnalytics: true,
+    personalizedFeedback: true,
+    color: 'purple'
   },
+
   pro: {
     name: 'Pro',
-    price: 39.99, 
+    price: 39.99,
+    description: 'Professional tools for power users',
     documentsLimit: 100,
-    quizGeneration: true,
-    basicAnalytics: true,
     strengthsWeaknesses: true,
     prioritySupport: true,
-    customQuizTypes: true,
     teamFeatures: true,
-    apiAccess: true,
-    color: 'emerald',
-    popular: false,
-    description: 'Perfect for power users and tutors'
+    advancedAnalytics: true,
+    // ✅ Quiz Features
+    quizTypes: ['true_false', 'multiple_choice'],
+    showExplanations: true,
+    showStrengthsWeaknesses: true,
+    quizHistoryLimit: -1,
+    advancedQuizAnalytics: true,
+    personalizedFeedback: true,
+    teamCollaboration: true,
+    color: 'green'
   },
+
   enterprise: {
     name: 'Enterprise',
     price: 99.99,
-    documentsLimit: -1, // unlimited
-    quizGeneration: true,
-    basicAnalytics: true,
+    description: 'Complete solution for organizations',
+    documentsLimit: -1, // Unlimited
     strengthsWeaknesses: true,
     prioritySupport: true,
-    customQuizTypes: true,
     teamFeatures: true,
-    apiAccess: true,
-    customBranding: true,
-    ssoIntegration: true,
-    dedicatedSupport: true,
-    color: 'amber',
-    popular: false,
-    description: 'For schools and organizations'
+    advancedAnalytics: true,
+    // ✅ Quiz Features
+    quizTypes: ['true_false', 'multiple_choice'],
+    showExplanations: true,
+    showStrengthsWeaknesses: true,
+    quizHistoryLimit: -1,
+    advancedQuizAnalytics: true,
+    personalizedFeedback: true,
+    teamCollaboration: true,
+    customIntegrations: true,
+    color: 'indigo'
   }
 }
 
@@ -145,6 +158,23 @@ export const subscriptionConfig = {
     showForOtherPlans: true,
     order: 6
   }
+}
+
+// ✅ QUIZ-SPECIFIC HELPER FUNCTIONS
+export const getAvailableQuizTypes = (planKey) => {
+  return PLAN_FEATURES[planKey]?.quizTypes || ['true_false']
+}
+
+export const canShowExplanations = (planKey) => {
+  return PLAN_FEATURES[planKey]?.showExplanations || false
+}
+
+export const canShowStrengthsWeaknesses = (planKey) => {
+  return PLAN_FEATURES[planKey]?.showStrengthsWeaknesses || false
+}
+
+export const getQuizHistoryLimit = (planKey) => {
+  return PLAN_FEATURES[planKey]?.quizHistoryLimit || 5
 }
 
 /**

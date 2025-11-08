@@ -1,6 +1,6 @@
 /**
- * Loading Spinner Component
- * @description Simple loading spinner with Tailwind styles
+ * PATH: src/components/ui/LoadingSpinner.jsx
+ * Loading spinner component
  */
 
 import React from 'react'
@@ -8,19 +8,13 @@ import React from 'react'
 const LoadingSpinner = ({ size = 'md', className = '' }) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
-    md: 'w-8 h-8', 
+    md: 'w-8 h-8',
     lg: 'w-12 h-12'
   }
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <div 
-        className={`
-          ${sizeClasses[size]} 
-          border-2 border-slate-200 border-t-blue-600 
-          rounded-full animate-spin
-        `}
-      />
+    <div className={`inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite] ${sizeClasses[size]} ${className}`}>
+      <span className="sr-only">Loading...</span>
     </div>
   )
 }

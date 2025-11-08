@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/DocumentsGrid.jsx
- * Remove the annoying auto-polling
+ * Updated to handle quiz selection
  */
 
 import React, { useState, useEffect } from 'react'
@@ -8,8 +8,9 @@ import { useSelector, useDispatch } from 'react-redux'
 import { FileText, CheckCircle, Clock, AlertCircle, BookOpen, Brain, RefreshCw } from 'lucide-react'
 import Button from '../ui/Button'
 import DocumentReviseModal from '../documents/DocumentReviseModal'
-import DocumentQuizModal from '../documents/DocumentQuizModal'
+import QuizSelectionModal from '../quiz/modals/QuizSelectionModal' // ✅ NEW IMPORT
 import { fetchUserDocuments } from '../../store/slices/documentsSlice'
+import toast from 'react-hot-toast'
 
 const DocumentsGrid = ({ onUploadClick, className = '' }) => {
   const dispatch = useDispatch()
@@ -18,13 +19,11 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
 
   // Modal states
   const [reviseModal, setReviseModal] = useState({ isOpen: false, document: null })
-  const [quizModal, setQuizModal] = useState({ isOpen: false, document: null })
-  const [refreshing, setRefreshing] = useState(false) // ✅ ADD: Manual refresh state
+  const [quizModal, setQuizModal] = useState({ isOpen: false, document: null }) // ✅ UPDATED
 
-  // ✅ REMOVE: The annoying auto-polling useEffect
-  // We'll replace it with manual refresh
+  const [refreshing, setRefreshing] = useState(false)
 
-  // ✅ ADD: Manual refresh function
+  // Manual refresh function
   const handleManualRefresh = async () => {
     setRefreshing(true)
     try {
@@ -42,16 +41,30 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     setReviseModal({ isOpen: true, document })
   }
 
+  // ✅ UPDATED: Enhanced quiz handler
   const handleQuiz = (document) => {
+    console.log('🎯 Quiz button clicked for document:', document.title)
+    
+    // Check if document is processed
+    if (document.status !== 'completed') {
+      toast.info('Document is still being processed. Quiz will be available once processing is complete.')
+      return
+    }
+    
+    // Open quiz selection modal
     setQuizModal({ isOpen: true, document })
   }
 
+  // ✅ NEW: Handle quiz start from selection modal
   const handleStartQuiz = (quizData) => {
+    console.log('🚀 Starting quiz:', quizData)
     setQuizModal({ isOpen: false, document: null })
-    console.log('Starting quiz:', quizData)
+    
+    // Navigate to quiz interface
+    window.location.href = `/quiz/${quizData.quizId}`
   }
 
-  // Keep your existing utility functions...
+  // Keep all your existing utility functions...
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
@@ -111,46 +124,26 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     )
   }
 
-  // ✅ CHANGE: Update the render condition
   if (!documents || documents.length === 0) {
-    console.log('📄 DocumentsGrid - No documents detected')
-    console.log('📄 Documents array:', documents)
-    console.log('📄 Documents length:', documents?.length)
-    
-    // ✅ ONLY return null if we're sure there are no documents AND not loading
-    if (!isLoading && (!documents || documents.length === 0)) {
-      return (
-        <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
-          <h3 className="font-semibold text-slate-900 mb-4">Your Documents</h3>
-          <div className="text-center py-8">
-            <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h4 className="font-medium text-slate-700 mb-2">No documents yet</h4>
-            <p className="text-slate-500 mb-4">Upload your first document to get started</p>
-            <Button 
-              variant="primary" 
-              size="sm"
-              onClick={onUploadClick}
-            >
-              Upload Document
-            </Button>
-          </div>
-        </div>
-      )
-    }
-    
-    // ✅ If loading or uncertain state, show loading
     return (
       <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
         <h3 className="font-semibold text-slate-900 mb-4">Your Documents</h3>
-        <div className="text-center py-4">
-          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-slate-500 text-sm">Loading documents...</p>
+        <div className="text-center py-8">
+          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <h4 className="font-medium text-slate-700 mb-2">No documents yet</h4>
+          <p className="text-slate-500 mb-4">Upload your first document to get started</p>
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={onUploadClick}
+          >
+            Upload Document
+          </Button>
         </div>
       </div>
     )
   }
 
-  // Check if any documents are processing
   const hasProcessingDocs = documents.some(doc => 
     doc.status === 'processing' || doc.status === 'pending'
   )
@@ -163,7 +156,6 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         <h3 className="font-semibold text-slate-900">Your Documents ({documents.length})</h3>
         
         <div className="flex items-center space-x-2">
-          {/* ✅ ADD: Manual refresh button */}
           {hasProcessingDocs && (
             <Button 
               variant="ghost" 
@@ -189,7 +181,6 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         </div>
       </div>
 
-      {/* ✅ ADD: Processing notification */}
       {hasProcessingDocs && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -298,7 +289,6 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         ))}
       </div>
       
-      {/* Footer */}
       {documents.length > 0 && (
         <div className="mt-4 pt-4 border-t border-slate-100 text-center">
           <Button 
@@ -318,7 +308,8 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         onClose={() => setReviseModal({ isOpen: false, document: null })}
       />
 
-      <DocumentQuizModal
+      {/* ✅ UPDATED: Quiz Selection Modal */}
+      <QuizSelectionModal
         isOpen={quizModal.isOpen}
         document={quizModal.document}
         onClose={() => setQuizModal({ isOpen: false, document: null })}
