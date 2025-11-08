@@ -41,6 +41,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     console.log('✅ Response received:', response.status, response.config.url)
+    
+    // ✅ ADD THIS - Log response data for documents endpoint
+    if (response.config.url.includes('/documents')) {
+      console.log('📄 Documents API Response Data:', response.data)
+      console.log('📄 Documents Array:', response.data.data || response.data.documents || response.data)
+    }
+    
     return response
   },
   (error) => {
@@ -50,7 +57,6 @@ api.interceptors.response.use(
       console.log('🚨 401 Unauthorized - clearing token and redirecting')
       localStorage.removeItem('accessToken')
       
-      // Only redirect if not already on login page
       if (!window.location.pathname.includes('/login')) {
         console.log('🔄 Redirecting to login page')
         window.location.href = '/login'

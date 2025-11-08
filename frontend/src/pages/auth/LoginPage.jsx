@@ -55,7 +55,6 @@ const LoginPage = () => {
   // Handle successful login redirect
   useEffect(() => {
     if (loginSuccess && isAuthenticated) {
-      toast.success('Welcome back to Studion! 🎉')
       
       // Redirect to intended page or dashboard
       const from = location.state?.from?.pathname || '/dashboard'

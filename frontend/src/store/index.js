@@ -6,7 +6,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
 import documentsReducer from './slices/documentsSlice'
-import subscriptionReducer from './slices/subscriptionSlice' // ← ADD THIS
+import subscriptionReducer from './slices/subscriptionSlice'
 
 // Simple UI slice
 import { createSlice } from '@reduxjs/toolkit'
@@ -44,7 +44,7 @@ const store = configureStore({
   reducer: {
     auth: authReducer,
     documents: documentsReducer,
-    subscription: subscriptionReducer, // ← ADD THIS
+    subscription: subscriptionReducer,
     ui: uiSlice.reducer
   },
   devTools: process.env.NODE_ENV !== 'production',

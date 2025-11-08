@@ -1,11 +1,11 @@
 /**
  * PATH: src/components/dashboard/DocumentsGrid.jsx
- * Compact Documents Grid Component - Shows user's uploaded documents with Revise/Quiz actions
+ * Remove the annoying auto-polling
  */
 
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { FileText, CheckCircle, Clock, AlertCircle, BookOpen, Brain, MoreVertical } from 'lucide-react'
+import { FileText, CheckCircle, Clock, AlertCircle, BookOpen, Brain, RefreshCw } from 'lucide-react'
 import Button from '../ui/Button'
 import DocumentReviseModal from '../documents/DocumentReviseModal'
 import DocumentQuizModal from '../documents/DocumentQuizModal'
@@ -19,28 +19,23 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
   // Modal states
   const [reviseModal, setReviseModal] = useState({ isOpen: false, document: null })
   const [quizModal, setQuizModal] = useState({ isOpen: false, document: null })
+  const [refreshing, setRefreshing] = useState(false) // ✅ ADD: Manual refresh state
 
-  // Smart polling for processing documents (MVP solution)
-  useEffect(() => {
-    const hasProcessingDocs = documents?.some(doc => 
-      doc.status === 'processing' || doc.status === 'pending'
-    )
+  // ✅ REMOVE: The annoying auto-polling useEffect
+  // We'll replace it with manual refresh
 
-    if (hasProcessingDocs) {
-      console.log('📄 Found processing documents, starting auto-refresh...')
-      
-      // Poll every 4 seconds - good balance between responsiveness and server load
-      const pollInterval = setInterval(() => {
-        console.log('🔄 Checking for document updates...')
-        dispatch(fetchUserDocuments({ limit: 6 }))
-      }, 4000)
-
-      return () => {
-        console.log('⏹️ All documents processed, stopping auto-refresh')
-        clearInterval(pollInterval)
-      }
+  // ✅ ADD: Manual refresh function
+  const handleManualRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await dispatch(fetchUserDocuments({ limit: 6 })).unwrap()
+      toast.success('Documents refreshed!')
+    } catch (error) {
+      toast.error('Failed to refresh documents')
+    } finally {
+      setRefreshing(false)
     }
-  }, [documents, dispatch])
+  }
 
   // Action handlers
   const handleRevise = (document) => {
@@ -53,11 +48,10 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
 
   const handleStartQuiz = (quizData) => {
     setQuizModal({ isOpen: false, document: null })
-    // Navigate to quiz interface
     console.log('Starting quiz:', quizData)
-    // In real app: navigate to quiz page
   }
 
+  // Keep your existing utility functions...
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
@@ -117,32 +111,108 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     )
   }
 
+  // ✅ CHANGE: Update the render condition
   if (!documents || documents.length === 0) {
-    return null // Don't show this component if no documents
+    console.log('📄 DocumentsGrid - No documents detected')
+    console.log('📄 Documents array:', documents)
+    console.log('📄 Documents length:', documents?.length)
+    
+    // ✅ ONLY return null if we're sure there are no documents AND not loading
+    if (!isLoading && (!documents || documents.length === 0)) {
+      return (
+        <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
+          <h3 className="font-semibold text-slate-900 mb-4">Your Documents</h3>
+          <div className="text-center py-8">
+            <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h4 className="font-medium text-slate-700 mb-2">No documents yet</h4>
+            <p className="text-slate-500 mb-4">Upload your first document to get started</p>
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={onUploadClick}
+            >
+              Upload Document
+            </Button>
+          </div>
+        </div>
+      )
+    }
+    
+    // ✅ If loading or uncertain state, show loading
+    return (
+      <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
+        <h3 className="font-semibold text-slate-900 mb-4">Your Documents</h3>
+        <div className="text-center py-4">
+          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-slate-500 text-sm">Loading documents...</p>
+        </div>
+      </div>
+    )
   }
 
-  // Show only first 6 documents
+  // Check if any documents are processing
+  const hasProcessingDocs = documents.some(doc => 
+    doc.status === 'processing' || doc.status === 'pending'
+  )
+
   const displayDocuments = documents.slice(0, 6)
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-slate-900">Your Documents</h3>
-        {documents.length > 6 && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => window.location.href = '/documents'}
-          >
-            View All ({documents.length})
-          </Button>
-        )}
+        <h3 className="font-semibold text-slate-900">Your Documents ({documents.length})</h3>
+        
+        <div className="flex items-center space-x-2">
+          {/* ✅ ADD: Manual refresh button */}
+          {hasProcessingDocs && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className="flex items-center space-x-1"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </Button>
+          )}
+          
+          {documents.length > 6 && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => window.location.href = '/documents'}
+            >
+              View All ({documents.length})
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* ✅ ADD: Processing notification */}
+      {hasProcessingDocs && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Clock className="w-4 h-4 text-blue-600 animate-spin" />
+            <span className="text-sm text-blue-800">
+              Documents are being processed by AI. Refresh to see updates.
+            </span>
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+          >
+            Refresh Now
+          </Button>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayDocuments.map((document) => (
+        {displayDocuments.map((document, index) => (
           <div 
-            key={document.id} 
+            key={document.id || document._id || index} 
             className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
           >
             {/* Header */}
@@ -153,17 +223,17 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
               
               <div className={`px-2 py-1 rounded-full text-xs border flex items-center space-x-1 ${getStatusColor(document.status)}`}>
                 {getStatusIcon(document.status)}
-                <span className="capitalize">{document.status}</span>
+                <span className="capitalize">{document.status || 'unknown'}</span>
               </div>
             </div>
             
             {/* Content */}
             <div className="mb-4">
               <h4 className="font-medium text-slate-900 text-sm mb-1 truncate">
-                {document.title}
+                {document.title || document.name || 'Untitled'}
               </h4>
               <p className="text-xs text-slate-500 mb-2">
-                {formatDate(document.createdAt)}
+                {document.createdAt ? formatDate(document.createdAt) : 'Unknown date'}
               </p>
               {document.description && (
                 <p className="text-xs text-slate-600 line-clamp-2">
@@ -176,7 +246,6 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
             <div className="space-y-2">
               {document.status === 'completed' ? (
                 <>
-                  {/* Primary Actions */}
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="secondary"
@@ -199,7 +268,6 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
                     </Button>
                   </div>
                   
-                  {/* Document Stats */}
                   <div className="text-xs text-slate-500 text-center pt-2 border-t border-slate-100">
                     <div className="flex justify-between">
                       <span>Views: {document.analytics?.viewCount || 0}</span>
@@ -220,35 +288,9 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
                     ></div>
                   </div>
                 </div>
-              ) : document.status === 'pending' ? (
-                <div className="text-center py-2">
-                  <div className="flex items-center justify-center space-x-2 text-xs text-yellow-600 mb-2">
-                    <Clock className="w-3 h-3" />
-                    <span>Waiting for processing</span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {/* trigger processing */}}
-                  >
-                    Start Processing
-                  </Button>
-                </div>
               ) : (
                 <div className="text-center py-2">
-                  <div className="flex items-center justify-center space-x-2 text-xs text-red-600 mb-2">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>Processing failed</span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {/* retry processing */}}
-                  >
-                    Retry
-                  </Button>
+                  <p className="text-xs text-slate-500">Document uploaded</p>
                 </div>
               )}
             </div>
@@ -256,7 +298,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         ))}
       </div>
       
-      {/* Quick Action */}
+      {/* Footer */}
       {documents.length > 0 && (
         <div className="mt-4 pt-4 border-t border-slate-100 text-center">
           <Button 

@@ -71,6 +71,10 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
   const colors = colorMap[plan.color] || colorMap.slate
   
   // ✅ UPDATED: Handle plan change with authentication check
+  /**
+   * PATH: src/components/subscription/PlanCard.jsx
+   * Update to show current plan and allow manual selection
+   */
   const handlePlanChange = () => {
     if (isCurrentPlan) return
     
@@ -86,17 +90,23 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
       return
     }
     
-    // ✅ User is authenticated, proceed with plan change
-    dispatch(changePlan({ 
-      plan: planKey, 
-      reason: isUpgrade ? 'upgrade' : 'downgrade' 
-    }))
+    // ✅ MANUAL PLAN SELECTION: Ask for confirmation before upgrading
+    const confirmMessage = isUpgrade 
+      ? `Upgrade to ${plan.name} plan for $${plan.price}/month?`
+      : `Switch to ${plan.name} plan?`
     
-    const message = isUpgrade 
-      ? `🎉 Upgraded to ${plan.name}! Enjoy your new features!`
-      : `✅ Switched to ${plan.name} plan`
-    
-    toast.success(message)
+    if (window.confirm(confirmMessage)) {
+      dispatch(changePlan({ 
+        plan: planKey, 
+        reason: isUpgrade ? 'upgrade' : 'downgrade' 
+      }))
+      
+      const message = isUpgrade 
+        ? `🎉 Upgraded to ${plan.name}! Enjoy your new features!`
+        : `✅ Switched to ${plan.name} plan`
+      
+      toast.success(message)
+    }
   }
   
   // Features list (same as before)

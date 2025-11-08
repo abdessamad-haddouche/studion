@@ -6,6 +6,7 @@
 export const DASHBOARD_COMPONENTS = {
   WELCOME_HEADER: 'welcome_header',
   USER_STATS: 'user_stats', 
+  USAGE_INDICATOR: 'usage_indicator', // ✅ ADD THIS
   UPLOAD_CTA: 'upload_cta',
   DOCUMENTS_GRID: 'documents_grid',
   QUICK_ACTIONS: 'quick_actions',
@@ -29,32 +30,40 @@ export const dashboardConfig = {
     order: 2
   },
   
-  [DASHBOARD_COMPONENTS.UPLOAD_CTA]: {
+  // ✅ ADD THIS
+  [DASHBOARD_COMPONENTS.USAGE_INDICATOR]: {
     enabled: true,
     showForEmpty: true,
     showForPopulated: true,
     order: 3
   },
   
+  [DASHBOARD_COMPONENTS.UPLOAD_CTA]: {
+    enabled: true,
+    showForEmpty: true,
+    showForPopulated: true,
+    order: 4
+  },
+  
   [DASHBOARD_COMPONENTS.DOCUMENTS_GRID]: {
     enabled: true,
     showForEmpty: false,
     showForPopulated: true,
-    order: 4
+    order: 5
   },
   
   [DASHBOARD_COMPONENTS.QUICK_ACTIONS]: {
     enabled: true,
     showForEmpty: true,
     showForPopulated: true,
-    order: 5
+    order: 6
   },
   
   [DASHBOARD_COMPONENTS.RECENT_ACTIVITY]: {
     enabled: false, // Example: disabled component
     showForEmpty: false,
     showForPopulated: true,
-    order: 6
+    order: 7
   }
 }
 

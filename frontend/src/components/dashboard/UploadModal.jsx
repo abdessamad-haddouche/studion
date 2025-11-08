@@ -1,22 +1,40 @@
 /**
  * PATH: src/components/dashboard/UploadModal.jsx
- * Upload Modal Component - Stays open until document is fully processed
+ * Updated Upload Modal with Plan Limits Check
  */
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { X, Upload, FileText, CheckCircle, AlertCircle, Clock, Sparkles } from 'lucide-react'
+import { X, Upload, FileText, CheckCircle, AlertCircle, Clock, Sparkles, Crown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../ui/Button'
 import { uploadDocument } from '../../store/slices/documentsSlice'
+
+// ✅ ADD THESE IMPORTS
+import { 
+  selectCurrentPlan, 
+  selectPlanFeatures 
+} from '../../store/slices/subscriptionSlice'
+import { hasReachedUploadLimit } from '../subscription/SubscriptionConfig'
 
 const UploadModal = ({ isOpen, onClose, onSuccess }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
   
+  // ✅ ADD THESE - Plan limits check
+  const currentPlan = useSelector(selectCurrentPlan)
+  const planFeatures = useSelector(selectPlanFeatures)
+  const documents = useSelector(state => state.documents?.documents)
+  const currentDocumentCount = documents?.length || 0
+  const hasReachedLimit = hasReachedUploadLimit(currentPlan, currentDocumentCount)
+  
+  // Check if user can upload more documents
+  const canUpload = planFeatures.documentsLimit === -1 || currentDocumentCount < planFeatures.documentsLimit
+  const remainingUploads = planFeatures.documentsLimit === -1 ? 'Unlimited' : planFeatures.documentsLimit - currentDocumentCount
+  
   const [dragActive, setDragActive] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
-  const [uploadStep, setUploadStep] = useState('select') // select, uploading, processing, complete, error
+  const [uploadStep, setUploadStep] = useState('select') // select, uploading, processing, complete, error, limit_reached
   const [processWithAI, setProcessWithAI] = useState(true)
   const [uploadedDocument, setUploadedDocument] = useState(null)
   const [processingProgress, setProcessingProgress] = useState(0)
@@ -28,15 +46,19 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
   const supportedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
   const maxFileSize = 10 * 1024 * 1024 // 10MB
 
-  // Reset state when modal opens/closes
+  // ✅ ADD THIS: Check limits when modal opens
   useEffect(() => {
     if (isOpen) {
-      setUploadStep('select')
+      if (hasReachedLimit) {
+        setUploadStep('limit_reached')
+      } else {
+        setUploadStep('select')
+      }
       setSelectedFile(null)
       setUploadedDocument(null)
       setProcessingProgress(0)
     }
-  }, [isOpen])
+  }, [isOpen, hasReachedLimit])
 
   // Simulate processing progress
   useEffect(() => {
@@ -189,7 +211,8 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
         {/* Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-slate-900">
-            {uploadStep === 'select' ? 'Upload Document' :
+            {uploadStep === 'limit_reached' ? 'Upload Limit Reached' :
+             uploadStep === 'select' ? 'Upload Document' :
              uploadStep === 'uploading' ? 'Uploading...' :
              uploadStep === 'processing' ? 'Processing with AI...' :
              uploadStep === 'complete' ? 'Upload Complete!' :
@@ -206,8 +229,57 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
 
         {/* Content */}
         <div className="p-4">
+          {/* ✅ ADD THIS: Limit Reached Step */}
+          {uploadStep === 'limit_reached' && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-red-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              
+              <h4 className="font-semibold text-slate-900 mb-2">
+                Upload Limit Reached
+              </h4>
+              
+              <p className="text-slate-600 mb-4">
+                You've uploaded <strong>{currentDocumentCount}</strong> of <strong>{planFeatures.documentsLimit}</strong> documents allowed on your <span className="font-semibold capitalize text-blue-600">{currentPlan}</span> plan.
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h5 className="font-semibold text-blue-900 mb-2">Upgrade to continue uploading:</h5>
+                <div className="space-y-2 text-sm text-blue-800">
+                  <div>• <strong>Basic ($9.99/mo):</strong> 8 documents</div>
+                  <div>• <strong>Premium ($19.99/mo):</strong> 25 documents + Analytics</div>
+                  <div>• <strong>Pro ($39.99/mo):</strong> 100 documents + Team features</div>
+                  <div>• <strong>Enterprise ($99.99/mo):</strong> Unlimited documents</div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    onClose() // Close the upload modal
+                    window.location.href = '/pricing' // ✅ Navigate to pricing/subscription page
+                  }}
+                  variant="premium"
+                  className="w-full flex items-center justify-center space-x-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>View Plans & Upgrade</span>
+                </Button>
+                
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  className="w-full"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* File Selection Step */}
-          {uploadStep === 'select' && (
+          {uploadStep === 'select' && canUpload && (
             <div className="space-y-4">
               {!selectedFile ? (
                 <div
@@ -233,6 +305,31 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
                   <p className="text-slate-600 mb-4">
                     Supports PDF, Word documents, and text files up to 10MB
                   </p>
+                  
+                  {/* ✅ ADD THIS: Usage indicator */}
+                  <div className="bg-slate-100 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-slate-600 mb-2">
+                      <span className="font-semibold">{currentDocumentCount}</span> of{' '}
+                      <span className="font-semibold">
+                        {planFeatures.documentsLimit === -1 ? '∞' : planFeatures.documentsLimit}
+                      </span>{' '}
+                      documents used on <span className="capitalize font-semibold text-blue-600">{currentPlan}</span> plan
+                    </p>
+                    
+                    {planFeatures.documentsLimit !== -1 && (
+                      <div className="space-y-2">
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all"
+                            style={{ width: `${(currentDocumentCount / planFeatures.documentsLimit) * 100}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {remainingUploads} uploads remaining
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
                     <span className="bg-slate-100 px-2 py-1 rounded">PDF</span>
@@ -298,7 +395,7 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Uploading Step */}
+          {/* Keep all your existing upload steps: uploading, processing, complete, error */}
           {uploadStep === 'uploading' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-blue-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -309,7 +406,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Processing Step */}
           {uploadStep === 'processing' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-purple-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -333,7 +429,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Complete Step */}
           {uploadStep === 'complete' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-green-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -371,7 +466,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Error Step */}
           {uploadStep === 'error' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-red-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">

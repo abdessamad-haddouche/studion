@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/subscription/PlansPage.jsx
- * Modular Plans Page with Configuration System
+ * Updated Plans Page with Current Plan Banner
  */
 
 import React, { useEffect } from 'react'
@@ -10,7 +10,8 @@ import Layout from '../../components/layout/Layout'
 // Configuration
 import { 
   SUBSCRIPTION_COMPONENTS, 
-  getEnabledSubscriptionComponents 
+  getEnabledSubscriptionComponents,
+  PLAN_FEATURES
 } from '../../components/subscription/SubscriptionConfig'
 
 // Components
@@ -28,7 +29,7 @@ const PlansPage = () => {
   
   // Update page title
   useEffect(() => {
-    document.title = 'Pricing Plans - Studion'
+    document.title = 'Subscription Plans - Studion'
   }, [])
   
   // Component mapping
@@ -138,7 +139,6 @@ const PlansPage = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Sample testimonials - replace with real ones */}
           {[
             {
               name: "Sarah Johnson",
@@ -181,6 +181,65 @@ const PlansPage = () => {
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          
+          {/* ✅ ADD: Current Plan Banner */}
+          {currentPlan && (
+            <div className="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900 mb-1">Your Current Subscription</h2>
+                  <p className="text-slate-600">
+                    You're currently on the <span className="font-semibold capitalize text-blue-600">{currentPlan}</span> plan
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {PLAN_FEATURES[currentPlan]?.description}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-blue-600 mb-1">
+                    ${PLAN_FEATURES[currentPlan]?.price || 0}
+                    <span className="text-lg text-slate-500">/month</span>
+                  </div>
+                  <div className="text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">
+                    {PLAN_FEATURES[currentPlan]?.documentsLimit === -1 
+                      ? 'Unlimited documents' 
+                      : `${PLAN_FEATURES[currentPlan]?.documentsLimit} documents`}
+                  </div>
+                  {PLAN_FEATURES[currentPlan]?.strengthsWeaknesses && (
+                    <div className="text-xs text-purple-600 mt-1">
+                      ✨ Premium Analytics Included
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* ✅ Quick feature list for current plan */}
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-slate-600">AI Quiz Generation</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-slate-600">Basic Analytics</span>
+                  </div>
+                  {PLAN_FEATURES[currentPlan]?.strengthsWeaknesses && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className="text-slate-600">Strengths & Weaknesses</span>
+                    </div>
+                  )}
+                  {PLAN_FEATURES[currentPlan]?.prioritySupport && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-slate-600">Priority Support</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Render enabled components in configured order */}
           {enabledComponents.map(componentKey => componentMap[componentKey])}

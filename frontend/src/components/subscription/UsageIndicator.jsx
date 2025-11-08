@@ -43,12 +43,10 @@ const UsageIndicator = ({
   const nextPlanInfo = PLAN_FEATURES[nextPlan]
   
   const handleUpgrade = () => {
-    dispatch(changePlan({ 
-      plan: nextPlan, 
-      reason: 'usage_limit' 
-    }))
+    window.location.href = '/pricing'
     
-    toast.success(`🚀 Upgraded to ${nextPlanInfo.name}! More uploads available!`)
+    // ✅ Optional: Show helpful message
+    toast.info('Choose the perfect plan for your needs')
   }
   
   // Compact version for dashboard cards

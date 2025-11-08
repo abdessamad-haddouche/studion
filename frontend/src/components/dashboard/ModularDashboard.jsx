@@ -1,11 +1,12 @@
 /**
  * PATH: src/components/dashboard/ModularDashboard.jsx
- * Main Modular Dashboard Component - Fixed auth state
+ * Main Modular Dashboard Component - Updated with Subscription Features
  */
 
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
+import { selectPlanFeatures } from '../../store/slices/subscriptionSlice'
 
 // Configuration
 import { DASHBOARD_COMPONENTS, getEnabledComponents } from './DashboardConfig'
@@ -13,6 +14,7 @@ import { DASHBOARD_COMPONENTS, getEnabledComponents } from './DashboardConfig'
 // Components
 import WelcomeHeader from './WelcomeHeader'
 import UserStats from './UserStats'
+import UsageIndicator from '../subscription/UsageIndicator' // ✅ ADD THIS
 import UploadCTA from './UploadCTA'
 import DocumentsGrid from './DocumentsGrid'
 import QuickActions from './QuickActions'
@@ -27,23 +29,38 @@ import {
   clearError
 } from '../../store/slices/documentsSlice'
 
+import { updateDocumentUsage } from '../../store/slices/subscriptionSlice'
+
 const ModularDashboard = () => {
   const dispatch = useDispatch()
   
-  // Redux state - ADD isAuthenticated here
-  const { isAuthenticated } = useSelector(state => state.auth) // ← ADD THIS LINE
+  // Redux state
+  const { isAuthenticated } = useSelector(state => state.auth)
   const hasDocuments = useSelector(state => state.documents?.hasDocuments)
   const isLoading = useSelector(state => state.documents?.isLoading)
   const error = useSelector(state => state.documents?.error)
+  const documents = useSelector(state => state.documents?.documents)
+  const planFeatures = useSelector(selectPlanFeatures)
+
+  const [forceRender, setForceRender] = useState(0)
   
   // Local state
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
 
+  const getDocumentsToShow = () => {
+    const limit = planFeatures.documentsLimit
+    if (limit === -1) return 12 // Unlimited - show more
+    if (limit <= 5) return Math.min(limit, 6) // Free/small plans
+    if (limit <= 25) return 9 // Premium
+    return 12 // Pro/Enterprise
+  }
+
+  const documentsLimit = getDocumentsToShow()
+
   // Initialize dashboard data
   useEffect(() => {
     const initializeDashboard = async () => {
-      // Only fetch if authenticated
       if (!isAuthenticated) {
         console.log('❌ Not authenticated, skipping dashboard init')
         setIsInitializing(false)
@@ -52,13 +69,12 @@ const ModularDashboard = () => {
 
       try {
         console.log('✅ Authenticated, initializing dashboard...')
+        console.log(`📊 Loading ${documentsLimit} documents for ${planFeatures.name} plan`)
         
-        // First check if user has documents (quick check)
         await dispatch(checkHasDocuments()).unwrap()
         
-        // Then fetch detailed data
         await Promise.all([
-          dispatch(fetchUserDocuments({ limit: 6 })).unwrap(),
+          dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap(), // ✅ CHANGE: Use plan-based limit
           dispatch(fetchDocumentStats()).unwrap()
         ])
         
@@ -71,21 +87,50 @@ const ModularDashboard = () => {
     }
 
     initializeDashboard()
-  }, [dispatch, isAuthenticated]) // Add isAuthenticated as dependency
+  }, [dispatch, isAuthenticated, documentsLimit])
+
+  // ✅ ADD THIS: Sync document count with subscription state
+  useEffect(() => {
+    // Sync document count with subscription state
+    if (documents && documents.length >= 0) {
+      dispatch(updateDocumentUsage(documents.length))
+      console.log('🔄 Updated document usage:', documents.length)
+    }
+  }, [documents, dispatch])
 
   // Handle upload modal
   const handleUploadClick = () => {
     setShowUploadModal(true)
   }
 
-  const handleUploadSuccess = (document) => {
+  /**
+   * PATH: src/components/dashboard/ModularDashboard.jsx
+   * Fix the upload success flow
+   */
+  const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     toast.success('Document uploaded successfully! 🎉')
     
-    // Refresh dashboard data
-    dispatch(fetchUserDocuments({ limit: 6 }))
-    dispatch(fetchDocumentStats())
+    try {
+      await dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap() 
+      await dispatch(checkHasDocuments()).unwrap()
+      await dispatch(fetchDocumentStats()).unwrap()
+      setForceRender(prev => prev + 1)
+    } catch (error) {
+      console.error('❌ Error refreshing dashboard:', error)
+    }
   }
+
+
+
+  useEffect(() => {
+    console.log('📊 Dashboard State Update:', {
+      hasDocuments,
+      documentsCount: documents?.length,
+      isLoading,
+      forceRender
+    })
+  }, [hasDocuments, documents, isLoading, forceRender])
 
   const handleUploadModalClose = () => {
     setShowUploadModal(false)
@@ -126,15 +171,19 @@ const ModularDashboard = () => {
   }
 
   // Get enabled components based on user state
-  const enabledComponents = getEnabledComponents(hasDocuments)
+  const enabledComponents = getEnabledComponents(hasDocuments || (documents && documents.length > 0))
 
-  // Component mapping
+
+  // ✅ UPDATED: Component mapping with UsageIndicator
   const componentMap = {
     [DASHBOARD_COMPONENTS.WELCOME_HEADER]: (
       <WelcomeHeader key="welcome" className="mb-6" />
     ),
     [DASHBOARD_COMPONENTS.USER_STATS]: (
       <UserStats key="stats" className="mb-6" />
+    ),
+    [DASHBOARD_COMPONENTS.USAGE_INDICATOR]: (
+      <UsageIndicator key="usage" className="mb-6" />
     ),
     [DASHBOARD_COMPONENTS.UPLOAD_CTA]: (
       <UploadCTA 
@@ -147,7 +196,8 @@ const ModularDashboard = () => {
       <DocumentsGrid 
         key="documents"
         onUploadClick={handleUploadClick}
-        className="mb-6" 
+        className="mb-6"
+        maxDocuments={documentsLimit} // ✅ ADD: Pass limit to grid
       />
     ),
     [DASHBOARD_COMPONENTS.QUICK_ACTIONS]: (
@@ -157,7 +207,6 @@ const ModularDashboard = () => {
         className="mb-6" 
       />
     )
-    // Add more components here as needed
   }
 
   return (
@@ -180,6 +229,7 @@ const ModularDashboard = () => {
             isAuthenticated: {String(isAuthenticated)} | 
             hasDocuments: {String(hasDocuments)} | 
             enabledComponents: {enabledComponents.length} | 
+            documentsCount: {documents?.length || 0} | 
             loading: {String(isLoading)}
           </span>
         </div>
