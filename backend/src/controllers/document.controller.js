@@ -365,7 +365,7 @@ export const processPendingDocument  = async (req, res, next) => {
  */
 export const getAllDocuments = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const options = {
       status: req.query.status,
       category: req.query.category,
@@ -472,7 +472,7 @@ export const getDocumentById = async (req, res, next) => {
 export const updateDocument = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const updateData = req.body;
     
     const updatedDocument = await updateDocumentService(documentId, updateData, userId);
@@ -498,7 +498,7 @@ export const updateDocument = async (req, res, next) => {
 export const deleteDocument = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     const result = await deleteDocumentService(documentId, userId);
     
