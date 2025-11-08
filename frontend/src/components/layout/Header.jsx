@@ -1,13 +1,18 @@
 /**
  * PATH: src/components/layout/Header.jsx
- * Updated Header with authentication state
+ * FIXED Header with Real-time Stats Integration - FULL CODE
+ * 
+ * ✅ ADDED: Connect to Redux stats for real-time points updates
+ * ✅ ADDED: Auto-refresh stats when header mounts
+ * ✅ PRESERVED: All original header functionality and design
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings } from 'lucide-react'
-import { logoutUser } from '../../store/slices/authSlice'
+import { logoutUser, fetchUserStats } from '../../store/slices/authSlice'
+import { selectStats } from '../../store/slices/userStatsSlice'
 import toast from 'react-hot-toast'
 
 const Header = () => {
@@ -19,6 +24,41 @@ const Header = () => {
 
   // Auth state from Redux
   const { isAuthenticated, user } = useSelector(state => state.auth)
+  
+  // ✅ ADDED: Get real-time stats from Redux
+  const authStats = useSelector(state => state.auth.userStats) // From authSlice
+  const userStatsSliceStats = useSelector(selectStats) // From userStatsSlice
+  
+  // ✅ ADDED: Merge stats from both sources (most recent wins)
+  const liveStats = {
+    totalPoints: 0,
+    quizzesCompleted: 0,
+    bestScore: 0,
+    // Auth slice stats (lower priority)
+    ...authStats,
+    // UserStats slice stats (higher priority - most recent)
+    ...userStatsSliceStats
+  }
+
+  // ✅ ADDED: Auto-refresh stats when header mounts
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔄 Header: Auto-refreshing stats...')
+      dispatch(fetchUserStats())
+    }
+  }, [dispatch, isAuthenticated])
+
+  // ✅ ADDED: Log stats updates for debugging
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🏆 Header: Stats updated:', {
+        authStats,
+        userStatsSliceStats,
+        liveStats,
+        displayedPoints: liveStats.totalPoints
+      })
+    }
+  }, [authStats, userStatsSliceStats, isAuthenticated])
 
   const handleLogout = async () => {
     try {
@@ -140,11 +180,11 @@ const Header = () => {
 
       {/* User Section */}
       <div className="hidden md:flex items-center space-x-4">
-        {/* User Points Display */}
+        {/* ✅ FIXED: User Points Display with Real-time Stats */}
         <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-1.5 rounded-lg border border-amber-200">
           <Trophy className="w-4 h-4 text-amber-600" />
           <span className="text-sm font-medium text-amber-700">
-            {user?.progress?.totalPoints || 0} pts
+            {liveStats.totalPoints || 0} pts
           </span>
         </div>
 
@@ -182,6 +222,12 @@ const Header = () => {
                   {user?.fullName || `${user?.name?.first} ${user?.name?.last}`}
                 </p>
                 <p className="text-xs text-slate-500">{user?.email}</p>
+                
+                {/* ✅ ADDED: Live stats in dropdown */}
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Points: {liveStats.totalPoints}</span>
+                  <span className="text-slate-500">Best: {liveStats.bestScore}%</span>
+                </div>
               </div>
               
               <a href="/profile" className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors">
@@ -254,6 +300,22 @@ const Header = () => {
             <div className="flex flex-col space-y-3">
               {isAuthenticated ? (
                 <>
+                  {/* ✅ ADDED: Mobile stats display */}
+                  <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3 mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Trophy className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm font-medium text-slate-700">
+                        {liveStats.totalPoints} pts
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Brain className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-slate-700">
+                        {liveStats.quizzesCompleted} quizzes
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Authenticated Mobile Menu */}
                   <a href="/dashboard" className="text-slate-600 hover:text-blue-600 font-medium py-2">
                     Dashboard

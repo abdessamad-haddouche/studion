@@ -1,11 +1,19 @@
 /**
  * PATH: src/components/quiz/results/QuizResults.jsx
- * Add proper error handling for undefined results
+ * COMPLETE Enhanced Quiz Results with Dashboard Refresh Trigger - FULL CODE
+ * 
+ * ✅ ADDED:
+ * - Trigger stats refresh when quiz is completed
+ * - Set localStorage flag for dashboard to detect completion
+ * - Update Redux stats immediately for instant feedback
+ * - Better navigation back to dashboard
+ * 
+ * ✅ PRESERVED: All original functionality, subscription logic, detailed results display
  */
 
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { Trophy, Clock, Target, ArrowLeft, RotateCcw, Share2 } from 'lucide-react'
 import Button from '../../ui/Button'
 import LoadingSpinner from '../../ui/LoadingSpinner'
@@ -13,18 +21,21 @@ import BasicResults from './BasicResults'
 import EnhancedResults from './EnhancedResults'
 import AdvancedResults from './AdvancedResults'
 import { selectCurrentPlan, selectPlanFeatures } from '../../../store/slices/subscriptionSlice'
+import { updateStatsAfterQuiz, fetchUserStats } from '../../../store/slices/userStatsSlice'
 import { quizAPI } from '../../../services/quizAPI'
 import toast from 'react-hot-toast'
 
 const QuizResults = () => {
   const { quizId, attemptId } = useParams()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const currentPlan = useSelector(selectCurrentPlan)
   const planFeatures = useSelector(selectPlanFeatures)
 
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null) // ✅ ADD ERROR STATE
+  const [error, setError] = useState(null)
+  const [statsUpdated, setStatsUpdated] = useState(false)
 
   useEffect(() => {
     if (quizId && attemptId) {
@@ -95,6 +106,13 @@ const QuizResults = () => {
         
         setResults(validatedResults)
         console.log('✅ FINAL VALIDATED RESULTS:', validatedResults)
+
+        // ✅ ADDED: Update stats immediately after getting results
+        if (!statsUpdated) {
+          await updateUserStats(validatedResults)
+          setStatsUpdated(true)
+        }
+        
       } else {
         throw new Error(response.message || 'Invalid response format')
       }
@@ -107,11 +125,68 @@ const QuizResults = () => {
     }
   }
 
+  // ✅ ADDED: Update user stats after quiz completion
+  const updateUserStats = async (quizResults) => {
+    try {
+      console.log('📊 QuizResults: Updating user stats after quiz completion...')
+      
+      // Calculate points earned (you can customize this logic)
+      const pointsEarned = Math.round(quizResults.percentage * 0.1) // 1 point per 10%
+      
+      const quizResult = {
+        percentage: quizResults.percentage,
+        pointsEarned: pointsEarned,
+        isCompleted: true
+      }
+      
+      // Update stats in Redux
+      await dispatch(updateStatsAfterQuiz(quizResult))
+      
+      // ✅ ADDED: Set localStorage flag for dashboard to detect
+      localStorage.setItem('quiz_completed', JSON.stringify({
+        quizId,
+        attemptId,
+        percentage: quizResults.percentage,
+        pointsEarned,
+        timestamp: Date.now()
+      }))
+      
+      // ✅ ADDED: Also trigger a full stats refresh
+      setTimeout(() => {
+        dispatch(fetchUserStats())
+      }, 1000)
+      
+      console.log('✅ QuizResults: Stats updated successfully')
+      
+    } catch (error) {
+      console.error('❌ QuizResults: Failed to update stats:', error)
+    }
+  }
+
   const handleRetakeQuiz = () => {
     navigate(`/quiz/${quizId}`)
   }
 
-  const handleBackToDashboard = () => {
+  const handleBackToDashboard = async () => {
+    console.log('🏠 QuizResults: Navigating back to dashboard...')
+    
+    // Update stats when going back to dashboard
+    if (results) {
+      try {
+        await dispatch(updateStatsAfterQuiz({
+          percentage: results.percentage || 0,
+          pointsEarned: results.pointsEarned || 0,
+          score: results.score || 0
+        }))
+        console.log('✅ Stats updated after quiz completion')
+      } catch (error) {
+        console.error('⚠️ Could not update stats:', error)
+      }
+    }
+    
+    // Set a flag that dashboard should refresh
+    localStorage.setItem('dashboard_should_refresh', 'true')
+    
     navigate('/dashboard')
   }
 
@@ -149,14 +224,14 @@ const QuizResults = () => {
     }
   }
 
-  const getPerformanceColor = (percentage = 0) => { // ✅ DEFAULT VALUE
+  const getPerformanceColor = (percentage = 0) => {
     if (percentage >= 90) return 'green'
     if (percentage >= 80) return 'blue'
     if (percentage >= 70) return 'yellow'
     return 'red'
   }
 
-  const getPerformanceMessage = (percentage = 0) => { // ✅ DEFAULT VALUE
+  const getPerformanceMessage = (percentage = 0) => {
     if (percentage >= 90) return 'Outstanding! 🌟'
     if (percentage >= 80) return 'Great job! 🎉'
     if (percentage >= 70) return 'Well done! 👏'
@@ -343,18 +418,29 @@ const QuizResults = () => {
                 </div>
                 <div className="text-sm text-slate-600">Time</div>
               </div>
-              <div className="mt-8">
-              {/* ✅ NEW: Dashboard Button */}
-                <Button
-                  onClick={handleBackToDashboard}
-                  variant="secondary"
-                  size="lg"
-                  className="flex items-center space-x-2"
-                >
+            </div>
+
+            {/* ✅ Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              <Button
+                onClick={handleBackToDashboard}
+                variant="secondary"
+                size="lg"
+                className="flex items-center space-x-2"
+              >
                 <ArrowLeft className="w-5 h-5" />
                 <span>Back to Dashboard</span>
               </Button>
-            </div>
+              
+              <Button
+                onClick={handleRetakeQuiz}
+                variant="primary"
+                size="lg"
+                className="flex items-center space-x-2"
+              >
+                <RotateCcw className="w-5 h-5" />
+                <span>Retake Quiz</span>
+              </Button>
             </div>
           </div>
         </div>

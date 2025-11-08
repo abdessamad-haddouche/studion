@@ -117,7 +117,21 @@ export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),
   getAnalytics: () => api.get('/user/analytics'),
-  getPoints: () => api.get('/user/points')
+  getPoints: () => api.get('/user/points'),
+  
+  // ✅ FIX: Change from '/user/stats' to '/users/me/stats'
+  getStats: () => {
+    console.log('📊 Fetching user stats from /users/me/stats')
+    return api.get('/users/me/stats')
+  },
+  
+  // ✅ ADD: Other endpoints matching your backend routes
+  getDocumentStats: () => api.get('/users/me/stats/documents'),
+  getQuizStats: () => api.get('/users/me/stats/quizzes'),
+  getPointsBalance: () => api.get('/users/me/points'),
+  getPointsHistory: () => api.get('/users/me/points/history'),
+  
+  // Remove the duplicate getUserStats function
 }
 
 export default api

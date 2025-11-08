@@ -1,6 +1,14 @@
 /**
  * PATH: src/components/dashboard/ModularDashboard.jsx
- * Main Modular Dashboard Component - Updated with Subscription Features
+ * COMPLETE Enhanced Modular Dashboard with Auto-Refresh - FULL CODE
+ * 
+ * ✅ ADDED:
+ * - Check for quiz completion flag on mount
+ * - Auto-refresh UserStats when dashboard loads
+ * - Better organization of dashboard sections
+ * - Conditional rendering based on user state
+ * 
+ * ✅ PRESERVED: All original functionality, subscription logic, usage indicators, component configuration
  */
 
 import React, { useEffect, useState } from 'react'
@@ -14,7 +22,7 @@ import { DASHBOARD_COMPONENTS, getEnabledComponents } from './DashboardConfig'
 // Components
 import WelcomeHeader from './WelcomeHeader'
 import UserStats from './UserStats'
-import UsageIndicator from '../subscription/UsageIndicator' // ✅ ADD THIS
+import UsageIndicator from '../subscription/UsageIndicator'
 import UploadCTA from './UploadCTA'
 import DocumentsGrid from './DocumentsGrid'
 import QuickActions from './QuickActions'
@@ -30,6 +38,9 @@ import {
 } from '../../store/slices/documentsSlice'
 
 import { updateDocumentUsage } from '../../store/slices/subscriptionSlice'
+
+// ✅ NEW: Import user stats action
+import { fetchUserStats } from '../../store/slices/authSlice'
 
 const ModularDashboard = () => {
   const dispatch = useDispatch()
@@ -58,6 +69,35 @@ const ModularDashboard = () => {
 
   const documentsLimit = getDocumentsToShow()
 
+  // ✅ ADDED: Check for quiz completion and refresh on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('📊 ModularDashboard: Component mounted, checking for updates...')
+      
+      // Check if user just completed a quiz
+      const quizCompleted = localStorage.getItem('quiz_completed')
+      const dashboardShouldRefresh = localStorage.getItem('dashboard_should_refresh')
+      
+      if (quizCompleted) {
+        console.log('🎯 ModularDashboard: Quiz completion detected, refreshing stats...')
+        localStorage.removeItem('quiz_completed')
+        
+        // Small delay to ensure backend has processed the results
+        setTimeout(() => {
+          dispatch(fetchUserStats())
+        }, 1000)
+      }
+      
+      if (dashboardShouldRefresh) {
+        console.log('🔄 ModularDashboard: Dashboard refresh requested, updating all data...')
+        localStorage.removeItem('dashboard_should_refresh')
+        
+        dispatch(fetchUserStats())
+        dispatch(fetchUserDocuments({ limit: 1000 }))
+      }
+    }
+  }, [dispatch, isAuthenticated])
+
   // Initialize dashboard data
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -74,8 +114,9 @@ const ModularDashboard = () => {
         await dispatch(checkHasDocuments()).unwrap()
         
         await Promise.all([
-          dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap(), // ✅ CHANGE: Use plan-based limit
-          dispatch(fetchDocumentStats()).unwrap()
+          dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap(),
+          dispatch(fetchDocumentStats()).unwrap(),
+          dispatch(fetchUserStats()).unwrap() // ✅ NEW: Fetch user stats
         ])
         
         console.log('✅ Dashboard initialized successfully')
@@ -89,9 +130,8 @@ const ModularDashboard = () => {
     initializeDashboard()
   }, [dispatch, isAuthenticated, documentsLimit])
 
-  // ✅ ADD THIS: Sync document count with subscription state
+  // Sync document count with subscription state
   useEffect(() => {
-    // Sync document count with subscription state
     if (documents && documents.length >= 0) {
       dispatch(updateDocumentUsage(documents.length))
       console.log('🔄 Updated document usage:', documents.length)
@@ -104,24 +144,24 @@ const ModularDashboard = () => {
   }
 
   /**
-   * PATH: src/components/dashboard/ModularDashboard.jsx
-   * Fix the upload success flow
+   * Fix the upload success flow and refresh user stats
    */
   const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     toast.success('Document uploaded successfully! 🎉')
     
     try {
-      await dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap() 
-      await dispatch(checkHasDocuments()).unwrap()
-      await dispatch(fetchDocumentStats()).unwrap()
+      await Promise.all([
+        dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap(),
+        dispatch(checkHasDocuments()).unwrap(),
+        dispatch(fetchDocumentStats()).unwrap(),
+        dispatch(fetchUserStats()).unwrap() // ✅ NEW: Refresh user stats after upload
+      ])
       setForceRender(prev => prev + 1)
     } catch (error) {
       console.error('❌ Error refreshing dashboard:', error)
     }
   }
-
-
 
   useEffect(() => {
     console.log('📊 Dashboard State Update:', {
@@ -173,8 +213,7 @@ const ModularDashboard = () => {
   // Get enabled components based on user state
   const enabledComponents = getEnabledComponents(hasDocuments || (documents && documents.length > 0))
 
-
-  // ✅ UPDATED: Component mapping with UsageIndicator
+  // Component mapping with UsageIndicator
   const componentMap = {
     [DASHBOARD_COMPONENTS.WELCOME_HEADER]: (
       <WelcomeHeader key="welcome" className="mb-6" />
@@ -197,7 +236,7 @@ const ModularDashboard = () => {
         key="documents"
         onUploadClick={handleUploadClick}
         className="mb-6"
-        maxDocuments={documentsLimit} // ✅ ADD: Pass limit to grid
+        maxDocuments={documentsLimit}
       />
     ),
     [DASHBOARD_COMPONENTS.QUICK_ACTIONS]: (
