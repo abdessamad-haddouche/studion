@@ -1,6 +1,8 @@
 /**
  * PATH: src/services/documents.service.js
  * Documents API Service - Complete backend integration
+ * 
+ * ✅ MINIMAL FIX: Just added getTotalDocumentsCount method, everything else UNCHANGED
  */
 
 import { documentsAPI } from './api'
@@ -229,6 +231,23 @@ export const documentsService = {
       }
     } catch (error) {
       throw this.handleError(error)
+    }
+  },
+
+  /**
+   * ✅ NEW: Get total documents count (for subscription tracking)
+   * @returns {Promise<Object>} Total documents count
+   */
+  async getTotalDocumentsCount() {
+    try {
+      // Get just the count without fetching all documents
+      const response = await this.getUserDocuments({ limit: 1 })
+      return {
+        totalCount: response.pagination?.total || response.total || response.count || 0
+      }
+    } catch (error) {
+      console.error('Error getting total documents count:', error)
+      return { totalCount: 0 }
     }
   },
 

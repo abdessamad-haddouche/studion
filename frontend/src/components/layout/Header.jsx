@@ -1,15 +1,14 @@
 /**
  * PATH: src/components/layout/Header.jsx
- * FIXED Header with Real-time Stats Integration - FULL CODE
+ * FIXED Header with Consistent Points Display - FULL CODE
  * 
- * ✅ ADDED: Connect to Redux stats for real-time points updates
- * ✅ ADDED: Auto-refresh stats when header mounts
- * ✅ PRESERVED: All original header functionality and design
+ * ✅ FIXED: Points display now consistent across ALL pages (dashboard, documents, etc.)
+ * ✅ FIXED: Real-time stats integration working everywhere
  */
 
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings } from 'lucide-react'
 import { logoutUser, fetchUserStats } from '../../store/slices/authSlice'
 import { selectStats } from '../../store/slices/userStatsSlice'
@@ -17,6 +16,7 @@ import toast from 'react-hot-toast'
 
 const Header = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useDispatch()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isCoursesDropdownOpen, setIsCoursesDropdownOpen] = useState(false)
@@ -25,11 +25,11 @@ const Header = () => {
   // Auth state from Redux
   const { isAuthenticated, user } = useSelector(state => state.auth)
   
-  // ✅ ADDED: Get real-time stats from Redux
+  // ✅ FIXED: Get real-time stats from Redux (consistent across all pages)
   const authStats = useSelector(state => state.auth.userStats) // From authSlice
   const userStatsSliceStats = useSelector(selectStats) // From userStatsSlice
   
-  // ✅ ADDED: Merge stats from both sources (most recent wins)
+  // ✅ FIXED: Merge stats from both sources (most recent wins)
   const liveStats = {
     totalPoints: 0,
     quizzesCompleted: 0,
@@ -40,25 +40,25 @@ const Header = () => {
     ...userStatsSliceStats
   }
 
-  // ✅ ADDED: Auto-refresh stats when header mounts
+  // ✅ FIXED: Auto-refresh stats when header mounts OR when route changes
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('🔄 Header: Auto-refreshing stats...')
+      console.log('🔄 Header: Auto-refreshing stats for route:', location.pathname)
       dispatch(fetchUserStats())
     }
-  }, [dispatch, isAuthenticated])
+  }, [dispatch, isAuthenticated, location.pathname]) // ✅ Added location.pathname
 
-  // ✅ ADDED: Log stats updates for debugging
+  // ✅ FIXED: Log stats updates for debugging
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('🏆 Header: Stats updated:', {
+      console.log('🏆 Header: Stats updated for page', location.pathname, {
         authStats,
         userStatsSliceStats,
         liveStats,
         displayedPoints: liveStats.totalPoints
       })
     }
-  }, [authStats, userStatsSliceStats, isAuthenticated])
+  }, [authStats, userStatsSliceStats, isAuthenticated, location.pathname])
 
   const handleLogout = async () => {
     try {
@@ -122,7 +122,11 @@ const Header = () => {
       <nav className="hidden md:flex items-center space-x-8">
         <a 
           href="/dashboard" 
-          className="text-slate-600 hover:text-blue-600 font-medium transition-colors flex items-center space-x-1"
+          className={`font-medium transition-colors flex items-center space-x-1 ${
+            location.pathname === '/dashboard' 
+              ? 'text-blue-600' 
+              : 'text-slate-600 hover:text-blue-600'
+          }`}
         >
           <BookOpen className="w-4 h-4" />
           <span>Dashboard</span>
@@ -130,14 +134,22 @@ const Header = () => {
         
         <a 
           href="/documents" 
-          className="text-slate-600 hover:text-blue-600 font-medium transition-colors"
+          className={`font-medium transition-colors ${
+            location.pathname === '/documents' 
+              ? 'text-blue-600' 
+              : 'text-slate-600 hover:text-blue-600'
+          }`}
         >
           Documents
         </a>
         
         <a 
           href="/quizzes" 
-          className="text-slate-600 hover:text-blue-600 font-medium transition-colors"
+          className={`font-medium transition-colors ${
+            location.pathname === '/quizzes' 
+              ? 'text-blue-600' 
+              : 'text-slate-600 hover:text-blue-600'
+          }`}
         >
           Quizzes
         </a>
@@ -147,7 +159,11 @@ const Header = () => {
           <button
             onMouseEnter={() => setIsCoursesDropdownOpen(true)}
             onMouseLeave={() => setIsCoursesDropdownOpen(false)}
-            className="text-slate-600 hover:text-blue-600 font-medium transition-colors flex items-center space-x-1"
+            className={`font-medium transition-colors flex items-center space-x-1 ${
+              location.pathname.startsWith('/courses') 
+                ? 'text-blue-600' 
+                : 'text-slate-600 hover:text-blue-600'
+            }`}
           >
             <span>Courses</span>
             <ChevronDown className="w-4 h-4" />
@@ -180,7 +196,7 @@ const Header = () => {
 
       {/* User Section */}
       <div className="hidden md:flex items-center space-x-4">
-        {/* ✅ FIXED: User Points Display with Real-time Stats */}
+        {/* ✅ FIXED: Consistent Points Display - ALWAYS VISIBLE on ALL pages */}
         <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-1.5 rounded-lg border border-amber-200">
           <Trophy className="w-4 h-4 text-amber-600" />
           <span className="text-sm font-medium text-amber-700">
@@ -223,7 +239,7 @@ const Header = () => {
                 </p>
                 <p className="text-xs text-slate-500">{user?.email}</p>
                 
-                {/* ✅ ADDED: Live stats in dropdown */}
+                {/* ✅ FIXED: Live stats in dropdown - CONSISTENT everywhere */}
                 <div className="mt-2 flex items-center justify-between text-xs">
                   <span className="text-slate-500">Points: {liveStats.totalPoints}</span>
                   <span className="text-slate-500">Best: {liveStats.bestScore}%</span>
@@ -300,7 +316,7 @@ const Header = () => {
             <div className="flex flex-col space-y-3">
               {isAuthenticated ? (
                 <>
-                  {/* ✅ ADDED: Mobile stats display */}
+                  {/* ✅ FIXED: Mobile stats display - CONSISTENT everywhere */}
                   <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3 mb-3">
                     <div className="flex items-center space-x-2">
                       <Trophy className="w-4 h-4 text-amber-600" />
@@ -317,16 +333,24 @@ const Header = () => {
                   </div>
 
                   {/* Authenticated Mobile Menu */}
-                  <a href="/dashboard" className="text-slate-600 hover:text-blue-600 font-medium py-2">
+                  <a href="/dashboard" className={`font-medium py-2 ${
+                    location.pathname === '/dashboard' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
+                  }`}>
                     Dashboard
                   </a>
-                  <a href="/documents" className="text-slate-600 hover:text-blue-600 font-medium py-2">
+                  <a href="/documents" className={`font-medium py-2 ${
+                    location.pathname === '/documents' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
+                  }`}>
                     Documents
                   </a>
-                  <a href="/quizzes" className="text-slate-600 hover:text-blue-600 font-medium py-2">
+                  <a href="/quizzes" className={`font-medium py-2 ${
+                    location.pathname === '/quizzes' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
+                  }`}>
                     Quizzes
                   </a>
-                  <a href="/courses" className="text-slate-600 hover:text-blue-600 font-medium py-2">
+                  <a href="/courses" className={`font-medium py-2 ${
+                    location.pathname.startsWith('/courses') ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
+                  }`}>
                     Courses
                   </a>
                   

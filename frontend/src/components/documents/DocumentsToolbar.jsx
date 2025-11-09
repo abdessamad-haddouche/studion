@@ -1,12 +1,12 @@
 /**
  * PATH: src/components/documents/DocumentsToolbar.jsx
- * FIXED - INFINITE LOOP RESOLVED
+ * COMPLETELY FIXED - NO MORE INFINITE LOOPS
  * 
- * ✅ PROBLEM: useEffect with onFilterChange/onSortChange dependencies caused infinite loop
- * ✅ SOLUTION: Remove function dependencies and use manual triggering instead
+ * ✅ SOLUTION: Removed all useEffect dependencies and automatic triggers
+ * ✅ SOLUTION: Direct function calls only when user explicitly interacts
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState } from 'react'
 import { 
   Search, 
   Filter, 
@@ -18,8 +18,7 @@ import {
   ChevronDown,
   Check,
   Trash2,
-  Download,
-  Archive
+  Download
 } from 'lucide-react'
 import Button from '../ui/Button'
 import { 
@@ -40,8 +39,8 @@ const DocumentsToolbar = ({
   onBulkAction,
   className = ''
 }) => {
-  // Local state
-  const [searchQuery, setSearchQuery] = useState('')
+  // ✅ FIXED: Local state that NEVER gets reset from outside
+  const [searchInput, setSearchInput] = useState('') // ✅ SEPARATE from any external state
   const [activeFilters, setActiveFilters] = useState({
     status: null,
     category: null,
@@ -51,6 +50,7 @@ const DocumentsToolbar = ({
   const [sortOrder, setSortOrder] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
   const [showSortMenu, setShowSortMenu] = useState(false)
+  const [searchTimeoutId, setSearchTimeoutId] = useState(null)
 
   // Get available options based on subscription
   const availableSortOptions = getAvailableSortOptions(currentPlan)
@@ -58,76 +58,120 @@ const DocumentsToolbar = ({
   const hasAdvancedSearch = canAccessFeature('advanced_search', currentPlan)
   const canBulkActions = canAccessFeature('bulk_actions', currentPlan)
 
-  // ✅ FIX: Memoize the filter update function to prevent infinite loops
-  const updateFilters = useCallback(() => {
-    const searchValue = searchQuery.trim()
+  // ✅ FIXED: Direct filter building function
+  const buildFilters = (searchValue, filters) => {
+    const finalFilters = { ...filters }
     
-    const filters = {
-      // Only include search if it has actual content
-      ...(searchValue ? { search: searchValue } : {}),
-      ...activeFilters
+    // ✅ CRITICAL: Only add search filter if there's actual text
+    const trimmedSearch = searchValue ? searchValue.trim() : ''
+    if (trimmedSearch) {
+      finalFilters.search = trimmedSearch
+    } else {
+      // ✅ IMPORTANT: Remove search completely when empty to show ALL documents
+      delete finalFilters.search
     }
     
-    // Remove null values
-    Object.keys(filters).forEach(key => {
-      if (filters[key] === null || filters[key] === undefined) {
-        delete filters[key]
+    // Remove null/undefined values
+    Object.keys(finalFilters).forEach(key => {
+      if (finalFilters[key] === null || finalFilters[key] === undefined) {
+        delete finalFilters[key]
       }
     })
     
-    onFilterChange(filters)
-  }, [searchQuery, activeFilters, onFilterChange])
+    console.log('🔧 buildFilters:', { searchValue, trimmedSearch, finalFilters })
+    return finalFilters
+  }
 
-  // ✅ FIX: Memoize the sort update function
-  const updateSort = useCallback(() => {
-    onSortChange(sortBy, sortOrder)
-  }, [sortBy, sortOrder, onSortChange])
-
-  // ✅ FIX: Only trigger updates when values actually change, not on every render
-  useEffect(() => {
-    updateFilters()
-  }, [searchQuery, activeFilters]) // ✅ REMOVED onFilterChange dependency
-
-  useEffect(() => {
-    updateSort()
-  }, [sortBy, sortOrder]) // ✅ REMOVED onSortChange dependency
-
-  // Search change handling
-  const handleSearchChange = (e) => {
+  // ✅ FIXED: Search handling that PRESERVES input text and removes blink
+  const handleSearchInputChange = (e) => {
     const value = e.target.value
-    setSearchQuery(value)
+    setSearchInput(value) // ✅ ALWAYS keep what user types in the input
+    
+    // Clear any existing timeout to prevent multiple calls
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId)
+    }
+    
+    // ✅ REMOVED BLINK: No immediate state changes, just debounced API call
+    const newTimeoutId = setTimeout(() => {
+      const finalFilters = buildFilters(value, activeFilters)
+      console.log('🔍 Search API call:', value, finalFilters)
+      onFilterChange(finalFilters)
+    }, 200) // ✅ FASTER: 200ms for quicker response
+    
+    setSearchTimeoutId(newTimeoutId)
   }
 
+  // ✅ FIXED: Clear search - ONLY clears when user explicitly clicks X
+  const handleClearSearch = () => {
+    console.log('🧹 User clicked clear search')
+    setSearchInput('') // ✅ Clear the input
+    
+    // Clear any pending search
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId)
+      setSearchTimeoutId(null)
+    }
+    
+    const finalFilters = buildFilters('', activeFilters)
+    console.log('🧹 Clearing search, filters:', finalFilters)
+    onFilterChange(finalFilters)
+  }
+
+  // ✅ FIXED: Filter change preserves search input
   const handleFilterChange = (filterType, value) => {
-    setActiveFilters(prev => ({
-      ...prev,
+    const newActiveFilters = {
+      ...activeFilters,
       [filterType]: value
-    }))
+    }
+    setActiveFilters(newActiveFilters)
+    
+    // ✅ PRESERVE search input - use current searchInput value
+    const finalFilters = buildFilters(searchInput, newActiveFilters)
+    console.log('🏷️ Filter changed:', filterType, value, finalFilters)
+    onFilterChange(finalFilters)
   }
 
+  // ✅ FIXED: Sort change without loops
   const handleSortSelect = (option) => {
     setSortBy(option.field)
     setSortOrder(option.order)
     setShowSortMenu(false)
+    console.log('📊 Sort changed:', option)
+    onSortChange(option.field, option.order)
   }
 
-  // Clear all filters and search
-  const clearAllFilters = () => {
-    setSearchQuery('')
+  // ✅ FIXED: Clear search - clears input AND returns to all documents
+  const clearSearch = () => {
+    console.log('🧹 Clearing search input and returning to all documents')
+    setSearchQuery('') // ✅ Clear the input field
+    const finalFilters = buildFilters('', activeFilters) // ✅ Build filters without search
+    console.log('🧹 Search cleared, filters:', finalFilters)
+    onFilterChange(finalFilters) // ✅ This will fetch ALL documents
+  }
+
+  // ✅ FIXED: Clear all - clears everything including search input
+  const handleClearAllFilters = () => {
+    console.log('🧹 Clearing everything')
+    setSearchInput('') // ✅ Clear search input
     setActiveFilters({
       status: null,
       category: null,
       difficulty: null
     })
-  }
-
-  // Clear just the search
-  const clearSearch = () => {
-    setSearchQuery('')
+    
+    // Clear any pending search
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId)
+      setSearchTimeoutId(null)
+    }
+    
+    console.log('🧹 All cleared, fetching all documents')
+    onFilterChange({}) // ✅ Empty filters = all documents
   }
 
   // Active filters detection
-  const hasActiveFilters = searchQuery.trim() || Object.values(activeFilters).some(value => value !== null)
+  const hasActiveFilters = searchInput.trim() || Object.values(activeFilters).some(value => value !== null)
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
@@ -142,13 +186,13 @@ const DocumentsToolbar = ({
             <input
               type="text"
               placeholder={hasAdvancedSearch ? "Search documents by title, content, or category..." : "Search documents..."}
-              value={searchQuery}
-              onChange={handleSearchChange}
+              value={searchInput}
+              onChange={handleSearchInputChange}
               className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
-            {searchQuery && (
+            {searchInput && (
               <button
-                onClick={clearSearch}
+                onClick={handleClearSearch}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 title="Clear search"
               >
@@ -172,7 +216,7 @@ const DocumentsToolbar = ({
               <span>Filters</span>
               {hasActiveFilters && (
                 <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {Object.values(activeFilters).filter(v => v !== null).length + (searchQuery.trim() ? 1 : 0)}
+                  {Object.values(activeFilters).filter(v => v !== null).length + (searchInput.trim() ? 1 : 0)}
                 </span>
               )}
             </Button>
@@ -246,7 +290,7 @@ const DocumentsToolbar = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={clearAllFilters}
+                        onClick={handleClearAllFilters}
                         className="w-full flex items-center justify-center space-x-2"
                       >
                         <X className="w-4 h-4" />
@@ -373,11 +417,11 @@ const DocumentsToolbar = ({
             <span className="text-sm text-slate-500">Active filters:</span>
             
             {/* Search Filter Badge */}
-            {searchQuery.trim() && (
+            {searchInput.trim() && (
               <span className="inline-flex items-center space-x-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                <span>Search: "{searchQuery.trim()}"</span>
+                <span>Search: "{searchInput.trim()}"</span>
                 <button 
-                  onClick={clearSearch}
+                  onClick={handleClearSearch}
                   className="hover:text-blue-600"
                   title="Clear search"
                 >
@@ -414,7 +458,7 @@ const DocumentsToolbar = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearAllFilters}
+              onClick={handleClearAllFilters}
               className="text-slate-500 text-xs ml-2"
             >
               Clear All
@@ -424,7 +468,7 @@ const DocumentsToolbar = ({
       )}
 
       {/* Plan Limitations Notice */}
-      {!hasAdvancedSearch && searchQuery.trim() && (
+      {!hasAdvancedSearch && searchInput.trim() && (
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-sm text-amber-800">
             🔍 Upgrade to Premium for advanced search across document content and metadata.
