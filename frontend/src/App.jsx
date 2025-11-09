@@ -1,31 +1,61 @@
 /**
  * PATH: src/App.jsx
- * Add quiz routes back
+ * RECOMMENDED App Component - Best of Both Versions
+ * 
+ * ✅ COMBINES:
+ * - Your current protected routes (better security)
+ * - Documents page route (newly implemented)
+ * - Quiz routes (from suggested version)  
+ * - Complete routing structure
+ * - Proper auth checking
  */
 
 import React, { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Toaster } from 'react-hot-toast'
 
 // Store
 import store from './store'
-import { checkAuthState } from './store/slices/authSlice'
+import { checkAuthState, selectIsAuthenticated } from './store/slices/authSlice'
 
 // Pages
 import HomePage from './pages/HomePage'
 import RegisterPage from './pages/auth/RegisterPage'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
+import DocumentsPage from './pages/documents/DocumentsPage' // ✅ KEEP DOCUMENTS PAGE
 import PlansPage from './pages/subscription/PlansPage'
 import Terms from './pages/documents/Terms'
 import Points from './pages/profile/PointsPage'
 import ForgotPassword from './pages/auth/ForgotPasswordPage'
 
-// ✅ ADD QUIZ IMPORTS BACK
+// ✅ QUIZ COMPONENTS (from suggested version)
 import QuizInterface from './components/quiz/taking/QuizInterface'
 import QuizResults from './components/quiz/results/QuizResults'
+
+// ✅ KEEP YOUR PROTECTED ROUTE LOGIC (better security)
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = useSelector(selectIsAuthenticated)
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
+  return children
+}
+
+// Public Route Component (redirect if authenticated)
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = useSelector(selectIsAuthenticated)
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+  
+  return children
+}
 
 // Auth checker component
 const AuthChecker = ({ children }) => {
@@ -38,50 +68,197 @@ const AuthChecker = ({ children }) => {
   return children
 }
 
+// Main App Component
+const AppContent = () => {
+  const isAuthenticated = useSelector(selectIsAuthenticated)
+
+  useEffect(() => {
+    console.log('🚀 App initialized, authentication status:', isAuthenticated)
+  }, [isAuthenticated])
+
+  return (
+    <div className="App min-h-screen">
+      <Routes>
+        {/* ✅ PUBLIC ROUTES */}
+        <Route 
+          path="/" 
+          element={
+            <PublicRoute>
+              <HomePage />
+            </PublicRoute>
+          } 
+        />
+        
+        <Route 
+          path="/login" 
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          } 
+        />
+        
+        <Route 
+          path="/register" 
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          } 
+        />
+
+        <Route 
+          path="/forgot-password" 
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          } 
+        />
+
+        {/* ✅ PUBLIC PAGES (accessible to all) */}
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/pricing" element={<PlansPage />} />
+        <Route path="/plans" element={<PlansPage />} />
+
+        {/* ✅ PROTECTED ROUTES */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ✅ DOCUMENTS PAGE (newly implemented) */}
+        <Route 
+          path="/documents" 
+          element={
+            <ProtectedRoute>
+              <DocumentsPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ✅ QUIZ ROUTES (from suggested version) */}
+        <Route 
+          path="/quiz/:quizId" 
+          element={
+            <ProtectedRoute>
+              <QuizInterface />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/quiz/:quizId/results/:attemptId" 
+          element={
+            <ProtectedRoute>
+              <QuizResults />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ✅ OTHER PROTECTED ROUTES */}
+        <Route 
+          path="/subscription" 
+          element={
+            <ProtectedRoute>
+              <PlansPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/points" 
+          element={
+            <ProtectedRoute>
+              <Points />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ✅ FUTURE ROUTES */}
+        <Route 
+          path="/analytics" 
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold text-slate-900 mb-4">Analytics Coming Soon</h1>
+                  <p className="text-slate-600">Advanced analytics dashboard is under development.</p>
+                </div>
+              </div>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/help/*" 
+          element={
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-slate-900 mb-4">Help Center</h1>
+                <p className="text-slate-600">Documentation and tutorials coming soon.</p>
+              </div>
+            </div>
+          } 
+        />
+
+        {/* ✅ 404 CATCH-ALL */}
+        <Route 
+          path="*" 
+          element={
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-slate-900 mb-4">404 - Page Not Found</h1>
+                <p className="text-slate-600 mb-4">The page you're looking for doesn't exist.</p>
+                <button
+                  onClick={() => window.history.back()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
+          } 
+        />
+      </Routes>
+    </div>
+  )
+}
+
+// ✅ MAIN APP WITH PROVIDER
 function App() {
   return (
     <Provider store={store}>
       <Router>
         <AuthChecker>
-          <div className="App min-h-screen">
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
+          <AppContent />
+          
+          {/* ✅ TOAST NOTIFICATIONS */}
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+              success: {
+                duration: 3000,
                 style: {
-                  background: '#363636',
-                  color: '#fff',
+                  background: '#10b981',
                 },
-                success: {
-                  style: {
-                    background: '#10b981',
-                  },
+              },
+              error: {
+                style: {
+                  background: '#ef4444',
                 },
-                error: {
-                  style: {
-                    background: '#ef4444',
-                  },
-                },
-              }}
-            />
-            
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/subscription" element={<PlansPage />} />
-              <Route path="/plans" element={<PlansPage />} />
-              <Route path="/pricing" element={<PlansPage />} />
-              <Route path='/terms' element={<Terms />} /> 
-              <Route path='/points' element={<Points />} /> 
-              
-              {/* ✅ QUIZ ROUTES */}
-              <Route path="/quiz/:quizId" element={<QuizInterface />} />
-              <Route path="/quiz/:quizId/results/:attemptId" element={<QuizResults />} />
-            </Routes>
-          </div>
+              },
+            }}
+          />
         </AuthChecker>
       </Router>
     </Provider>
