@@ -1,9 +1,6 @@
 /**
  * PATH: src/store/slices/documentsSlice.js
- * FIXED Documents Redux Slice - Separates search results from total documents count
- * 
- * ✅ PROBLEM: Search results were overwriting total documents count
- * ✅ SOLUTION: Separate state for search results vs total uploaded documents
+ * ENHANCED with Local Filtering Support
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
@@ -19,10 +16,9 @@ export const fetchUserDocuments = createAsyncThunk(
     try {
       const response = await documentsService.getUserDocuments(options)
       
-      // ✅ FIXED: Return metadata about whether this is a search or full fetch
       return {
         ...response,
-        isSearchResult: !!(options.search && options.search.trim()), // Flag if this is a search
+        isSearchResult: !!(options.search && options.search.trim()),
         searchQuery: options.search || null,
         hasFilters: !!(options.status || options.category || options.difficulty)
       }
@@ -32,12 +28,10 @@ export const fetchUserDocuments = createAsyncThunk(
   }
 )
 
-// ✅ NEW: Fetch total documents count (for subscription usage tracking)
 export const fetchTotalDocumentsCount = createAsyncThunk(
   'documents/fetchTotalDocumentsCount',
   async (_, { rejectWithValue }) => {
     try {
-      // This should call an endpoint that returns TOTAL user documents (not filtered)
       const response = await documentsService.getTotalDocumentsCount()
       return response.totalCount || 0
     } catch (error) {
@@ -113,24 +107,18 @@ export const fetchDocumentStats = createAsyncThunk(
 const documentsSlice = createSlice({
   name: 'documents',
   initialState: {
-    // Document lists
-    documents: [], // ✅ Current displayed documents (could be search results or all)
-    
-    // ✅ FIXED: Separate state for tracking totals
-    totalDocumentsCount: 0, // ✅ ALWAYS tracks total uploaded documents (for subscription)
-    displayedDocumentsCount: 0, // ✅ Count of currently displayed documents (search results)
-    
+    documents: [],
+    totalDocumentsCount: 0,
+    displayedDocumentsCount: 0,
     currentDocument: null,
     
-    // Pagination
     pagination: {
       page: 1,
       limit: 20,
-      total: 0, // ✅ Total for current view (search or all)
+      total: 0,
       totalPages: 0
     },
     
-    // Filters & Search
     filters: {
       status: null,
       category: null,
@@ -138,7 +126,6 @@ const documentsSlice = createSlice({
       search: ''
     },
     
-    // ✅ NEW: Search state tracking
     searchState: {
       isSearchActive: false,
       searchQuery: '',
@@ -146,7 +133,6 @@ const documentsSlice = createSlice({
       searchResultsCount: 0
     },
     
-    // Stats
     stats: {
       total: 0,
       processed: 0,
@@ -157,28 +143,22 @@ const documentsSlice = createSlice({
       recentUploads: 0
     },
     
-    // UI State
-    hasDocuments: null, // null = unknown, true/false = determined
+    hasDocuments: null,
     isLoading: false,
     isUploading: false,
     isProcessing: false,
     error: null,
-    
-    // Last updated timestamp
     lastFetched: null
   },
   reducers: {
-    // Clear error
     clearError: (state) => {
       state.error = null
     },
     
-    // Update filters
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload }
     },
     
-    // Clear filters
     clearFilters: (state) => {
       state.filters = {
         status: null,
@@ -186,7 +166,6 @@ const documentsSlice = createSlice({
         difficulty: null,
         search: ''
       }
-      // ✅ FIXED: Reset search state when clearing filters
       state.searchState = {
         isSearchActive: false,
         searchQuery: '',
@@ -195,17 +174,14 @@ const documentsSlice = createSlice({
       }
     },
     
-    // Set current document
     setCurrentDocument: (state, action) => {
       state.currentDocument = action.payload
     },
     
-    // Clear current document
     clearCurrentDocument: (state) => {
       state.currentDocument = null
     },
     
-    // Update document in list (for real-time updates)
     updateDocumentInList: (state, action) => {
       const { documentId, updates } = action.payload
       const index = state.documents.findIndex(doc => doc.id === documentId)
@@ -214,23 +190,47 @@ const documentsSlice = createSlice({
       }
     },
     
-    // Remove document from list
     removeDocumentFromList: (state, action) => {
       const documentId = action.payload
       state.documents = state.documents.filter(doc => doc.id !== documentId)
       
-      // ✅ FIXED: Update both displayed and total counts
       state.displayedDocumentsCount = state.documents.length
       state.totalDocumentsCount = Math.max(0, state.totalDocumentsCount - 1)
       state.stats.total = state.totalDocumentsCount
     },
     
-    // ✅ NEW: Update total documents count (for subscription tracking)
     updateTotalDocumentsCount: (state, action) => {
       state.totalDocumentsCount = action.payload
     },
     
-    // Reset state
+    // ✅ NEW: Local filter results action
+    setLocalFilterResults: (state, action) => {
+      const { documents, total, searchTerm } = action.payload
+      
+      state.documents = documents
+      state.displayedDocumentsCount = documents.length
+      
+      // Update search state
+      state.searchState = {
+        isSearchActive: true,
+        searchQuery: searchTerm,
+        hasFilters: false,
+        searchResultsCount: documents.length
+      }
+      
+      // Update pagination for local results
+      state.pagination = {
+        ...state.pagination,
+        total: total,
+        totalPages: Math.ceil(total / state.pagination.limit)
+      }
+      
+      console.log('✅ Local filter results updated:', {
+        count: documents.length,
+        searchTerm: searchTerm
+      })
+    },
+    
     resetDocuments: (state) => {
       state.documents = []
       state.currentDocument = null
@@ -249,9 +249,6 @@ const documentsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // ==========================================
-      // FETCH USER DOCUMENTS
-      // ==========================================
       .addCase(fetchUserDocuments.pending, (state) => {
         state.isLoading = true
         state.error = null
@@ -270,11 +267,9 @@ const documentsSlice = createSlice({
           hasFilters = false
         } = action.payload
         
-        // ✅ FIXED: Always update displayed documents
         state.documents = documents
         state.displayedDocumentsCount = documents.length
         
-        // ✅ FIXED: Update search state
         state.searchState = {
           isSearchActive: isSearchResult || hasFilters,
           searchQuery: searchQuery || '',
@@ -282,13 +277,11 @@ const documentsSlice = createSlice({
           searchResultsCount: isSearchResult ? documents.length : 0
         }
         
-        // ✅ FIXED: Only update total count if this is NOT a search/filter
         if (!isSearchResult && !hasFilters) {
           state.totalDocumentsCount = total
           state.hasDocuments = total > 0
         }
         
-        // Update pagination (this is for current view)
         state.pagination = { page, limit, total, totalPages }
         state.lastFetched = Date.now()
         
@@ -304,18 +297,12 @@ const documentsSlice = createSlice({
         state.error = action.payload
       })
       
-      // ==========================================
-      // FETCH TOTAL DOCUMENTS COUNT
-      // ==========================================
       .addCase(fetchTotalDocumentsCount.fulfilled, (state, action) => {
         state.totalDocumentsCount = action.payload
         state.hasDocuments = action.payload > 0
         console.log('📊 Total documents count updated:', action.payload)
       })
       
-      // ==========================================
-      // UPLOAD DOCUMENT
-      // ==========================================
       .addCase(uploadDocument.pending, (state) => {
         state.isUploading = true
         state.error = null
@@ -323,18 +310,15 @@ const documentsSlice = createSlice({
       .addCase(uploadDocument.fulfilled, (state, action) => {
         state.isUploading = false
         
-        // ✅ FIXED: Always increment total count on successful upload
         state.totalDocumentsCount += 1
         state.hasDocuments = true
         state.stats.total = state.totalDocumentsCount
         
-        // ✅ FIXED: Only add to displayed documents if not in search mode
         if (!state.searchState.isSearchActive) {
           state.documents.unshift(action.payload.document)
           state.displayedDocumentsCount = state.documents.length
         }
         
-        // Update stats based on document status
         if (action.payload.document.status === 'pending') {
           state.stats.pending += 1
         } else if (action.payload.document.status === 'processing') {
@@ -348,17 +332,12 @@ const documentsSlice = createSlice({
         state.error = action.payload
       })
       
-      // ==========================================
-      // DELETE DOCUMENT
-      // ==========================================
       .addCase(deleteDocument.fulfilled, (state, action) => {
         const documentId = action.payload
         
-        // Remove from displayed documents
         state.documents = state.documents.filter(doc => doc.id !== documentId)
         state.displayedDocumentsCount = state.documents.length
         
-        // ✅ FIXED: Always decrement total count
         state.totalDocumentsCount = Math.max(0, state.totalDocumentsCount - 1)
         state.stats.total = state.totalDocumentsCount
         state.hasDocuments = state.totalDocumentsCount > 0
@@ -369,9 +348,6 @@ const documentsSlice = createSlice({
         state.error = action.payload
       })
       
-      // ==========================================
-      // PROCESS DOCUMENT
-      // ==========================================
       .addCase(processDocument.pending, (state) => {
         state.isProcessing = true
         state.error = null
@@ -380,13 +356,11 @@ const documentsSlice = createSlice({
         state.isProcessing = false
         const { documentId } = action.payload
         
-        // Update document status in list
         const index = state.documents.findIndex(doc => doc.id === documentId)
         if (index !== -1) {
           state.documents[index].status = 'processing'
         }
         
-        // Update stats
         state.stats.processing += 1
         state.stats.pending = Math.max(0, state.stats.pending - 1)
       })
@@ -395,9 +369,6 @@ const documentsSlice = createSlice({
         state.error = action.payload
       })
       
-      // ==========================================
-      // CHECK HAS DOCUMENTS
-      // ==========================================
       .addCase(checkHasDocuments.fulfilled, (state, action) => {
         state.hasDocuments = action.payload
       })
@@ -405,12 +376,8 @@ const documentsSlice = createSlice({
         state.hasDocuments = false
       })
       
-      // ==========================================
-      // FETCH DOCUMENT STATS
-      // ==========================================
       .addCase(fetchDocumentStats.fulfilled, (state, action) => {
         state.stats = action.payload
-        // ✅ FIXED: Update total count from stats if available
         if (action.payload.total !== undefined) {
           state.totalDocumentsCount = action.payload.total
         }
@@ -431,6 +398,7 @@ export const {
   updateDocumentInList,
   removeDocumentFromList,
   updateTotalDocumentsCount,
+  setLocalFilterResults, // ✅ NEW ACTION
   resetDocuments
 } = documentsSlice.actions
 
@@ -447,14 +415,11 @@ export const selectDocumentsError = (state) => state.documents.error
 export const selectPagination = (state) => state.documents.pagination
 export const selectFilters = (state) => state.documents.filters
 
-// ✅ NEW: Selectors for proper count handling
 export const selectTotalDocumentsCount = (state) => state.documents.totalDocumentsCount
 export const selectDisplayedDocumentsCount = (state) => state.documents.displayedDocumentsCount
 export const selectSearchState = (state) => state.documents.searchState
 
-// ✅ NEW: Selector to determine which count to show for subscription
 export const selectDocumentCountForSubscription = (state) => {
-  // ALWAYS use total count for subscription tracking, not search results
   return state.documents.totalDocumentsCount
 }
 

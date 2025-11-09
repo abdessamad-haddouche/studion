@@ -1,12 +1,9 @@
 /**
  * PATH: src/components/documents/DocumentsToolbar.jsx
- * COMPLETELY FIXED - NO MORE INFINITE LOOPS
- * 
- * ✅ SOLUTION: Removed all useEffect dependencies and automatic triggers
- * ✅ SOLUTION: Direct function calls only when user explicitly interacts
+ * FIXED - Search input NEVER disappears under any circumstances
  */
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { 
   Search, 
   Filter, 
@@ -39,8 +36,8 @@ const DocumentsToolbar = ({
   onBulkAction,
   className = ''
 }) => {
-  // ✅ FIXED: Local state that NEVER gets reset from outside
-  const [searchInput, setSearchInput] = useState('') // ✅ SEPARATE from any external state
+  // ✅ CRITICAL FIX: Search input state that NEVER gets reset automatically
+  const [searchInput, setSearchInput] = useState('')
   const [activeFilters, setActiveFilters] = useState({
     status: null,
     category: null,
@@ -51,6 +48,17 @@ const DocumentsToolbar = ({
   const [showFilters, setShowFilters] = useState(false)
   const [showSortMenu, setShowSortMenu] = useState(false)
   const [searchTimeoutId, setSearchTimeoutId] = useState(null)
+  
+  // ✅ NEW: Ref to track if component is mounted
+  const isMountedRef = useRef(true)
+  
+  // ✅ NEW: Track mount/unmount
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // Get available options based on subscription
   const availableSortOptions = getAvailableSortOptions(currentPlan)
@@ -62,12 +70,10 @@ const DocumentsToolbar = ({
   const buildFilters = (searchValue, filters) => {
     const finalFilters = { ...filters }
     
-    // ✅ CRITICAL: Only add search filter if there's actual text
     const trimmedSearch = searchValue ? searchValue.trim() : ''
     if (trimmedSearch) {
       finalFilters.search = trimmedSearch
     } else {
-      // ✅ IMPORTANT: Remove search completely when empty to show ALL documents
       delete finalFilters.search
     }
     
@@ -78,43 +84,49 @@ const DocumentsToolbar = ({
       }
     })
     
-    console.log('🔧 buildFilters:', { searchValue, trimmedSearch, finalFilters })
     return finalFilters
   }
 
-  // ✅ FIXED: Search handling that PRESERVES input text and removes blink
+  // ✅ CRITICAL FIX: Search handling that NEVER loses input
   const handleSearchInputChange = (e) => {
     const value = e.target.value
-    setSearchInput(value) // ✅ ALWAYS keep what user types in the input
+    console.log('🔍 Search input changed to:', value)
     
-    // Clear any existing timeout to prevent multiple calls
+    // ✅ ALWAYS preserve the input value immediately
+    setSearchInput(value)
+    
+    // Clear any existing timeout
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId)
+      setSearchTimeoutId(null)
     }
     
-    // ✅ REMOVED BLINK: No immediate state changes, just debounced API call
+    // ✅ Only trigger search after user stops typing
     const newTimeoutId = setTimeout(() => {
-      const finalFilters = buildFilters(value, activeFilters)
-      console.log('🔍 Search API call:', value, finalFilters)
-      onFilterChange(finalFilters)
-    }, 200) // ✅ FASTER: 200ms for quicker response
+      // ✅ Only proceed if component is still mounted
+      if (isMountedRef.current) {
+        const finalFilters = buildFilters(value, activeFilters)
+        console.log('🔍 Search triggered:', value, finalFilters)
+        onFilterChange(finalFilters)
+      }
+    }, 300)
     
     setSearchTimeoutId(newTimeoutId)
   }
 
-  // ✅ FIXED: Clear search - ONLY clears when user explicitly clicks X
+  // ✅ REMOVED the useEffect that was interfering with input state
+
+  // ✅ FIXED: ONLY clear search when user explicitly clicks X
   const handleClearSearch = () => {
     console.log('🧹 User clicked clear search')
-    setSearchInput('') // ✅ Clear the input
+    setSearchInput('')
     
-    // Clear any pending search
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId)
       setSearchTimeoutId(null)
     }
     
     const finalFilters = buildFilters('', activeFilters)
-    console.log('🧹 Clearing search, filters:', finalFilters)
     onFilterChange(finalFilters)
   }
 
@@ -126,48 +138,60 @@ const DocumentsToolbar = ({
     }
     setActiveFilters(newActiveFilters)
     
-    // ✅ PRESERVE search input - use current searchInput value
+    // Use current searchInput value
     const finalFilters = buildFilters(searchInput, newActiveFilters)
-    console.log('🏷️ Filter changed:', filterType, value, finalFilters)
     onFilterChange(finalFilters)
   }
 
-  // ✅ FIXED: Sort change without loops
+  // ✅ FIXED: Sort change
   const handleSortSelect = (option) => {
     setSortBy(option.field)
     setSortOrder(option.order)
     setShowSortMenu(false)
-    console.log('📊 Sort changed:', option)
     onSortChange(option.field, option.order)
   }
 
-  // ✅ FIXED: Clear search - clears input AND returns to all documents
-  const clearSearch = () => {
-    console.log('🧹 Clearing search input and returning to all documents')
-    setSearchQuery('') // ✅ Clear the input field
-    const finalFilters = buildFilters('', activeFilters) // ✅ Build filters without search
-    console.log('🧹 Search cleared, filters:', finalFilters)
-    onFilterChange(finalFilters) // ✅ This will fetch ALL documents
-  }
-
-  // ✅ FIXED: Clear all - clears everything including search input
+  // ✅ FIXED: Clear all filters but preserve search
   const handleClearAllFilters = () => {
-    console.log('🧹 Clearing everything')
-    setSearchInput('') // ✅ Clear search input
+    console.log('🧹 Clearing all filters except search')
+    
     setActiveFilters({
       status: null,
       category: null,
       difficulty: null
     })
     
-    // Clear any pending search
     if (searchTimeoutId) {
       clearTimeout(searchTimeoutId)
       setSearchTimeoutId(null)
     }
     
-    console.log('🧹 All cleared, fetching all documents')
-    onFilterChange({}) // ✅ Empty filters = all documents
+    const finalFilters = buildFilters(searchInput, {
+      status: null,
+      category: null,
+      difficulty: null
+    })
+    
+    onFilterChange(finalFilters)
+  }
+
+  // ✅ FIXED: Clear everything including search
+  const handleClearEverything = () => {
+    console.log('🧹 Clearing everything including search')
+    
+    setSearchInput('')
+    setActiveFilters({
+      status: null,
+      category: null,
+      difficulty: null
+    })
+    
+    if (searchTimeoutId) {
+      clearTimeout(searchTimeoutId)
+      setSearchTimeoutId(null)
+    }
+    
+    onFilterChange({})
   }
 
   // Active filters detection
@@ -179,22 +203,32 @@ const DocumentsToolbar = ({
       {/* Main Toolbar */}
       <div className="flex flex-col lg:flex-row gap-4">
         
-        {/* Left: Search */}
-        <div className="flex-1">
+        {/* Left: Search - ✅ CRITICAL: This div NEVER disappears */}
+        <div className="flex-1" style={{ minWidth: '250px' }}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               placeholder={hasAdvancedSearch ? "Search documents by title, content, or category..." : "Search documents..."}
               value={searchInput}
               onChange={handleSearchInputChange}
+              onFocus={() => console.log('🔍 Search input focused')}
+              onBlur={() => console.log('🔍 Search input blurred')}
               className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              style={{ 
+                minWidth: '200px',
+                backgroundColor: 'white',
+                opacity: 1
+              }}
+              autoComplete="off"
+              spellCheck="false"
             />
             {searchInput && (
               <button
                 onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors z-10"
                 title="Clear search"
+                type="button"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -286,7 +320,7 @@ const DocumentsToolbar = ({
 
                   {/* Clear Filters */}
                   {hasActiveFilters && (
-                    <div className="pt-2 border-t border-slate-200">
+                    <div className="pt-2 border-t border-slate-200 space-y-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -294,7 +328,17 @@ const DocumentsToolbar = ({
                         className="w-full flex items-center justify-center space-x-2"
                       >
                         <X className="w-4 h-4" />
-                        <span>Clear All Filters</span>
+                        <span>Clear Filters Only</span>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearEverything}
+                        className="w-full flex items-center justify-center space-x-2 text-red-600"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Clear Everything</span>
                       </Button>
                     </div>
                   )}
@@ -424,6 +468,7 @@ const DocumentsToolbar = ({
                   onClick={handleClearSearch}
                   className="hover:text-blue-600"
                   title="Clear search"
+                  type="button"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -447,6 +492,7 @@ const DocumentsToolbar = ({
                     onClick={() => handleFilterChange(key, null)}
                     className="hover:text-slate-500"
                     title={`Clear ${key} filter`}
+                    type="button"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -458,7 +504,7 @@ const DocumentsToolbar = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleClearAllFilters}
+              onClick={handleClearEverything}
               className="text-slate-500 text-xs ml-2"
             >
               Clear All

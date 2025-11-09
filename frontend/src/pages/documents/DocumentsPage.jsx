@@ -1,11 +1,6 @@
 /**
  * PATH: src/pages/documents/DocumentsPage.jsx
- * ENHANCED DocumentsPage - BETTER SEARCH HANDLING
- * 
- * ✅ ENHANCEMENTS:
- * - Better search clear handling
- * - Improved filter state management
- * - More detailed logging for debugging
+ * ENHANCED with Client-Side Search Filtering
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -38,6 +33,7 @@ import {
   fetchTotalDocumentsCount,
   fetchDocumentStats,
   setFilters,
+  setLocalFilterResults,
   selectDocuments,
   selectDocumentsLoading,
   selectDocumentsError,
@@ -53,7 +49,6 @@ import {
   updateDocumentUsage
 } from '../../store/slices/subscriptionSlice'
 
-// ✅ ADDED: Import stats action for Header points consistency
 import { fetchUserStats } from '../../store/slices/userStatsSlice'
 
 const DocumentsPage = () => {
@@ -70,63 +65,140 @@ const DocumentsPage = () => {
   const currentPlan = useSelector(selectCurrentPlan)
   const planFeatures = useSelector(selectPlanFeatures)
   
-  // ✅ FIXED: Get separate counts for different purposes
   const totalDocumentsCount = useSelector(selectTotalDocumentsCount)
   const searchState = useSelector(selectSearchState)
+  
+  // ✅ NEW: Client-side filtering state
+  const [allDocuments, setAllDocuments] = useState([])
+  const [filteredDocuments, setFilteredDocuments] = useState([])
+  const [isLocalFiltering, setIsLocalFiltering] = useState(false)
   
   // Local state
   const [viewMode, setViewMode] = useState(VIEW_MODES.GRID)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedDocuments, setSelectedDocuments] = useState([])
   const [isInitializing, setIsInitializing] = useState(true)
+  const [currentSearch, setCurrentSearch] = useState('')
 
   // Get subscription limits
   const documentLimits = getDocumentLimits(currentPlan)
   const paginationSettings = getPaginationSettings(currentPlan)
 
-  // Check if user has documents
-  const hasDocuments = documents && documents.length > 0
+  // ✅ NEW: Client-side search filtering function
+  const filterDocumentsLocally = useCallback((allDocs, searchTerm, filterParams) => {
+    let filteredDocs = [...allDocs]
+    
+    // Apply search filter
+    if (searchTerm && searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim()
+      filteredDocs = filteredDocs.filter(doc => {
+        // Search in title
+        const titleMatch = doc.title?.toLowerCase().includes(searchLower)
+        
+        // Search in description
+        const descMatch = doc.description?.toLowerCase().includes(searchLower)
+        
+        // Search in category
+        const categoryMatch = doc.classification?.category?.toLowerCase().includes(searchLower)
+        
+        // Search in file name
+        const fileNameMatch = doc.file?.originalName?.toLowerCase().includes(searchLower)
+        
+        return titleMatch || descMatch || categoryMatch || fileNameMatch
+      })
+    }
+    
+    // Apply other filters
+    if (filterParams.status) {
+      filteredDocs = filteredDocs.filter(doc => doc.status === filterParams.status)
+    }
+    
+    if (filterParams.category) {
+      filteredDocs = filteredDocs.filter(doc => 
+        doc.classification?.category === filterParams.category
+      )
+    }
+    
+    if (filterParams.difficulty) {
+      filteredDocs = filteredDocs.filter(doc => 
+        doc.classification?.difficulty === filterParams.difficulty
+      )
+    }
+    
+    return filteredDocs
+  }, [])
 
-  // Get enabled components based on current state
+  // Check if user has documents
+  const hasDocuments = (isLocalFiltering ? filteredDocuments : documents) && (isLocalFiltering ? filteredDocuments : documents).length > 0
+
+  // ✅ Get enabled components
   const enabledComponents = getEnabledDocumentsComponents(hasDocuments, currentPlan, viewMode)
 
-  // ✅ ENHANCED: Better fetch function with detailed logging
+  // ✅ ENHANCED: Fetch documents with client-side filtering support
   const fetchDocuments = useCallback(async (searchParams = {}) => {
     try {
       console.log('📄 Fetching documents with params:', searchParams)
       
-      // ✅ ENHANCED: Show what type of fetch this is
+      // Check if we can use client-side filtering (search only, no other filters)
+      const hasOnlySearch = searchParams.search && 
+        !searchParams.status && 
+        !searchParams.category && 
+        !searchParams.difficulty
+      
+      if (hasOnlySearch && allDocuments.length > 0) {
+        console.log('🔍 Using CLIENT-SIDE filtering for search:', searchParams.search)
+        setIsLocalFiltering(true)
+        
+        const filtered = filterDocumentsLocally(allDocuments, searchParams.search, searchParams)
+        setFilteredDocuments(filtered)
+        
+        // Update Redux with filtered results
+        dispatch(setLocalFilterResults({
+          documents: filtered,
+          total: filtered.length,
+          searchTerm: searchParams.search
+        }))
+        
+        return
+      }
+      
+      // Otherwise, use server-side filtering
+      setIsLocalFiltering(false)
+      
       if (searchParams.search && searchParams.search.trim()) {
-        console.log('🔍 SEARCH FETCH for:', searchParams.search)
+        console.log('🔍 SERVER-SIDE SEARCH FETCH for:', searchParams.search)
       } else if (Object.keys(searchParams).some(key => searchParams[key] && key !== 'page' && key !== 'limit' && key !== 'search')) {
         console.log('🏷️ FILTER FETCH:', searchParams)
       } else {
         console.log('📋 FETCHING ALL DOCUMENTS (no search/filters)')
       }
       
-      // ✅ CRITICAL: Remove empty search params to get ALL documents
       const cleanParams = { ...searchParams }
       if (cleanParams.search === '' || cleanParams.search === undefined || cleanParams.search === null) {
         delete cleanParams.search
         console.log('🧹 Removed empty search param, clean params:', cleanParams)
       }
       
-      await dispatch(fetchUserDocuments({
+      const response = await dispatch(fetchUserDocuments({
         page: 1,
         limit: paginationSettings.defaultPageSize,
         ...cleanParams
       }))
       
+      // Store all documents when fetching without filters (for client-side filtering)
+      if (!cleanParams.search && !cleanParams.status && !cleanParams.category && !cleanParams.difficulty) {
+        const fetchedDocs = response.payload?.documents || []
+        setAllDocuments(fetchedDocs)
+        console.log('📦 Stored', fetchedDocs.length, 'documents for client-side filtering')
+      }
+      
       console.log('✅ Documents fetch completed')
     } catch (error) {
       console.error('❌ Error fetching documents:', error)
     }
-  }, [dispatch, paginationSettings.defaultPageSize])
+  }, [dispatch, paginationSettings.defaultPageSize, allDocuments, filterDocumentsLocally])
 
-  // ==========================================
   // INITIALIZATION
-  // ==========================================
-
   useEffect(() => {
     const initializeDocumentsPage = async () => {
       if (!isAuthenticated) {
@@ -137,13 +209,17 @@ const DocumentsPage = () => {
       try {
         console.log('📄 Initializing Documents page...')
         
-        // ✅ FIXED: Fetch documents, total count, stats, AND document stats for Header
-        await Promise.all([
-          dispatch(fetchUserDocuments()), // Get documents for display
-          dispatch(fetchTotalDocumentsCount()), // Get total count for subscription
-          dispatch(fetchUserStats()), // ✅ ADDED: Get stats for Header points display
-          dispatch(fetchDocumentStats()) // ✅ ADDED: Get document stats for processed/processing counts
+        const response = await Promise.all([
+          dispatch(fetchUserDocuments()),
+          dispatch(fetchTotalDocumentsCount()),
+          dispatch(fetchUserStats()),
+          dispatch(fetchDocumentStats())
         ])
+        
+        // Store initial documents for client-side filtering
+        const initialDocs = response[0]?.payload?.documents || []
+        setAllDocuments(initialDocs)
+        console.log('📦 Initial documents stored for filtering:', initialDocs.length)
         
         console.log('✅ Documents page initialized successfully')
       } catch (error) {
@@ -156,27 +232,20 @@ const DocumentsPage = () => {
     initializeDocumentsPage()
   }, [isAuthenticated, dispatch])
 
-  // ✅ ADDED: Auto-refresh stats when user navigates to documents page (like DashboardPage)
   useEffect(() => {
     if (isAuthenticated && location.pathname === '/documents') {
       console.log('📄 DocumentsPage: User navigated to documents, refreshing stats for Header...')
-      
-      // Refresh user stats for Header points display
       dispatch(fetchUserStats())
     }
   }, [dispatch, isAuthenticated, location.pathname])
 
-  // ✅ FIXED: Update document usage count for subscription tracking using total count
   useEffect(() => {
     if (totalDocumentsCount !== undefined) {
       dispatch(updateDocumentUsage(totalDocumentsCount))
     }
   }, [totalDocumentsCount, dispatch])
 
-  // ==========================================
   // EVENT HANDLERS
-  // ==========================================
-
   const handleUploadClick = () => {
     setShowUploadModal(true)
   }
@@ -184,14 +253,49 @@ const DocumentsPage = () => {
   const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     
-    // ✅ FIXED: Refresh both documents list and total count after upload
+    // Add new document to allDocuments for client-side filtering
+    setAllDocuments(prev => [document.document, ...prev])
+    
     await Promise.all([
-      fetchDocuments(filters), // Refresh current view
-      dispatch(fetchTotalDocumentsCount()) // Update total count for subscription
+      fetchDocuments(filters),
+      dispatch(fetchTotalDocumentsCount())
     ])
   }
 
-  // ✅ FIXED: Simple filter handler without causing infinite loops
+  const handleDocumentUpdate = (updatedDocument) => {
+    console.log('📝 Document updated:', updatedDocument)
+    
+    // Update in allDocuments for client-side filtering
+    setAllDocuments(prev => 
+      prev.map(doc => doc.id === updatedDocument.id ? updatedDocument : doc)
+    )
+    
+    // Update in Redux
+    dispatch({
+      type: 'documents/updateDocumentInList',
+      payload: {
+        documentId: updatedDocument.id,
+        updates: updatedDocument
+      }
+    })
+  }
+
+  const handleDocumentDelete = async (documentId) => {
+    console.log('🗑️ Document deleted:', documentId)
+    
+    // Remove from allDocuments
+    setAllDocuments(prev => prev.filter(doc => doc.id !== documentId))
+    
+    // Remove from Redux
+    dispatch({
+      type: 'documents/removeDocumentFromList',
+      payload: documentId
+    })
+    
+    await dispatch(fetchTotalDocumentsCount())
+  }
+
+  // ✅ ENHANCED: Filter change handler with client-side support
   const handleFilterChange = useCallback((newFilters) => {
     console.log('🔄 FILTER CHANGE EVENT:', {
       newFilters: newFilters,
@@ -199,18 +303,58 @@ const DocumentsPage = () => {
       searchValue: newFilters.search
     })
     
-    // Update filters in Redux
+    setCurrentSearch(newFilters.search || '')
     dispatch(setFilters(newFilters))
     
-    // Fetch documents with new filters
-    fetchDocuments(newFilters)
-  }, [dispatch, fetchDocuments])
+    // Check if we can use client-side filtering
+    const hasOnlySearch = newFilters.search && 
+      !newFilters.status && 
+      !newFilters.category && 
+      !newFilters.difficulty
+    
+    if (hasOnlySearch && allDocuments.length > 0) {
+      console.log('🔍 Using CLIENT-SIDE filtering')
+      setIsLocalFiltering(true)
+      
+      const filtered = filterDocumentsLocally(allDocuments, newFilters.search, newFilters)
+      setFilteredDocuments(filtered)
+      
+      // Update Redux with filtered results
+      dispatch(setLocalFilterResults({
+        documents: filtered,
+        total: filtered.length,
+        searchTerm: newFilters.search
+      }))
+    } else {
+      // Use server-side filtering for complex queries
+      setIsLocalFiltering(false)
+      fetchDocuments(newFilters)
+    }
+  }, [dispatch, fetchDocuments, allDocuments, filterDocumentsLocally])
 
-  // ✅ ENHANCED: Better sort handler
+  const handleClearSearch = () => {
+    console.log('🧹 Clearing search')
+    setCurrentSearch('')
+    setIsLocalFiltering(false)
+    const newFilters = { ...filters }
+    delete newFilters.search
+    dispatch(setFilters(newFilters))
+    fetchDocuments(newFilters)
+  }
+
+  const handleClearFilters = () => {
+    console.log('🧹 Clearing all filters')
+    setCurrentSearch('')
+    setIsLocalFiltering(false)
+    dispatch(setFilters({}))
+    fetchDocuments({})
+  }
+
   const handleSortChange = useCallback((sortBy, sortOrder) => {
     console.log('📊 SORT CHANGE EVENT:', { sortBy, sortOrder })
     
-    // Fetch documents with current filters + new sort
+    // For now, sorting requires server-side
+    setIsLocalFiltering(false)
     fetchDocuments({
       ...filters,
       sortBy,
@@ -220,6 +364,7 @@ const DocumentsPage = () => {
 
   const handlePageChange = async (newPage) => {
     console.log('📄 PAGE CHANGE EVENT:', newPage)
+    setIsLocalFiltering(false)
     await fetchDocuments({
       ...filters,
       page: newPage
@@ -228,6 +373,7 @@ const DocumentsPage = () => {
 
   const handlePageSizeChange = async (newPageSize) => {
     console.log('📏 PAGE SIZE CHANGE EVENT:', newPageSize)
+    setIsLocalFiltering(false)
     await fetchDocuments({
       ...filters,
       page: 1,
@@ -256,14 +402,13 @@ const DocumentsPage = () => {
       return
     }
     
-    // TODO: Implement other bulk actions (delete, export, etc.)
     setSelectedDocuments([])
   }
 
-  // ==========================================
-  // COMPONENT MAPPING
-  // ==========================================
+  // ✅ Get the documents to display (filtered or regular)
+  const displayedDocuments = isLocalFiltering ? filteredDocuments : documents
 
+  // ✅ COMPONENT MAPPING with filtered documents
   const componentMap = {
     [DOCUMENTS_COMPONENTS.HEADER]: (
       <DocumentsHeader
@@ -290,10 +435,21 @@ const DocumentsPage = () => {
     [DOCUMENTS_COMPONENTS.GRID]: (
       <DocumentsGrid
         key="grid"
-        documents={documents}
+        documents={displayedDocuments} // ✅ Use filtered documents
         selectedDocuments={selectedDocuments}
         onDocumentSelect={handleDocumentSelect}
+        onDocumentUpdate={handleDocumentUpdate}
+        onDocumentDelete={handleDocumentDelete}
         onUploadClick={handleUploadClick}
+        searchState={{
+          isSearchActive: !!(filters.search && filters.search.trim()),
+          searchQuery: filters.search || ''
+        }}
+        filters={filters}
+        currentSearchTerm={filters.search || ''}
+        onClearSearch={handleClearSearch}
+        onClearFilters={handleClearFilters}
+        totalDocumentsCount={totalDocumentsCount || 0}
         className="mb-6"
       />
     ),
@@ -301,9 +457,21 @@ const DocumentsPage = () => {
     [DOCUMENTS_COMPONENTS.TABLE]: (
       <DocumentsTable
         key="table"
-        documents={documents}
+        documents={displayedDocuments} // ✅ Use filtered documents
         selectedDocuments={selectedDocuments}
         onDocumentSelect={handleDocumentSelect}
+        onDocumentUpdate={handleDocumentUpdate}
+        onDocumentDelete={handleDocumentDelete}
+        searchState={{
+          isSearchActive: !!currentSearch.trim(),
+          searchQuery: currentSearch
+        }}
+        filters={filters}
+        currentSearchTerm={currentSearch}
+        onClearSearch={handleClearSearch}
+        onClearFilters={handleClearFilters}
+        onUploadClick={handleUploadClick}
+        totalDocumentsCount={totalDocumentsCount || 0}
         className="mb-6"
       />
     ),
@@ -332,10 +500,7 @@ const DocumentsPage = () => {
     )
   }
 
-  // ==========================================
   // LOADING STATES
-  // ==========================================
-
   if (!isAuthenticated) {
     return (
       <Layout>
@@ -368,10 +533,7 @@ const DocumentsPage = () => {
     )
   }
 
-  // ==========================================
   // ERROR STATE
-  // ==========================================
-
   if (error) {
     return (
       <Layout>
@@ -394,20 +556,14 @@ const DocumentsPage = () => {
     )
   }
 
-  // ==========================================
   // MAIN RENDER
-  // ==========================================
-
   return (
     <Layout>
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
-          {/* Render enabled components in configured order */}
+          {/* ✅ Render enabled components with filtered documents */}
           {enabledComponents.map(componentKey => componentMap[componentKey])}
-          
-          {/* ✅ REMOVED: Loading overlay that caused flickering during search */}
-          {/* Loading overlay removed to eliminate search flickering */}
           
         </div>
       </div>

@@ -1,12 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsPageConfig.js
- * Documents Page Configuration - Control which components to show
- * 
- * ✅ FEATURES:
- * - Configurable component system like dashboard
- * - Subscription-aware limits
- * - Easy enable/disable functionality
- * - Order management
+ * FIXED - Always show GRID/TABLE components regardless of search state
  */
 
 // ==========================================
@@ -149,7 +143,7 @@ export const documentsPageConfig = {
   // Search, filter, and sort toolbar
   [DOCUMENTS_COMPONENTS.TOOLBAR]: {
     enabled: true,
-    showForEmpty: false,
+    showForEmpty: true,
     showForPopulated: true,
     order: 3,
     props: {
@@ -160,10 +154,10 @@ export const documentsPageConfig = {
     }
   },
 
-  // Main documents grid view
+  // ✅ FIXED: Main documents grid view - ALWAYS SHOW
   [DOCUMENTS_COMPONENTS.GRID]: {
     enabled: true,
-    showForEmpty: false,
+    showForEmpty: true, // ✅ CHANGED: Always show grid
     showForPopulated: true,
     order: 4,
     props: {
@@ -173,10 +167,10 @@ export const documentsPageConfig = {
     }
   },
 
-  // Alternative table view
+  // ✅ FIXED: Alternative table view - ALWAYS SHOW
   [DOCUMENTS_COMPONENTS.TABLE]: {
     enabled: false, // Disabled by default, user can toggle
-    showForEmpty: false,
+    showForEmpty: true, // ✅ CHANGED: Always show table when enabled
     showForPopulated: true,
     order: 4, // Same order as grid (mutually exclusive)
     props: {
@@ -210,12 +204,12 @@ export const documentsPageConfig = {
     }
   },
 
-  // Empty state when no documents exist
+  // ✅ REMOVED: Empty state component - let Grid/Table handle their own empty states
   [DOCUMENTS_COMPONENTS.EMPTY_STATE]: {
-    enabled: true,
+    enabled: false, // ✅ DISABLED: Grid/Table will handle empty states internally
     showForEmpty: true,
     showForPopulated: false,
-    order: 3, // Replace toolbar when empty
+    order: 3,
     props: {
       showUploadButton: true,
       showSamples: true,
@@ -229,8 +223,8 @@ export const documentsPageConfig = {
 // ==========================================
 
 /**
- * Get enabled components for current state and subscription
- * @param {boolean} hasDocuments - Whether user has documents
+ * ✅ FIXED: Get enabled components - Always show GRID/TABLE
+ * @param {boolean} hasDocuments - Whether user has documents (IGNORED for grid/table)
  * @param {string} userPlan - User's subscription plan
  * @param {string} viewMode - Current view mode (grid/table)
  * @returns {Array} Sorted array of enabled components
@@ -246,6 +240,12 @@ export const getEnabledDocumentsComponents = (hasDocuments, userPlan = 'free', v
       // Check view mode specific components
       if (key === DOCUMENTS_COMPONENTS.GRID && viewMode !== VIEW_MODES.GRID) return false
       if (key === DOCUMENTS_COMPONENTS.TABLE && viewMode !== VIEW_MODES.TABLE) return false
+      
+      // ✅ CRITICAL FIX: Always show GRID/TABLE components regardless of hasDocuments
+      // They will handle their own empty states internally
+      if (key === DOCUMENTS_COMPONENTS.GRID || key === DOCUMENTS_COMPONENTS.TABLE) {
+        return true
+      }
       
       // Check if component should show for current user state
       if (hasDocuments) {
