@@ -522,7 +522,7 @@ export const deleteDocument = async (req, res, next) => {
 export const getDocumentSummary = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     const document = await getDocumentByIdService(documentId, userId);
     
@@ -555,7 +555,7 @@ export const getDocumentSummary = async (req, res, next) => {
 export const generateCustomAnalysis = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { prompt } = req.body;
     
     if (!prompt) {
@@ -594,7 +594,7 @@ export const generateCustomAnalysis = async (req, res, next) => {
 export const getDocumentAnalytics = async (req, res, next) => {
   try {
     const documentId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     
     const document = await getDocumentByIdService(documentId, userId);
     
