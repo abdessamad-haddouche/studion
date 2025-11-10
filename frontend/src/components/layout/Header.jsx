@@ -1,18 +1,62 @@
 /**
  * PATH: src/components/layout/Header.jsx
- * FIXED Header with Consistent Points Display - FULL CODE
- * 
- * ✅ FIXED: Points display now consistent across ALL pages (dashboard, documents, etc.)
- * ✅ FIXED: Real-time stats integration working everywhere
+ * FIXED Header with User Display Issues Resolved
  */
 
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings } from 'lucide-react'
-import { logoutUser, fetchUserStats } from '../../store/slices/authSlice'
+import { logoutUser, fetchUserStats, getCurrentUser } from '../../store/slices/authSlice'
 import { selectStats } from '../../store/slices/userStatsSlice'
 import toast from 'react-hot-toast'
+
+// ✅ NEW: Helper function to handle different user object formats
+const getUserDisplayInfo = (user) => {
+  if (!user) return { name: 'User', initials: 'U', fullName: 'User' }
+  
+  let firstName = ''
+  let lastName = ''
+  let fullName = ''
+  let initials = 'U'
+  
+  // Handle different user object structures
+  if (user.fullName) {
+    fullName = user.fullName
+    const names = fullName.split(' ')
+    firstName = names[0] || ''
+    lastName = names[names.length - 1] || ''
+    initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
+  }
+  else if (user.name?.first) {
+    firstName = user.name.first
+    lastName = user.name.last || ''
+    fullName = `${firstName} ${lastName}`.trim()
+    initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
+  }
+  else if (user.firstName) {
+    firstName = user.firstName
+    lastName = user.lastName || ''
+    fullName = `${firstName} ${lastName}`.trim()
+    initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
+  }
+  else if (user.username) {
+    fullName = user.username
+    initials = user.username.charAt(0).toUpperCase()
+  }
+  else if (user.email) {
+    const emailName = user.email.split('@')[0]
+    fullName = emailName
+    initials = emailName.charAt(0).toUpperCase()
+  }
+  
+  return {
+    firstName,
+    lastName,
+    fullName: fullName || 'User',
+    initials: initials || 'U'
+  }
+}
 
 const Header = () => {
   const navigate = useNavigate()
@@ -40,13 +84,21 @@ const Header = () => {
     ...userStatsSliceStats
   }
 
+  // ✅ NEW: Fetch user data if authenticated but no user
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      console.log('👤 Header: Fetching current user data...')
+      dispatch(getCurrentUser())
+    }
+  }, [dispatch, isAuthenticated, user])
+
   // ✅ FIXED: Auto-refresh stats when header mounts OR when route changes
   useEffect(() => {
     if (isAuthenticated) {
       console.log('🔄 Header: Auto-refreshing stats for route:', location.pathname)
       dispatch(fetchUserStats())
     }
-  }, [dispatch, isAuthenticated, location.pathname]) // ✅ Added location.pathname
+  }, [dispatch, isAuthenticated, location.pathname])
 
   // ✅ FIXED: Log stats updates for debugging
   useEffect(() => {
@@ -59,6 +111,14 @@ const Header = () => {
       })
     }
   }, [authStats, userStatsSliceStats, isAuthenticated, location.pathname])
+
+  // ✅ NEW: Log user object structure for debugging
+  useEffect(() => {
+    if (user) {
+      console.log('👤 Header: User object structure:', user)
+      console.log('👤 Header: User display info:', getUserDisplayInfo(user))
+    }
+  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -210,17 +270,17 @@ const Header = () => {
             onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
             className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 transition-colors"
           >
-            {/* User Avatar */}
+            {/* ✅ FIXED: User Avatar */}
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">
-                {user?.initials || user?.name?.first?.charAt(0) || 'U'}
+                {getUserDisplayInfo(user).initials}
               </span>
             </div>
             
-            {/* User Name */}
+            {/* ✅ FIXED: User Name */}
             <div className="text-left">
               <p className="text-sm font-medium text-slate-900">
-                {user?.fullName || user?.name?.first || 'User'}
+                {getUserDisplayInfo(user).fullName}
               </p>
               <p className="text-xs text-slate-500">
                 {user?.subscription?.tier || 'Free'} Plan
@@ -234,8 +294,9 @@ const Header = () => {
           {isUserDropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
               <div className="px-4 py-2 border-b border-slate-200">
+                {/* ✅ FIXED: User dropdown full name */}
                 <p className="text-sm font-medium text-slate-900">
-                  {user?.fullName || `${user?.name?.first} ${user?.name?.last}`}
+                  {getUserDisplayInfo(user).fullName}
                 </p>
                 <p className="text-xs text-slate-500">{user?.email}</p>
                 
@@ -358,12 +419,13 @@ const Header = () => {
                     <div className="flex items-center space-x-2 mb-3">
                       <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-sm font-medium">
-                          {user?.initials || 'U'}
+                          {getUserDisplayInfo(user).initials}
                         </span>
                       </div>
                       <div>
+                        {/* ✅ FIXED: Mobile menu user name */}
                         <p className="text-sm font-medium text-slate-900">
-                          {user?.fullName || 'User'}
+                          {getUserDisplayInfo(user).fullName}
                         </p>
                         <p className="text-xs text-slate-500">{user?.email}</p>
                       </div>

@@ -81,6 +81,22 @@ export const checkAuthState = createAsyncThunk(
   }
 )
 
+export const getCurrentUser = createAsyncThunk(
+  'auth/getCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await userAPI.getCurrentUser() // You need this API method
+      console.log('👤 Current User Response:', response.data)
+      
+      return {
+        user: response.data.data // Since your controller returns data.profile
+      }
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to get user')
+    }
+  }
+)
+
 // ✅ FIXED: Fetch user stats with proper parsing
 export const fetchUserStats = createAsyncThunk(
   'auth/fetchUserStats',
@@ -231,6 +247,10 @@ const authSlice = createSlice({
         state.token = action.payload.token
         state.user = action.payload.user
         state.isAuthenticated = true
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.user = action.payload.user
+        console.log('👤 User data updated:', state.user)
       })
       .addCase(checkAuthState.rejected, (state) => {
         state.token = null

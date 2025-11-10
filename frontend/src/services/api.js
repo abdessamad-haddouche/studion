@@ -99,7 +99,6 @@ export const documentsAPI = {
   getAnalytics: (id) => api.get(`/documents/${id}/analytics`)
 }
 
-// Add the rest of your APIs...
 export const quizzesAPI = {
   getAll: () => api.get('/quizzes'),
   generate: (documentId, options) => api.post('/quizzes/generate', { documentId, ...options }),
@@ -119,10 +118,16 @@ export const userAPI = {
   getAnalytics: () => api.get('/user/analytics'),
   getPoints: () => api.get('/user/points'),
   
-  // ✅ FIX: Change from '/user/stats' to '/users/me/stats'
+  // ✅ FIXED: Change from '/user/stats' to '/users/me/stats'
   getStats: () => {
     console.log('📊 Fetching user stats from /users/me/stats')
     return api.get('/users/me/stats')
+  },
+  
+  // ✅ NEW: Added getCurrentUser method
+  getCurrentUser: () => {
+    console.log('👤 Fetching current user from /users/me')
+    return api.get('/users/me')
   },
   
   // ✅ ADD: Other endpoints matching your backend routes
@@ -130,8 +135,6 @@ export const userAPI = {
   getQuizStats: () => api.get('/users/me/stats/quizzes'),
   getPointsBalance: () => api.get('/users/me/points'),
   getPointsHistory: () => api.get('/users/me/points/history'),
-  
-  // Remove the duplicate getUserStats function
 }
 
 export default api
