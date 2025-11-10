@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/layout/Header.jsx
- * FIXED Header with User Display Issues Resolved
+ * FIXED Header with Proper Plan Styling and Capitalized Names
  */
 
 import React, { useState, useEffect } from 'react'
@@ -9,9 +9,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings } from 'lucide-react'
 import { logoutUser, fetchUserStats, getCurrentUser } from '../../store/slices/authSlice'
 import { selectStats } from '../../store/slices/userStatsSlice'
+import { selectCurrentPlan } from '../../store/slices/subscriptionSlice'
 import toast from 'react-hot-toast'
 
-// ✅ NEW: Helper function to handle different user object formats
+// ✅ ENHANCED: Helper function to handle different user object formats with proper capitalization
 const getUserDisplayInfo = (user) => {
   if (!user) return { name: 'User', initials: 'U', fullName: 'User' }
   
@@ -20,33 +21,41 @@ const getUserDisplayInfo = (user) => {
   let fullName = ''
   let initials = 'U'
   
+  // ✅ Helper function to capitalize first letter of each word
+  const capitalize = (str) => {
+    if (!str) return ''
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  }
+  
   // Handle different user object structures
   if (user.fullName) {
     fullName = user.fullName
     const names = fullName.split(' ')
-    firstName = names[0] || ''
-    lastName = names[names.length - 1] || ''
+    firstName = capitalize(names[0] || '')
+    lastName = capitalize(names[names.length - 1] || '')
+    // ✅ Reconstruct fullName with proper capitalization
+    fullName = names.map(name => capitalize(name)).join(' ')
     initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
   }
   else if (user.name?.first) {
-    firstName = user.name.first
-    lastName = user.name.last || ''
+    firstName = capitalize(user.name.first)
+    lastName = capitalize(user.name.last || '')
     fullName = `${firstName} ${lastName}`.trim()
     initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
   }
   else if (user.firstName) {
-    firstName = user.firstName
-    lastName = user.lastName || ''
+    firstName = capitalize(user.firstName)
+    lastName = capitalize(user.lastName || '')
     fullName = `${firstName} ${lastName}`.trim()
     initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
   }
   else if (user.username) {
-    fullName = user.username
+    fullName = capitalize(user.username)
     initials = user.username.charAt(0).toUpperCase()
   }
   else if (user.email) {
     const emailName = user.email.split('@')[0]
-    fullName = emailName
+    fullName = capitalize(emailName)
     initials = emailName.charAt(0).toUpperCase()
   }
   
@@ -56,6 +65,34 @@ const getUserDisplayInfo = (user) => {
     fullName: fullName || 'User',
     initials: initials || 'U'
   }
+}
+
+// ✅ EXISTING: Helper function to format plan name for display
+const formatPlanName = (plan) => {
+  if (!plan) return 'Free'
+  
+  const planNames = {
+    free: 'Free',
+    basic: 'Basic',
+    premium: 'Premium', 
+    pro: 'Pro',
+    enterprise: 'Enterprise'
+  }
+  
+  return planNames[plan] || plan.charAt(0).toUpperCase() + plan.slice(1)
+}
+
+// ✅ EXISTING: Helper function to get plan styling
+const getPlanStyling = (plan) => {
+  const planStyles = {
+    free: 'text-slate-600',
+    basic: 'text-blue-600',
+    premium: 'text-purple-600',
+    pro: 'text-green-600', 
+    enterprise: 'text-orange-600'
+  }
+  
+  return planStyles[plan] || planStyles.free
 }
 
 const Header = () => {
@@ -69,22 +106,25 @@ const Header = () => {
   // Auth state from Redux
   const { isAuthenticated, user } = useSelector(state => state.auth)
   
-  // ✅ FIXED: Get real-time stats from Redux (consistent across all pages)
-  const authStats = useSelector(state => state.auth.userStats) // From authSlice
-  const userStatsSliceStats = useSelector(selectStats) // From userStatsSlice
+  // ✅ EXISTING: Get current subscription plan from Redux
+  const currentPlan = useSelector(selectCurrentPlan)
+  const planDisplayName = formatPlanName(currentPlan)
+  const planColor = getPlanStyling(currentPlan)
   
-  // ✅ FIXED: Merge stats from both sources (most recent wins)
+  // ✅ EXISTING: Get real-time stats from Redux (consistent across all pages)
+  const authStats = useSelector(state => state.auth.userStats)
+  const userStatsSliceStats = useSelector(selectStats)
+  
+  // ✅ EXISTING: Merge stats from both sources (most recent wins)
   const liveStats = {
     totalPoints: 0,
     quizzesCompleted: 0,
     bestScore: 0,
-    // Auth slice stats (lower priority)
     ...authStats,
-    // UserStats slice stats (higher priority - most recent)
     ...userStatsSliceStats
   }
 
-  // ✅ NEW: Fetch user data if authenticated but no user
+  // ✅ EXISTING: All useEffect hooks remain the same
   useEffect(() => {
     if (isAuthenticated && !user) {
       console.log('👤 Header: Fetching current user data...')
@@ -92,7 +132,6 @@ const Header = () => {
     }
   }, [dispatch, isAuthenticated, user])
 
-  // ✅ FIXED: Auto-refresh stats when header mounts OR when route changes
   useEffect(() => {
     if (isAuthenticated) {
       console.log('🔄 Header: Auto-refreshing stats for route:', location.pathname)
@@ -100,7 +139,6 @@ const Header = () => {
     }
   }, [dispatch, isAuthenticated, location.pathname])
 
-  // ✅ FIXED: Log stats updates for debugging
   useEffect(() => {
     if (isAuthenticated) {
       console.log('🏆 Header: Stats updated for page', location.pathname, {
@@ -112,13 +150,20 @@ const Header = () => {
     }
   }, [authStats, userStatsSliceStats, isAuthenticated, location.pathname])
 
-  // ✅ NEW: Log user object structure for debugging
   useEffect(() => {
     if (user) {
       console.log('👤 Header: User object structure:', user)
       console.log('👤 Header: User display info:', getUserDisplayInfo(user))
     }
   }, [user])
+
+  useEffect(() => {
+    console.log('💳 Header: Current subscription plan:', {
+      plan: currentPlan,
+      displayName: planDisplayName,
+      color: planColor
+    })
+  }, [currentPlan, planDisplayName, planColor])
 
   const handleLogout = async () => {
     try {
@@ -133,7 +178,6 @@ const Header = () => {
   // Guest Header (Not Logged In)
   const GuestNavigation = () => (
     <>
-      {/* Desktop Navigation */}
       <nav className="hidden md:flex items-center space-x-8">
         <a 
           href="/features" 
@@ -157,7 +201,6 @@ const Header = () => {
         </a>
       </nav>
 
-      {/* Auth Buttons */}
       <div className="hidden md:flex items-center space-x-3">
         <a 
           href="/login"
@@ -178,7 +221,6 @@ const Header = () => {
   // Authenticated Header (Logged In)
   const AuthenticatedNavigation = () => (
     <>
-      {/* Desktop Navigation */}
       <nav className="hidden md:flex items-center space-x-8">
         <a 
           href="/dashboard" 
@@ -214,7 +256,6 @@ const Header = () => {
           Quizzes
         </a>
 
-        {/* Courses Dropdown */}
         <div className="relative">
           <button
             onMouseEnter={() => setIsCoursesDropdownOpen(true)}
@@ -254,9 +295,7 @@ const Header = () => {
         </div>
       </nav>
 
-      {/* User Section */}
       <div className="hidden md:flex items-center space-x-4">
-        {/* ✅ FIXED: Consistent Points Display - ALWAYS VISIBLE on ALL pages */}
         <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-1.5 rounded-lg border border-amber-200">
           <Trophy className="w-4 h-4 text-amber-600" />
           <span className="text-sm font-medium text-amber-700">
@@ -264,46 +303,42 @@ const Header = () => {
           </span>
         </div>
 
-        {/* User Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
             className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 transition-colors"
           >
-            {/* ✅ FIXED: User Avatar */}
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">
                 {getUserDisplayInfo(user).initials}
               </span>
             </div>
             
-            {/* ✅ FIXED: User Name */}
             <div className="text-left">
               <p className="text-sm font-medium text-slate-900">
                 {getUserDisplayInfo(user).fullName}
               </p>
-              <p className="text-xs text-slate-500">
-                {user?.subscription?.tier || 'Free'} Plan
+              <p className={`text-xs font-medium ${planColor}`}>
+                {planDisplayName} Plan
               </p>
             </div>
             
             <ChevronDown className="w-4 h-4 text-slate-400" />
           </button>
 
-          {/* User Dropdown Menu */}
           {isUserDropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
               <div className="px-4 py-2 border-b border-slate-200">
-                {/* ✅ FIXED: User dropdown full name */}
                 <p className="text-sm font-medium text-slate-900">
                   {getUserDisplayInfo(user).fullName}
                 </p>
                 <p className="text-xs text-slate-500">{user?.email}</p>
                 
-                {/* ✅ FIXED: Live stats in dropdown - CONSISTENT everywhere */}
                 <div className="mt-2 flex items-center justify-between text-xs">
                   <span className="text-slate-500">Points: {liveStats.totalPoints}</span>
-                  <span className="text-slate-500">Best: {liveStats.bestScore}%</span>
+                  <span className={`font-medium ${planColor}`}>
+                    {planDisplayName}
+                  </span>
                 </div>
               </div>
               
@@ -317,10 +352,24 @@ const Header = () => {
                 <span>Settings</span>
               </a>
               
-              <a href="/subscription" className="flex items-center space-x-2 px-4 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-colors">
-                <Sparkles className="w-4 h-4" />
-                <span>Upgrade Plan</span>
-              </a>
+              {/* ✅ FIXED: Proper styling for manage plan link */}
+              {currentPlan === 'free' ? (
+                <a href="/subscription" className="flex items-center space-x-2 px-4 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-colors border-l-4 border-purple-600 bg-purple-50/30">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="font-medium">Upgrade Plan</span>
+                </a>
+              ) : (
+                <a href="/subscription" className={`flex items-center space-x-2 px-4 py-2 hover:bg-gradient-to-r transition-colors border-l-4 bg-opacity-20 font-medium ${
+                  currentPlan === 'basic' ? 'text-blue-700 hover:from-blue-50 hover:to-blue-100 border-blue-600 bg-blue-50' :
+                  currentPlan === 'premium' ? 'text-purple-700 hover:from-purple-50 hover:to-purple-100 border-purple-600 bg-purple-50' :
+                  currentPlan === 'pro' ? 'text-green-700 hover:from-green-50 hover:to-green-100 border-green-600 bg-green-50' :
+                  currentPlan === 'enterprise' ? 'text-orange-700 hover:from-orange-50 hover:to-orange-100 border-orange-600 bg-orange-50' :
+                  'text-slate-700 hover:from-slate-50 hover:to-slate-100 border-slate-600 bg-slate-50'
+                }`}>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Manage Plan</span>
+                </a>
+              )}
               
               <div className="border-t border-slate-200 my-2"></div>
               
@@ -342,7 +391,6 @@ const Header = () => {
     <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <div className="flex items-center">
             <a href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center space-x-3 group">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform">
@@ -357,10 +405,8 @@ const Header = () => {
             </a>
           </div>
 
-          {/* Conditional Navigation */}
           {isAuthenticated ? <AuthenticatedNavigation /> : <GuestNavigation />}
 
-          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -371,13 +417,11 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-slate-200 py-4">
             <div className="flex flex-col space-y-3">
               {isAuthenticated ? (
                 <>
-                  {/* ✅ FIXED: Mobile stats display - CONSISTENT everywhere */}
                   <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3 mb-3">
                     <div className="flex items-center space-x-2">
                       <Trophy className="w-4 h-4 text-amber-600" />
@@ -393,7 +437,6 @@ const Header = () => {
                     </div>
                   </div>
 
-                  {/* Authenticated Mobile Menu */}
                   <a href="/dashboard" className={`font-medium py-2 ${
                     location.pathname === '/dashboard' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
                   }`}>
@@ -423,11 +466,14 @@ const Header = () => {
                         </span>
                       </div>
                       <div>
-                        {/* ✅ FIXED: Mobile menu user name */}
+                        {/* ✅ FIXED: Capitalized user name in mobile */}
                         <p className="text-sm font-medium text-slate-900">
                           {getUserDisplayInfo(user).fullName}
                         </p>
                         <p className="text-xs text-slate-500">{user?.email}</p>
+                        <p className={`text-xs font-medium ${planColor}`}>
+                          {planDisplayName} Plan
+                        </p>
                       </div>
                     </div>
                     
@@ -447,7 +493,6 @@ const Header = () => {
                 </>
               ) : (
                 <>
-                  {/* Guest Mobile Menu */}
                   <a href="/features" className="text-slate-600 hover:text-blue-600 font-medium py-2">
                     Features
                   </a>
