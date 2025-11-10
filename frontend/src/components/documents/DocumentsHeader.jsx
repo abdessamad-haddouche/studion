@@ -36,7 +36,9 @@ import {
 import { hasReachedUploadLimit } from './DocumentsPageConfig'
 
 const DocumentsHeader = ({ 
-  onUploadClick, 
+  onUploadClick,
+  onRefresh,
+  isRefreshing,
   className = '' 
 }) => {
   const navigate = useNavigate()

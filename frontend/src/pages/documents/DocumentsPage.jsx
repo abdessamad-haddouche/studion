@@ -80,6 +80,8 @@ const DocumentsPage = () => {
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentSearch, setCurrentSearch] = useState('')
 
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
   // Get subscription limits
   const documentLimits = getDocumentLimits(currentPlan)
   const paginationSettings = getPaginationSettings(currentPlan)
@@ -405,6 +407,39 @@ const DocumentsPage = () => {
     setSelectedDocuments([])
   }
 
+  const handleRefreshDocuments = async () => {
+  setIsRefreshing(true)
+  
+  try {
+    console.log('🔄 Manual refresh triggered by user')
+    
+    // Clear local filtering state
+    setIsLocalFiltering(false)
+    setFilteredDocuments([])
+    
+    // Fetch fresh data from server
+    await Promise.all([
+      fetchDocuments({}), // Get all documents fresh
+      dispatch(fetchTotalDocumentsCount()),
+      dispatch(fetchDocumentStats()),
+      dispatch(fetchUserStats())
+    ])
+    
+    // Update allDocuments for client-side filtering
+    const refreshedDocs = documents || []
+    setAllDocuments(refreshedDocs)
+    
+    console.log('✅ Manual refresh completed')
+    toast.success('Documents refreshed!')
+    
+  } catch (error) {
+    console.error('❌ Refresh failed:', error)
+    toast.error('Failed to refresh documents')
+  } finally {
+    setIsRefreshing(false)
+  }
+}
+
   // ✅ Get the documents to display (filtered or regular)
   const displayedDocuments = isLocalFiltering ? filteredDocuments : documents
 
@@ -414,6 +449,8 @@ const DocumentsPage = () => {
       <DocumentsHeader
         key="header"
         onUploadClick={handleUploadClick}
+        onRefresh={handleRefreshDocuments}
+        isRefreshing={isRefreshing}
         className="mb-6"
       />
     ),
