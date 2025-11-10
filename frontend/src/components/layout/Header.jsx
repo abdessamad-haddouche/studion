@@ -1,18 +1,18 @@
 /**
  * PATH: src/components/layout/Header.jsx
- * FIXED Header with Proper Plan Styling and Capitalized Names
+ * FIXED Header - Courses Dropdown Hover Issue Resolved
  */
 
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings } from 'lucide-react'
+import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings, GraduationCap } from 'lucide-react'
 import { logoutUser, fetchUserStats, getCurrentUser } from '../../store/slices/authSlice'
 import { selectStats } from '../../store/slices/userStatsSlice'
 import { selectCurrentPlan } from '../../store/slices/subscriptionSlice'
 import toast from 'react-hot-toast'
 
-// ✅ ENHANCED: Helper function to handle different user object formats with proper capitalization
+// Helper function to handle different user object formats with proper capitalization
 const getUserDisplayInfo = (user) => {
   if (!user) return { name: 'User', initials: 'U', fullName: 'User' }
   
@@ -21,7 +21,6 @@ const getUserDisplayInfo = (user) => {
   let fullName = ''
   let initials = 'U'
   
-  // ✅ Helper function to capitalize first letter of each word
   const capitalize = (str) => {
     if (!str) return ''
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
@@ -33,7 +32,6 @@ const getUserDisplayInfo = (user) => {
     const names = fullName.split(' ')
     firstName = capitalize(names[0] || '')
     lastName = capitalize(names[names.length - 1] || '')
-    // ✅ Reconstruct fullName with proper capitalization
     fullName = names.map(name => capitalize(name)).join(' ')
     initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase()
   }
@@ -67,7 +65,7 @@ const getUserDisplayInfo = (user) => {
   }
 }
 
-// ✅ EXISTING: Helper function to format plan name for display
+// Helper function to format plan name for display
 const formatPlanName = (plan) => {
   if (!plan) return 'Free'
   
@@ -82,7 +80,7 @@ const formatPlanName = (plan) => {
   return planNames[plan] || plan.charAt(0).toUpperCase() + plan.slice(1)
 }
 
-// ✅ EXISTING: Helper function to get plan styling
+// Helper function to get plan styling
 const getPlanStyling = (plan) => {
   const planStyles = {
     free: 'text-slate-600',
@@ -106,16 +104,16 @@ const Header = () => {
   // Auth state from Redux
   const { isAuthenticated, user } = useSelector(state => state.auth)
   
-  // ✅ EXISTING: Get current subscription plan from Redux
+  // Get current subscription plan from Redux
   const currentPlan = useSelector(selectCurrentPlan)
   const planDisplayName = formatPlanName(currentPlan)
   const planColor = getPlanStyling(currentPlan)
   
-  // ✅ EXISTING: Get real-time stats from Redux (consistent across all pages)
+  // Get real-time stats from Redux (consistent across all pages)
   const authStats = useSelector(state => state.auth.userStats)
   const userStatsSliceStats = useSelector(selectStats)
   
-  // ✅ EXISTING: Merge stats from both sources (most recent wins)
+  // Merge stats from both sources (most recent wins)
   const liveStats = {
     totalPoints: 0,
     quizzesCompleted: 0,
@@ -124,46 +122,43 @@ const Header = () => {
     ...userStatsSliceStats
   }
 
-  // ✅ EXISTING: All useEffect hooks remain the same
+  // ✅ FIX: Add timeout to prevent dropdown from closing immediately
+  const [coursesDropdownTimeout, setCoursesDropdownTimeout] = useState(null)
+
+  const handleCoursesMouseEnter = () => {
+    if (coursesDropdownTimeout) {
+      clearTimeout(coursesDropdownTimeout)
+    }
+    setIsCoursesDropdownOpen(true)
+  }
+
+  const handleCoursesMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setIsCoursesDropdownOpen(false)
+    }, 150) // 150ms delay before closing
+    setCoursesDropdownTimeout(timeout)
+  }
+
   useEffect(() => {
     if (isAuthenticated && !user) {
-      console.log('👤 Header: Fetching current user data...')
       dispatch(getCurrentUser())
     }
   }, [dispatch, isAuthenticated, user])
 
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('🔄 Header: Auto-refreshing stats for route:', location.pathname)
       dispatch(fetchUserStats())
     }
   }, [dispatch, isAuthenticated, location.pathname])
 
+  // ✅ Cleanup timeout on unmount
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('🏆 Header: Stats updated for page', location.pathname, {
-        authStats,
-        userStatsSliceStats,
-        liveStats,
-        displayedPoints: liveStats.totalPoints
-      })
+    return () => {
+      if (coursesDropdownTimeout) {
+        clearTimeout(coursesDropdownTimeout)
+      }
     }
-  }, [authStats, userStatsSliceStats, isAuthenticated, location.pathname])
-
-  useEffect(() => {
-    if (user) {
-      console.log('👤 Header: User object structure:', user)
-      console.log('👤 Header: User display info:', getUserDisplayInfo(user))
-    }
-  }, [user])
-
-  useEffect(() => {
-    console.log('💳 Header: Current subscription plan:', {
-      plan: currentPlan,
-      displayName: planDisplayName,
-      color: planColor
-    })
-  }, [currentPlan, planDisplayName, planColor])
+  }, [coursesDropdownTimeout])
 
   const handleLogout = async () => {
     try {
@@ -180,10 +175,10 @@ const Header = () => {
     <>
       <nav className="hidden md:flex items-center space-x-8">
         <a 
-          href="/features" 
+          href="/courses" 
           className="text-slate-600 hover:text-blue-600 font-medium transition-colors"
         >
-          Features
+          Courses
         </a>
         
         <a 
@@ -244,24 +239,16 @@ const Header = () => {
         >
           Documents
         </a>
-        
-        <a 
-          href="/quizzes" 
-          className={`font-medium transition-colors ${
-            location.pathname === '/quizzes' 
-              ? 'text-blue-600' 
-              : 'text-slate-600 hover:text-blue-600'
-          }`}
-        >
-          Quizzes
-        </a>
 
-        <div className="relative">
+        {/* ✅ FIXED: Courses Dropdown with proper hover handling */}
+        <div 
+          className="relative"
+          onMouseEnter={handleCoursesMouseEnter}
+          onMouseLeave={handleCoursesMouseLeave}
+        >
           <button
-            onMouseEnter={() => setIsCoursesDropdownOpen(true)}
-            onMouseLeave={() => setIsCoursesDropdownOpen(false)}
             className={`font-medium transition-colors flex items-center space-x-1 ${
-              location.pathname.startsWith('/courses') 
+              location.pathname.startsWith('/courses') || location.pathname.startsWith('/my-courses')
                 ? 'text-blue-600' 
                 : 'text-slate-600 hover:text-blue-600'
             }`}
@@ -272,23 +259,69 @@ const Header = () => {
           
           {isCoursesDropdownOpen && (
             <div 
-              className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50"
-              onMouseEnter={() => setIsCoursesDropdownOpen(true)}
-              onMouseLeave={() => setIsCoursesDropdownOpen(false)}
+              className="absolute top-full left-0 mt-2 w-60 bg-white rounded-xl shadow-lg border border-slate-200 py-3 z-50"
             >
-              <a href="/courses" className="block px-4 py-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors">
-                Browse All Courses
+              {/* All Courses */}
+              <a 
+                href="/courses" 
+                className="block px-4 py-3 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                onClick={() => setIsCoursesDropdownOpen(false)}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <GraduationCap className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">All Courses</div>
+                    <div className="text-xs text-slate-500">Browse course marketplace</div>
+                  </div>
+                </div>
               </a>
-              <a href="/courses/my-courses" className="block px-4 py-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors">
-                My Courses
+              
+              {/* My Courses */}
+              <a 
+                href="/my-courses" 
+                className="block px-4 py-3 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                onClick={() => setIsCoursesDropdownOpen(false)}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">My Courses</div>
+                    <div className="text-xs text-slate-500">Your purchased courses</div>
+                  </div>
+                </div>
               </a>
-              <a href="/courses/categories" className="block px-4 py-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors">
-                Categories
+              
+              {/* Featured Courses */}
+              <a 
+                href="/courses/featured" 
+                className="block px-4 py-3 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                onClick={() => setIsCoursesDropdownOpen(false)}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Featured</div>
+                    <div className="text-xs text-slate-500">Premium handpicked courses</div>
+                  </div>
+                </div>
               </a>
+              
               <div className="border-t border-slate-200 my-2"></div>
-              <a href="/subscription" className="block px-4 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-colors flex items-center space-x-2">
-                <Sparkles className="w-4 h-4" />
-                <span>Premium Plans</span>
+              
+              {/* Categories */}
+              <a 
+                href="/courses/categories" 
+                className="block px-4 py-3 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                onClick={() => setIsCoursesDropdownOpen(false)}
+              >
+                <div className="font-medium text-sm">Browse Categories</div>
+                <div className="text-xs text-slate-500">Programming, Design, Business & more</div>
               </a>
             </div>
           )}
@@ -352,7 +385,6 @@ const Header = () => {
                 <span>Settings</span>
               </a>
               
-              {/* ✅ FIXED: Proper styling for manage plan link */}
               {currentPlan === 'free' ? (
                 <a href="/subscription" className="flex items-center space-x-2 px-4 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 transition-colors border-l-4 border-purple-600 bg-purple-50/30">
                   <Sparkles className="w-4 h-4" />
@@ -417,6 +449,7 @@ const Header = () => {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-slate-200 py-4">
             <div className="flex flex-col space-y-3">
@@ -429,34 +462,12 @@ const Header = () => {
                         {liveStats.totalPoints} pts
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Brain className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-slate-700">
-                        {liveStats.quizzesCompleted} quizzes
-                      </span>
-                    </div>
                   </div>
 
-                  <a href="/dashboard" className={`font-medium py-2 ${
-                    location.pathname === '/dashboard' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
-                  }`}>
-                    Dashboard
-                  </a>
-                  <a href="/documents" className={`font-medium py-2 ${
-                    location.pathname === '/documents' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
-                  }`}>
-                    Documents
-                  </a>
-                  <a href="/quizzes" className={`font-medium py-2 ${
-                    location.pathname === '/quizzes' ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
-                  }`}>
-                    Quizzes
-                  </a>
-                  <a href="/courses" className={`font-medium py-2 ${
-                    location.pathname.startsWith('/courses') ? 'text-blue-600' : 'text-slate-600 hover:text-blue-600'
-                  }`}>
-                    Courses
-                  </a>
+                  <a href="/dashboard" className="font-medium py-2 text-slate-600 hover:text-blue-600">Dashboard</a>
+                  <a href="/documents" className="font-medium py-2 text-slate-600 hover:text-blue-600">Documents</a>
+                  <a href="/courses" className="font-medium py-2 text-slate-600 hover:text-blue-600">All Courses</a>
+                  <a href="/my-courses" className="font-medium py-2 text-slate-600 hover:text-blue-600">My Courses</a>
                   
                   <div className="border-t border-slate-200 pt-3 mt-3">
                     <div className="flex items-center space-x-2 mb-3">
@@ -466,7 +477,6 @@ const Header = () => {
                         </span>
                       </div>
                       <div>
-                        {/* ✅ FIXED: Capitalized user name in mobile */}
                         <p className="text-sm font-medium text-slate-900">
                           {getUserDisplayInfo(user).fullName}
                         </p>
@@ -477,12 +487,8 @@ const Header = () => {
                       </div>
                     </div>
                     
-                    <a href="/profile" className="text-slate-600 hover:text-blue-600 font-medium py-2 block">
-                      Profile
-                    </a>
-                    <a href="/settings" className="text-slate-600 hover:text-blue-600 font-medium py-2 block">
-                      Settings
-                    </a>
+                    <a href="/profile" className="text-slate-600 hover:text-blue-600 font-medium py-2 block">Profile</a>
+                    <a href="/settings" className="text-slate-600 hover:text-blue-600 font-medium py-2 block">Settings</a>
                     <button
                       onClick={handleLogout}
                       className="text-red-600 hover:text-red-700 font-medium py-2 text-left w-full"
@@ -493,30 +499,14 @@ const Header = () => {
                 </>
               ) : (
                 <>
-                  <a href="/features" className="text-slate-600 hover:text-blue-600 font-medium py-2">
-                    Features
-                  </a>
-                  <a href="/pricing" className="text-slate-600 hover:text-blue-600 font-medium py-2">
-                    Pricing
-                  </a>
-                  <a href="/about" className="text-slate-600 hover:text-blue-600 font-medium py-2">
-                    About
-                  </a>
+                  <a href="/courses" className="text-slate-600 hover:text-blue-600 font-medium py-2">Courses</a>
+                  <a href="/pricing" className="text-slate-600 hover:text-blue-600 font-medium py-2">Pricing</a>
+                  <a href="/about" className="text-slate-600 hover:text-blue-600 font-medium py-2">About</a>
                   
                   <div className="border-t border-slate-200 pt-3 mt-3">
                     <div className="flex flex-col space-y-2">
-                      <a 
-                        href="/login"
-                        className="text-slate-600 hover:text-slate-900 font-medium py-2"
-                      >
-                        Login
-                      </a>
-                      <a 
-                        href="/register"
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium px-4 py-2 rounded-lg text-center"
-                      >
-                        Get Started
-                      </a>
+                      <a href="/login" className="text-slate-600 hover:text-slate-900 font-medium py-2">Login</a>
+                      <a href="/register" className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium px-4 py-2 rounded-lg text-center">Get Started</a>
                     </div>
                   </div>
                 </>

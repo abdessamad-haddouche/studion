@@ -99,6 +99,8 @@ export const documentsAPI = {
   getAnalytics: (id) => api.get(`/documents/${id}/analytics`)
 }
 
+
+
 export const quizzesAPI = {
   getAll: () => api.get('/quizzes'),
   generate: (documentId, options) => api.post('/quizzes/generate', { documentId, ...options }),
@@ -107,9 +109,35 @@ export const quizzesAPI = {
 }
 
 export const coursesAPI = {
-  getAll: () => api.get('/courses'),
+  // Get all courses with filtering
+  getAll: (params) => api.get('/courses', { params }),
+  
+  // Get course by ID
   getById: (id) => api.get(`/courses/${id}`),
-  purchase: (id) => api.post(`/courses/${id}/purchase`)
+  
+  // Get featured courses
+  getFeatured: (limit = 6) => api.get('/courses/featured', { params: { limit } }),
+  
+  // Get courses by category
+  getByCategory: (category, filters) => api.get(`/courses/category/${category}`, { params: filters }),
+  
+  // Calculate price with points discount
+  calculatePrice: (id, data) => api.post(`/courses/${id}/calculate-price`, data),
+  
+  // Purchase course
+  purchase: (id, data) => api.post(`/courses/${id}/purchase`, data),
+  
+  // Get user's purchased courses
+  getPurchased: () => api.get('/courses/purchased'),
+  
+  // Get recommended courses
+  getRecommended: () => api.get('/courses/recommended'),
+  
+  // Apply course discount
+  applyCourseDiscount: (id, data) => api.post(`/courses/${id}/discount`, data),
+  
+  // Get course catalog by source
+  getCatalog: (source, params) => api.get(`/courses/catalog/${source}`, { params })
 }
 
 export const userAPI = {

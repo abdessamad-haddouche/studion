@@ -8,6 +8,7 @@ import authReducer from './slices/authSlice'
 import documentsReducer from './slices/documentsSlice'
 import subscriptionReducer from './slices/subscriptionSlice'
 import userStatsReducer from './slices/userStatsSlice'
+import coursesReducer from './slices/coursesSlice'
 
 // Simple UI slice
 import { createSlice } from '@reduxjs/toolkit'
@@ -47,6 +48,7 @@ const store = configureStore({
     documents: documentsReducer,
     subscription: subscriptionReducer,
     userStats: userStatsReducer,
+    courses: coursesReducer,
     ui: uiSlice.reducer
   },
   devTools: process.env.NODE_ENV !== 'production',

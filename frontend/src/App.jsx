@@ -1,13 +1,12 @@
 /**
  * PATH: src/App.jsx
- * RECOMMENDED App Component - Best of Both Versions
+ * UPDATED App Component with Courses Routes
  * 
- * ✅ COMBINES:
- * - Your current protected routes (better security)
- * - Documents page route (newly implemented)
- * - Quiz routes (from suggested version)  
- * - Complete routing structure
- * - Proper auth checking
+ * ✅ ADDED:
+ * - Courses marketplace routes
+ * - Course details routes
+ * - My courses page
+ * - Public courses browsing
  */
 
 import React, { useEffect } from 'react'
@@ -25,13 +24,18 @@ import HomePage from './pages/HomePage'
 import RegisterPage from './pages/auth/RegisterPage'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
-import DocumentsPage from './pages/documents/DocumentsPage' // ✅ KEEP DOCUMENTS PAGE
+import DocumentsPage from './pages/documents/DocumentsPage'
 import PlansPage from './pages/subscription/PlansPage'
 import Terms from './pages/documents/Terms'
 import Points from './pages/profile/PointsPage'
 import ForgotPassword from './pages/auth/ForgotPasswordPage'
 
-// ✅ QUIZ COMPONENTS (from suggested version)
+// ✅ ADD COURSES PAGES
+import CoursesPage from './pages/courses/CoursesPage'
+import CourseDetailsPage from './pages/courses/CourseDetailsPage'
+import MyCourses from './pages/courses/MyCourses'
+
+// Quiz components
 import QuizInterface from './components/quiz/taking/QuizInterface'
 import QuizResults from './components/quiz/results/QuizResults'
 
@@ -121,6 +125,12 @@ const AppContent = () => {
         <Route path="/pricing" element={<PlansPage />} />
         <Route path="/plans" element={<PlansPage />} />
 
+        {/* ✅ NEW: PUBLIC COURSES ROUTES */}
+        <Route path="/courses" element={<CoursesPage />} />
+        <Route path="/courses/:id" element={<CourseDetailsPage />} />
+        <Route path="/courses/featured" element={<CoursesPage />} />
+        <Route path="/courses/category/:category" element={<CoursesPage />} />
+
         {/* ✅ PROTECTED ROUTES */}
         <Route 
           path="/dashboard" 
@@ -131,7 +141,7 @@ const AppContent = () => {
           } 
         />
 
-        {/* ✅ DOCUMENTS PAGE (newly implemented) */}
+        {/* ✅ DOCUMENTS PAGE */}
         <Route 
           path="/documents" 
           element={
@@ -141,7 +151,31 @@ const AppContent = () => {
           } 
         />
 
-        {/* ✅ QUIZ ROUTES (from suggested version) */}
+        {/* ✅ NEW: PROTECTED COURSES ROUTES */}
+        <Route 
+          path="/my-courses" 
+          element={
+            <ProtectedRoute>
+              <MyCourses />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/my-courses/:id" 
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold text-slate-900 mb-4">Course Player Coming Soon</h1>
+                  <p className="text-slate-600">Course viewing interface is under development.</p>
+                </div>
+              </div>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ✅ QUIZ ROUTES */}
         <Route 
           path="/quiz/:quizId" 
           element={
