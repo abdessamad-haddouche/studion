@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/subscription/UsageIndicator.jsx
- * COMPACT & PROFESSIONAL - UPDATED with scroll anchors and Areas of Improvement
+ * COMPACT & PROFESSIONAL - FIXED navigation to correct scroll anchors
  */
 
 import React from 'react'
@@ -96,13 +96,35 @@ const UsageIndicator = ({ className = '' }) => {
 
   const planColor = getPlanColor(currentPlan)
 
-  // ✅ NEW: Handle different navigation targets
+  // ✅ FIXED: Handle different navigation targets with smooth scrolling
   const handleViewPlans = () => {
-    window.location.href = '/subscription#plan-cards'
+    const isOnSubscriptionPage = window.location.pathname === '/subscription' || window.location.pathname === '/subscription/'
+    
+    if (isOnSubscriptionPage) {
+      // If already on subscription page, just scroll to the section
+      const element = document.getElementById('plan-cards')
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    } else {
+      // Navigate to subscription page and scroll to plan cards
+      window.location.href = '/subscription#plan-cards'
+    }
   }
 
   const handleCompareAllPlans = () => {
-    window.location.href = '/subscription#feature-comparison'
+    const isOnSubscriptionPage = window.location.pathname === '/subscription' || window.location.pathname === '/subscription/'
+    
+    if (isOnSubscriptionPage) {
+      // If already on subscription page, just scroll to the section
+      const element = document.getElementById('feature-comparison')
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    } else {
+      // Navigate to subscription page and scroll to feature comparison
+      window.location.href = '/subscription#feature-comparison'
+    }
   }
 
   return (
@@ -135,7 +157,7 @@ const UsageIndicator = ({ className = '' }) => {
           <Button
             variant="secondary"
             size="sm"
-            onClick={handleViewPlans} // ✅ UPDATED: Goes to plan cards section
+            onClick={handleViewPlans} // ✅ FIXED: Goes to plan cards section
             className="flex items-center space-x-1 text-xs px-3 py-1.5"
           >
             <Crown className="w-3 h-3" />
@@ -212,7 +234,7 @@ const UsageIndicator = ({ className = '' }) => {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={handleViewPlans} // ✅ UPDATED: Goes to plan cards section
+                onClick={handleViewPlans} // ✅ FIXED: Goes to plan cards section
                 className="ml-2 text-xs px-2 py-1 h-6"
               >
                 <span className="text-xs">View Plans</span>
@@ -226,7 +248,7 @@ const UsageIndicator = ({ className = '' }) => {
       {currentPlan !== 'enterprise' && (
         <div className="mt-3 pt-2 border-t border-slate-100">
           <button 
-            onClick={handleCompareAllPlans} // ✅ UPDATED: Goes to feature comparison section
+            onClick={handleCompareAllPlans} // ✅ FIXED: Goes to feature comparison section
             className="w-full text-center text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
             Compare All Plans →

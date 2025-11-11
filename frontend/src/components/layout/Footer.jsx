@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/layout/Footer.jsx
- * Premium Footer Component for Studion
+ * Premium Footer Component for StudyEasy
  */
 
 import React from 'react'
@@ -233,7 +233,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
             <div className="text-sm text-slate-400">
-              © 2024 Studion AI Learning Platform. All rights reserved.
+              © 2025 Studion AI Learning Platform. All rights reserved.
             </div>
             <div className="flex items-center space-x-1 text-sm text-slate-400">
               <span>Made with</span>

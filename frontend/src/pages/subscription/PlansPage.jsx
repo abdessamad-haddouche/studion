@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/subscription/PlansPage.jsx
- * Updated Plans Page with Current Plan Banner and Scroll Anchors
+ * ENHANCED Plans Page with Proper Hash Scroll Handling
  */
 
 import React, { useEffect } from 'react'
@@ -27,12 +27,51 @@ const PlansPage = () => {
   // Get enabled components based on configuration
   const enabledComponents = getEnabledSubscriptionComponents(currentPlan)
   
-  // Update page title
+  // ✅ ENHANCED: Handle URL hash scrolling on page load and hash changes
   useEffect(() => {
     document.title = 'Subscription Plans - Studion'
+    
+    // Function to handle hash scrolling
+    const handleHashScroll = () => {
+      const hash = window.location.hash.substring(1) // Remove the '#'
+      console.log('🔗 PlansPage: Hash detected:', hash)
+      
+      if (hash) {
+        // Use setTimeout to ensure elements are rendered
+        setTimeout(() => {
+          const element = document.getElementById(hash)
+          if (element) {
+            console.log('✅ PlansPage: Scrolling to element:', hash)
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            })
+          } else {
+            console.log('❌ PlansPage: Element not found:', hash)
+          }
+        }, 200) // Slightly longer delay to ensure everything is rendered
+      }
+    }
+    
+    // Initial hash scroll on page load
+    handleHashScroll()
+    
+    // Listen for hash changes (when user clicks navigation links)
+    const handleHashChange = () => {
+      console.log('🔗 PlansPage: Hash change detected')
+      handleHashScroll()
+    }
+    
+    window.addEventListener('hashchange', handleHashChange)
+    
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+    }
   }, [])
   
-  // Component mapping with scroll anchors
+  // Component mapping with PROPER scroll anchors
   const componentMap = {
     [SUBSCRIPTION_COMPONENTS.PRICING_HEADER]: (
       <div key="header" className="mb-12">
@@ -41,7 +80,7 @@ const PlansPage = () => {
     ),
     
     [SUBSCRIPTION_COMPONENTS.PLAN_CARDS]: (
-      <div key="plans" id="plan-cards" className="mb-16 scroll-mt-20"> {/* ✅ ADDED SCROLL ANCHOR */}
+      <div key="plans" id="plan-cards" className="mb-16 scroll-mt-20"> {/* ✅ PROPER SCROLL ANCHOR */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-slate-900 mb-4">Choose Your Learning Plan</h2>
           <p className="text-slate-600 max-w-2xl mx-auto">
@@ -61,13 +100,13 @@ const PlansPage = () => {
     ),
     
     [SUBSCRIPTION_COMPONENTS.FEATURE_COMPARISON]: (
-      <div key="comparison" className="mb-16 scroll-mt-20"> {/* ✅ ADDED SCROLL ANCHOR */}
+      <div key="comparison" id="feature-comparison" className="mb-16 scroll-mt-20"> {/* ✅ PROPER SCROLL ANCHOR */}
         <FeatureComparison />
       </div>
     ),
     
     [SUBSCRIPTION_COMPONENTS.FAQ_SECTION]: (
-      <div key="faq" id="faq-section" className="mb-16 scroll-mt-20"> {/* ✅ ADDED SCROLL ANCHOR */}
+      <div key="faq" id="faq-section" className="mb-16 scroll-mt-20"> {/* ✅ PROPER SCROLL ANCHOR */}
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
           <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
             Frequently Asked Questions

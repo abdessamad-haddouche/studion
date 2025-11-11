@@ -1,30 +1,47 @@
 /**
  * PATH: src/pages/courses/MyCourses.jsx
- * My Courses Page - User's purchased courses
+ * FIXED - Reads from correct localStorage key: enrolled_courses
  */
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { BookOpen, PlayCircle, CheckCircle } from 'lucide-react'
 import Layout from '../../components/layout/Layout'
 import Button from '../../components/ui/Button'
 import { loadPurchasedCourses, selectPurchasedCourses } from '../../store/slices/coursesSlice'
-import coursesService from '../../services/courses.service'
 
 const MyCourses = () => {
   const dispatch = useDispatch()
   const purchasedCourses = useSelector(selectPurchasedCourses)
+  const [enrolledCourses, setEnrolledCourses] = useState([])
 
   useEffect(() => {
     dispatch(loadPurchasedCourses())
+    
+    // ✅ FIXED: Read from the correct localStorage key
+    const loadEnrolledCourses = () => {
+      try {
+        const enrolledData = localStorage.getItem('enrolled_courses')
+        if (enrolledData) {
+          const courses = JSON.parse(enrolledData)
+          console.log('📚 Loaded enrolled courses:', courses)
+          setEnrolledCourses(courses)
+        }
+      } catch (error) {
+        console.error('Error loading enrolled courses:', error)
+        setEnrolledCourses([])
+      }
+    }
+    
+    loadEnrolledCourses()
   }, [dispatch])
 
-  // Get purchased courses from localStorage
-  const localPurchased = coursesService.getPurchasedCoursesLocal()
+  // Combine all courses (enrolled + purchased from Redux)
+  const allUserCourses = [...enrolledCourses, ...purchasedCourses]
 
-  const coursesToShow = localPurchased.length > 0 ? localPurchased : purchasedCourses
+  console.log('📚 Total user courses:', allUserCourses.length)
 
-  if (coursesToShow.length === 0) {
+  if (allUserCourses.length === 0) {
     return (
       <Layout>
         <div className="min-h-screen bg-slate-50">
@@ -35,7 +52,7 @@ const MyCourses = () => {
               </div>
               <h1 className="text-3xl font-bold text-slate-900 mb-4">No Courses Yet</h1>
               <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
-                You haven't purchased any courses yet. Browse our marketplace to find courses and use your quiz points for discounts!
+                You haven't enrolled in any courses yet. Browse our marketplace to find courses and use your quiz points for discounts!
               </p>
               <div className="space-y-4">
                 <Button
@@ -70,7 +87,7 @@ const MyCourses = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">My Courses</h1>
             <p className="text-slate-600">
-              Continue learning with your purchased courses
+              Continue learning with your enrolled courses ({allUserCourses.length} total)
             </p>
           </div>
 
@@ -82,7 +99,7 @@ const MyCourses = () => {
                   <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-slate-900">{coursesToShow.length}</div>
+                  <div className="text-2xl font-bold text-slate-900">{allUserCourses.length}</div>
                   <div className="text-slate-600">Total Courses</div>
                 </div>
               </div>
@@ -94,7 +111,9 @@ const MyCourses = () => {
                   <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-slate-900">0</div>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {allUserCourses.filter(course => course.completed).length}
+                  </div>
                   <div className="text-slate-600">Completed</div>
                 </div>
               </div>
@@ -106,7 +125,9 @@ const MyCourses = () => {
                   <PlayCircle className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-slate-900">{coursesToShow.length}</div>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {allUserCourses.filter(course => !course.completed).length}
+                  </div>
                   <div className="text-slate-600">In Progress</div>
                 </div>
               </div>
@@ -115,94 +136,123 @@ const MyCourses = () => {
 
           {/* Course Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {coursesToShow.map((purchase, index) => (
-              <div key={index} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">
-                
-                {/* Course Image */}
-                <div className="relative">
-                  <img
-                    src={purchase.course?.media?.thumbnail || '/api/placeholder/400/225'}
-                    alt={purchase.course?.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            {allUserCourses.map((course, index) => {
+              // Handle the enrolled course data structure
+              const enrollmentDate = course.enrolledAt || course.purchaseDate || new Date().toISOString()
+              const finalPrice = course.payment?.finalPrice || course.finalPrice || 0
+              const pointsUsed = course.payment?.pointsUsed || course.pointsUsed || 0
+              const enrollmentType = course.enrollmentType || 'purchased'
+              
+              return (
+                <div key={course.id || index} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">
                   
-                  {/* Purchase Badge */}
-                  <div className="absolute top-3 right-3">
-                    <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>Purchased</span>
-                    </div>
-                  </div>
-
-                  {/* Play Button */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <button className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                      <PlayCircle className="w-8 h-8 text-white" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Course Info */}
-                <div className="p-6 space-y-4">
-                  <div>
-                    <h3 className="font-bold text-slate-900 mb-2 line-clamp-2">
-                      {purchase.course?.title}
-                    </h3>
-                    <p className="text-sm text-slate-600">
-                      By {purchase.course?.instructor?.name}
-                    </p>
-                  </div>
-
-                  {/* Purchase Details */}
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Purchased:</span>
-                      <span className="text-slate-900">
-                        {new Date(purchase.purchaseDate).toLocaleDateString()}
-                      </span>
-                    </div>
+                  {/* Course Image */}
+                  <div className="relative">
+                    <img
+                      src={course.media?.thumbnail || course.thumbnail || `https://picsum.photos/400/225?random=${index + 1}`}
+                      alt={course.title || 'Course'}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                     
-                    {purchase.pointsUsed > 0 && (
+                    {/* Enrollment Badge */}
+                    <div className="absolute top-3 right-3">
+                      <div className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center space-x-1 ${
+                        enrollmentType === 'free' 
+                          ? 'bg-green-500 text-white'
+                          : 'bg-blue-500 text-white'
+                      }`}>
+                        <CheckCircle className="w-3 h-3" />
+                        <span>{enrollmentType === 'free' ? 'Free' : 'Enrolled'}</span>
+                      </div>
+                    </div>
+
+                    {/* Play Button */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <button 
+                        className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                        onClick={() => alert('Course player coming soon!')}
+                      >
+                        <PlayCircle className="w-8 h-8 text-white" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Course Info */}
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <h3 className="font-bold text-slate-900 mb-2 line-clamp-2">
+                        {course.title || 'Untitled Course'}
+                      </h3>
+                      <p className="text-sm text-slate-600">
+                        By {course.instructor?.name || 'Unknown Instructor'}
+                      </p>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Progress</span>
+                        <span className="font-medium text-slate-900">{course.progress || 0}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${course.progress || 0}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Enrollment Details */}
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Points Used:</span>
-                        <span className="text-purple-600 font-semibold">
-                          {purchase.pointsUsed.toLocaleString()}
+                        <span className="text-slate-600">Enrolled:</span>
+                        <span className="text-slate-900">
+                          {new Date(enrollmentDate).toLocaleDateString()}
                         </span>
                       </div>
-                    )}
-                    
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Final Price:</span>
-                      <span className="text-slate-900 font-semibold">
-                        ${purchase.finalPrice?.toFixed(2) || '0.00'}
-                      </span>
+                      
+                      {pointsUsed > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Points Used:</span>
+                          <span className="text-purple-600 font-semibold">
+                            {pointsUsed.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Price Paid:</span>
+                        <span className="text-slate-900 font-semibold">
+                          {finalPrice === 0 ? 'FREE' : `$${finalPrice.toFixed(2)}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2">
+                      <Button
+                        variant="primary"
+                        className="w-full flex items-center justify-center space-x-2"
+                        onClick={() => alert('Course player coming soon!')}
+                      >
+                        <PlayCircle className="w-4 h-4" />
+                        <span>Continue Learning</span>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => window.location.href = `/courses/${course.id}`}
+                      >
+                        View Course Details
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="primary"
-                      className="w-full flex items-center justify-center space-x-2"
-                      onClick={() => alert('Course player coming soon!')}
-                    >
-                      <PlayCircle className="w-4 h-4" />
-                      <span>Continue Learning</span>
-                    </Button>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => window.location.href = `/courses/${purchase.course?.id}`}
-                    >
-                      View Course Details
-                    </Button>
-                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
