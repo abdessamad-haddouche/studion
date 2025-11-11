@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/DocumentsGrid.jsx
- * Updated to handle quiz selection
+ * Updated to handle quiz selection - FIXED: Removed processing banner
  */
 
 import React, { useState, useEffect } from 'react'
@@ -181,24 +181,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         </div>
       </div>
 
-      {hasProcessingDocs && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-blue-600 animate-spin" />
-            <span className="text-sm text-blue-800">
-              Documents are being processed by AI. Refresh to see updates.
-            </span>
-          </div>
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={handleManualRefresh}
-            disabled={refreshing}
-          >
-            Refresh Now
-          </Button>
-        </div>
-      )}
+      {/* ✅ REMOVED: Processing banner - keeping only the refresh button above */}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {displayDocuments.map((document, index) => (

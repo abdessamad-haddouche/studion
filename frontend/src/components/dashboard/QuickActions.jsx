@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/QuickActions.jsx
- * Quick Actions Component - Common dashboard shortcuts
+ * Quick Actions Component - FIXED: Centered content layout
  */
 
 import React from 'react'
@@ -84,43 +84,47 @@ const QuickActions = ({ onUploadClick, className = '' }) => {
   const actions = getActions()
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
-      <h3 className="font-semibold text-slate-900 mb-4 text-sm">Quick Actions</h3>
+    <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>
+      {/* ✅ FIXED: Centered title */}
+      <h3 className="font-semibold text-slate-900 mb-6 text-sm text-center">Quick Actions</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {actions.map((action, index) => (
-          <button
-            key={index}
-            onClick={action.action}
-            className={`p-4 rounded-lg border transition-all text-left hover:shadow-md ${
-              action.primary 
-                ? 'border-blue-200 bg-blue-50 hover:bg-blue-100' 
-                : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-            }`}
-          >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${
-              action.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-              action.color === 'green' ? 'bg-green-100 text-green-600' :
-              action.color === 'purple' ? 'bg-purple-100 text-purple-600' :
-              action.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-              'bg-slate-100 text-slate-600'
-            }`}>
-              {action.icon}
-            </div>
-            
-            <h4 className="font-medium text-slate-900 text-sm mb-1">
-              {action.title}
-            </h4>
-            
-            <p className="text-xs text-slate-600">
-              {action.description}
-            </p>
-          </button>
-        ))}
+      {/* ✅ FIXED: Centered grid with justify-center */}
+      <div className="flex justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl">
+          {actions.map((action, index) => (
+            <button
+              key={index}
+              onClick={action.action}
+              className={`p-4 rounded-lg border transition-all text-left hover:shadow-md ${
+                action.primary 
+                  ? 'border-blue-200 bg-blue-50 hover:bg-blue-100' 
+                  : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${
+                action.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                action.color === 'green' ? 'bg-green-100 text-green-600' :
+                action.color === 'purple' ? 'bg-purple-100 text-purple-600' :
+                action.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
+                'bg-slate-100 text-slate-600'
+              }`}>
+                {action.icon}
+              </div>
+              
+              <h4 className="font-medium text-slate-900 text-sm mb-1">
+                {action.title}
+              </h4>
+              
+              <p className="text-xs text-slate-600">
+                {action.description}
+              </p>
+            </button>
+          ))}
+        </div>
       </div>
       
-      {/* Settings Link */}
-      <div className="mt-4 pt-4 border-t border-slate-100">
+      {/* ✅ FIXED: Centered settings link */}
+      <div className="mt-6 pt-4 border-t border-slate-100 flex justify-center">
         <button 
           onClick={() => window.location.href = '/settings'}
           className="flex items-center space-x-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"

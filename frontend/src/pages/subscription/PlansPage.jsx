@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/subscription/PlansPage.jsx
- * Updated Plans Page with Current Plan Banner
+ * Updated Plans Page with Current Plan Banner and Scroll Anchors
  */
 
 import React, { useEffect } from 'react'
@@ -32,14 +32,22 @@ const PlansPage = () => {
     document.title = 'Subscription Plans - Studion'
   }, [])
   
-  // Component mapping
+  // Component mapping with scroll anchors
   const componentMap = {
     [SUBSCRIPTION_COMPONENTS.PRICING_HEADER]: (
-      <PricingHeader key="header" className="mb-12" />
+      <div key="header" className="mb-12">
+        <PricingHeader className="" />
+      </div>
     ),
     
     [SUBSCRIPTION_COMPONENTS.PLAN_CARDS]: (
-      <div key="plans" className="mb-16">
+      <div key="plans" id="plan-cards" className="mb-16 scroll-mt-20"> {/* ✅ ADDED SCROLL ANCHOR */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">Choose Your Learning Plan</h2>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            Select the perfect plan to accelerate your education with AI-powered learning tools
+          </p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
           {SUBSCRIPTION_PLANS.map(planKey => (
             <PlanCard
@@ -53,11 +61,13 @@ const PlansPage = () => {
     ),
     
     [SUBSCRIPTION_COMPONENTS.FEATURE_COMPARISON]: (
-      <FeatureComparison key="comparison" className="mb-16" />
+      <div key="comparison" className="mb-16 scroll-mt-20"> {/* ✅ ADDED SCROLL ANCHOR */}
+        <FeatureComparison />
+      </div>
     ),
     
     [SUBSCRIPTION_COMPONENTS.FAQ_SECTION]: (
-      <div key="faq" className="mb-16">
+      <div key="faq" id="faq-section" className="mb-16 scroll-mt-20"> {/* ✅ ADDED SCROLL ANCHOR */}
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
           <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
             Frequently Asked Questions
@@ -71,6 +81,16 @@ const PlansPage = () => {
               <p className="text-slate-600 text-sm">
                 Yes! You can upgrade or downgrade your plan instantly. Changes take effect immediately 
                 and you'll have access to all features of your new plan right away.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-2">
+                What are "Areas of Improvement" in Premium+?
+              </h3>
+              <p className="text-slate-600 text-sm">
+                Premium and higher plans include AI-powered analysis that identifies specific areas 
+                where you need more practice, with personalized study recommendations to help you improve faster.
               </p>
             </div>
             
@@ -99,8 +119,8 @@ const PlansPage = () => {
                 What's included in Premium analytics?
               </h3>
               <p className="text-slate-600 text-sm">
-                Premium users get detailed strengths and weaknesses analysis based on quiz performance, 
-                learning progress tracking, and personalized improvement recommendations.
+                Premium users get detailed strengths and weaknesses analysis, areas of improvement 
+                suggestions, learning progress tracking, and personalized study recommendations.
               </p>
             </div>
           </div>
@@ -149,7 +169,7 @@ const PlansPage = () => {
             {
               name: "Ahmed Hassan", 
               role: "Engineering Student",
-              content: "The strengths and weaknesses analysis showed me exactly what to focus on.",
+              content: "The areas of improvement feature showed me exactly what to focus on for my finals.",
               plan: "Premium"
             },
             {
@@ -182,7 +202,7 @@ const PlansPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           
-          {/* ✅ ADD: Current Plan Banner */}
+          {/* ✅ CURRENT PLAN BANNER with Areas of Improvement */}
           {currentPlan && (
             <div className="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 p-6">
               <div className="flex items-center justify-between">
@@ -205,15 +225,15 @@ const PlansPage = () => {
                       ? 'Unlimited documents' 
                       : `${PLAN_FEATURES[currentPlan]?.documentsLimit} documents`}
                   </div>
-                  {PLAN_FEATURES[currentPlan]?.strengthsWeaknesses && (
+                  {PLAN_FEATURES[currentPlan]?.areasOfImprovement && (
                     <div className="text-xs text-purple-600 mt-1">
-                      ✨ Premium Analytics Included
+                      ✨ Areas of Improvement Included
                     </div>
                   )}
                 </div>
               </div>
               
-              {/* ✅ Quick feature list for current plan */}
+              {/* Quick feature list for current plan */}
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center space-x-2">
@@ -230,6 +250,12 @@ const PlansPage = () => {
                       <span className="text-slate-600">Strengths & Weaknesses</span>
                     </div>
                   )}
+                  {PLAN_FEATURES[currentPlan]?.areasOfImprovement && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className="text-slate-600">Areas of Improvement</span>
+                    </div>
+                  )}
                   {PLAN_FEATURES[currentPlan]?.prioritySupport && (
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -244,17 +270,6 @@ const PlansPage = () => {
           {/* Render enabled components in configured order */}
           {enabledComponents.map(componentKey => componentMap[componentKey])}
           
-          {/* Debug Info (remove in production) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-8 p-4 bg-slate-100 rounded-lg text-xs text-slate-600">
-              <strong>Plans Page Debug:</strong> 
-              <span className="ml-2">
-                currentPlan: {currentPlan} | 
-                enabledComponents: {enabledComponents.length} | 
-                components: {enabledComponents.join(', ')}
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </Layout>

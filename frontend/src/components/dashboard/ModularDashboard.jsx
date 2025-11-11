@@ -1,14 +1,6 @@
 /**
  * PATH: src/components/dashboard/ModularDashboard.jsx
- * COMPLETE Enhanced Modular Dashboard with Auto-Refresh - FULL CODE
- * 
- * ✅ ADDED:
- * - Check for quiz completion flag on mount
- * - Auto-refresh UserStats when dashboard loads
- * - Better organization of dashboard sections
- * - Conditional rendering based on user state
- * 
- * ✅ PRESERVED: All original functionality, subscription logic, usage indicators, component configuration
+ * COMPLETE Enhanced Modular Dashboard with Auto-Refresh - FIXED: Removed debug info
  */
 
 import React, { useEffect, useState } from 'react'
@@ -260,19 +252,7 @@ const ModularDashboard = () => {
         onSuccess={handleUploadSuccess}
       />
       
-      {/* Debug Info (remove in production) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-8 p-4 bg-slate-100 rounded-lg text-xs text-slate-600">
-          <strong>Dashboard Debug:</strong> 
-          <span className="ml-2">
-            isAuthenticated: {String(isAuthenticated)} | 
-            hasDocuments: {String(hasDocuments)} | 
-            enabledComponents: {enabledComponents.length} | 
-            documentsCount: {documents?.length || 0} | 
-            loading: {String(isLoading)}
-          </span>
-        </div>
-      )}
+      {/* ✅ REMOVED: Debug Info section completely removed */}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 /**
  * PATH: src/components/subscription/SubscriptionConfig.js
  * Complete Subscription Configuration with Quiz Features
+ * UPDATED: Added "Areas of Improvement" feature for premium plans
  */
 
 // ✅ ADD THESE MISSING EXPORTS AT THE TOP
@@ -22,6 +23,7 @@ export const PLAN_FEATURES = {
     description: 'Get started with basic AI learning tools',
     documentsLimit: 5,
     strengthsWeaknesses: false,
+    areasOfImprovement: false, // ✅ NEW FEATURE
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: false,
@@ -41,6 +43,7 @@ export const PLAN_FEATURES = {
     description: 'Enhanced learning with more documents and features',
     documentsLimit: 8,
     strengthsWeaknesses: false,
+    areasOfImprovement: false, // ✅ NEW FEATURE
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: false,
@@ -60,6 +63,7 @@ export const PLAN_FEATURES = {
     description: 'Advanced learning with analytics and insights',
     documentsLimit: 25,
     strengthsWeaknesses: true,
+    areasOfImprovement: true, // ✅ NEW FEATURE - Premium gets this
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: true,
@@ -79,6 +83,7 @@ export const PLAN_FEATURES = {
     description: 'Professional tools for power users',
     documentsLimit: 100,
     strengthsWeaknesses: true,
+    areasOfImprovement: true, // ✅ NEW FEATURE - Pro gets this
     prioritySupport: true,
     teamFeatures: true,
     advancedAnalytics: true,
@@ -99,6 +104,7 @@ export const PLAN_FEATURES = {
     description: 'Complete solution for organizations',
     documentsLimit: -1, // Unlimited
     strengthsWeaknesses: true,
+    areasOfImprovement: true, // ✅ NEW FEATURE - Enterprise gets this
     prioritySupport: true,
     teamFeatures: true,
     advancedAnalytics: true,
@@ -171,6 +177,11 @@ export const canShowExplanations = (planKey) => {
 
 export const canShowStrengthsWeaknesses = (planKey) => {
   return PLAN_FEATURES[planKey]?.showStrengthsWeaknesses || false
+}
+
+// ✅ NEW: Areas of Improvement helper
+export const canShowAreasOfImprovement = (planKey) => {
+  return PLAN_FEATURES[planKey]?.areasOfImprovement || false
 }
 
 export const getQuizHistoryLimit = (planKey) => {

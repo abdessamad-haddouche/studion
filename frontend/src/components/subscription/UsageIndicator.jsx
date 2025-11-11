@@ -1,209 +1,238 @@
 /**
  * PATH: src/components/subscription/UsageIndicator.jsx
- * Usage Indicator Component - Shows plan limits and usage
+ * COMPACT & PROFESSIONAL - UPDATED with scroll anchors and Areas of Improvement
  */
 
 import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { AlertTriangle, Crown, TrendingUp } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { 
+  Crown, 
+  FileText, 
+  Brain, 
+  BarChart3, 
+  Users, 
+  Shield, 
+  ArrowRight, 
+  CheckCircle, 
+  XCircle,
+  Lightbulb,
+  Target,
+  Zap,
+  TrendingUp // ✅ NEW ICON for Areas of Improvement
+} from 'lucide-react'
 import Button from '../ui/Button'
 import { 
-  selectCurrentPlan,
-  selectPlanFeatures,
-  selectUploadProgress,
-  changePlan 
+  selectCurrentPlan, 
+  selectPlanFeatures, 
+  selectUploadProgress 
 } from '../../store/slices/subscriptionSlice'
-import { selectDocuments } from '../../store/slices/documentsSlice'
-import { PLAN_FEATURES, getNextPlanSuggestion } from './SubscriptionConfig'
-import toast from 'react-hot-toast'
 
-const UsageIndicator = ({ 
-  showUpgradeButton = true,
-  compact = false,
-  className = '' 
-}) => {
-  const dispatch = useDispatch()
+const UsageIndicator = ({ className = '' }) => {
   const currentPlan = useSelector(selectCurrentPlan)
   const planFeatures = useSelector(selectPlanFeatures)
   const uploadProgress = useSelector(selectUploadProgress)
-  const documents = useSelector(selectDocuments)
-  
-  // Update usage count to match actual documents
-  const actualUsage = documents?.length || 0
-  const limit = planFeatures.documentsLimit
-  const isUnlimited = limit === -1
-  
-  // Calculate progress
-  const percentage = isUnlimited ? 0 : Math.min((actualUsage / limit) * 100, 100)
-  const remaining = isUnlimited ? Infinity : Math.max(limit - actualUsage, 0)
-  const isNearLimit = percentage >= 80
-  const isAtLimit = percentage >= 100
-  
-  const nextPlan = getNextPlanSuggestion(currentPlan)
-  const nextPlanInfo = PLAN_FEATURES[nextPlan]
-  
-  const handleUpgrade = () => {
-    window.location.href = '/pricing'
-    
-    // ✅ Optional: Show helpful message
-    toast.info('Choose the perfect plan for your needs')
+
+  // Get compact feature list for current plan
+  const getPlanFeatures = (plan) => {
+    const baseFeatures = {
+      free: [
+        { name: 'True/False Quizzes', available: true, icon: Brain },
+        { name: 'Basic Upload', available: true, icon: FileText },
+        { name: '5 Documents', available: true, icon: FileText },
+        { name: 'Multiple Choice', available: false, icon: Brain },
+        { name: 'Explanations', available: false, icon: Lightbulb },
+        { name: 'Analytics', available: false, icon: BarChart3 }
+      ],
+      basic: [
+        { name: 'All Quiz Types', available: true, icon: Brain },
+        { name: 'Explanations', available: true, icon: Lightbulb },
+        { name: '8 Documents', available: true, icon: FileText },
+        { name: 'Enhanced AI', available: true, icon: Zap },
+        { name: 'Analytics', available: false, icon: BarChart3 },
+        { name: 'Improvement Areas', available: false, icon: TrendingUp } // ✅ NEW
+      ],
+      premium: [
+        { name: 'All Quizzes', available: true, icon: Brain },
+        { name: 'Explanations', available: true, icon: Lightbulb },
+        { name: 'Strengths/Weaknesses', available: true, icon: Target },
+        { name: 'Improvement Areas', available: true, icon: TrendingUp }, // ✅ NEW
+        { name: '25 Documents', available: true, icon: FileText },
+        { name: 'Analytics', available: true, icon: BarChart3 }
+      ],
+      pro: [
+        { name: 'All Premium', available: true, icon: Crown },
+        { name: '100 Documents', available: true, icon: FileText },
+        { name: 'Priority Support', available: true, icon: Shield },
+        { name: 'Team Features', available: true, icon: Users },
+        { name: 'Improvement Areas', available: true, icon: TrendingUp }, // ✅ NEW
+        { name: 'Advanced Analytics', available: true, icon: BarChart3 }
+      ],
+      enterprise: [
+        { name: 'All Pro Features', available: true, icon: Crown },
+        { name: 'Unlimited Docs', available: true, icon: FileText },
+        { name: 'API Access', available: true, icon: Shield },
+        { name: 'Dedicated Support', available: true, icon: Shield },
+        { name: 'Improvement Areas', available: true, icon: TrendingUp }, // ✅ NEW
+        { name: 'Custom Security', available: true, icon: Shield }
+      ]
+    }
+
+    return baseFeatures[plan] || baseFeatures.free
   }
+
+  const features = getPlanFeatures(currentPlan)
   
-  // Compact version for dashboard cards
-  if (compact) {
-    return (
-      <div className={`bg-white rounded-lg border border-slate-200 p-3 ${className}`}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-slate-700">Document Usage</span>
-          {isAtLimit && <AlertTriangle className="w-4 h-4 text-red-500" />}
-        </div>
-        
-        <div className="flex items-center space-x-2 mb-2">
-          <div className="flex-1 bg-slate-200 rounded-full h-2">
-            <div 
-              className={`h-2 rounded-full transition-all duration-300 ${
-                isAtLimit ? 'bg-red-500' : 
-                isNearLimit ? 'bg-yellow-500' : 
-                'bg-green-500'
-              }`}
-              style={{ width: `${Math.min(percentage, 100)}%` }}
-            />
-          </div>
-          <span className="text-xs font-medium text-slate-600">
-            {isUnlimited ? '∞' : `${actualUsage}/${limit}`}
-          </span>
-        </div>
-        
-        {isAtLimit && showUpgradeButton && (
-          <Button
-            variant="premium"
-            size="sm"
-            onClick={handleUpgrade}
-            className="w-full text-xs"
-          >
-            Upgrade for More
-          </Button>
-        )}
-      </div>
-    )
+  // Get plan colors
+  const getPlanColor = (plan) => {
+    const colors = {
+      free: 'slate',
+      basic: 'blue', 
+      premium: 'purple',
+      pro: 'green',
+      enterprise: 'indigo'
+    }
+    return colors[plan] || 'slate'
   }
-  
-  // Full version
+
+  const planColor = getPlanColor(currentPlan)
+
+  // ✅ NEW: Handle different navigation targets
+  const handleViewPlans = () => {
+    window.location.href = '/subscription#plan-cards'
+  }
+
+  const handleCompareAllPlans = () => {
+    window.location.href = '/subscription#feature-comparison'
+  }
+
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-semibold text-slate-900">Document Usage</h3>
-          <p className="text-sm text-slate-600 capitalize">{currentPlan} Plan</p>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {currentPlan === 'premium' || currentPlan === 'pro' ? (
-            <Crown className="w-5 h-5 text-purple-500" />
-          ) : null}
-          {isAtLimit && <AlertTriangle className="w-5 h-5 text-red-500" />}
-        </div>
-      </div>
+    <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
       
-      {/* Usage Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-slate-600">
-            {isUnlimited ? 'Unlimited uploads' : `${actualUsage} of ${limit} documents used`}
-          </span>
-          {!isUnlimited && (
-            <span className={`text-sm font-medium ${
-              isAtLimit ? 'text-red-600' : 
-              isNearLimit ? 'text-yellow-600' : 
-              'text-green-600'
-            }`}>
-              {remaining} remaining
-            </span>
-          )}
+      {/* Compact Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            planColor === 'slate' ? 'bg-slate-100 text-slate-600' :
+            planColor === 'blue' ? 'bg-blue-100 text-blue-600' :
+            planColor === 'purple' ? 'bg-purple-100 text-purple-600' :
+            planColor === 'green' ? 'bg-green-100 text-green-600' :
+            'bg-indigo-100 text-indigo-600'
+          }`}>
+            <Crown className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-medium text-slate-900 capitalize text-sm">
+              {planFeatures.name} Plan
+            </h3>
+            <p className="text-xs text-slate-500">
+              {currentPlan === 'free' ? 'Free' : `$${planFeatures.price}/mo`}
+            </p>
+          </div>
         </div>
-        
-        {!isUnlimited && (
-          <div className="w-full bg-slate-200 rounded-full h-3">
+
+        {/* Upgrade Button */}
+        {currentPlan !== 'enterprise' && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleViewPlans} // ✅ UPDATED: Goes to plan cards section
+            className="flex items-center space-x-1 text-xs px-3 py-1.5"
+          >
+            <Crown className="w-3 h-3" />
+            <span>Upgrade</span>
+          </Button>
+        )}
+      </div>
+
+      {/* Document Usage Progress (if limited) */}
+      {planFeatures.documentsLimit !== -1 && (
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-xs font-medium text-slate-600">Documents</span>
+            <span className="text-xs text-slate-500">
+              {uploadProgress.current}/{uploadProgress.limit}
+            </span>
+          </div>
+          
+          <div className="w-full bg-slate-200 rounded-full h-1.5">
             <div 
-              className={`h-3 rounded-full transition-all duration-500 ${
-                isAtLimit ? 'bg-gradient-to-r from-red-500 to-pink-500' : 
-                isNearLimit ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 
-                'bg-gradient-to-r from-green-500 to-emerald-500'
+              className={`h-1.5 rounded-full transition-all ${
+                uploadProgress.percentage < 70 ? 'bg-green-500' :
+                uploadProgress.percentage < 90 ? 'bg-yellow-500' :
+                'bg-red-500'
               }`}
-              style={{ width: `${Math.min(percentage, 100)}%` }}
+              style={{ width: `${Math.min(uploadProgress.percentage, 100)}%` }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ✅ HORIZONTAL FEATURE LAYOUT */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-medium text-slate-700">Features</h4>
+        
+        {/* Feature Grid - 2 rows of 3 */}
+        <div className="grid grid-cols-3 gap-2">
+          {features.slice(0, 6).map((feature, index) => (
+            <div key={index} className="flex items-center space-x-1.5">
+              <div className={`flex-shrink-0 w-3 h-3 ${
+                feature.available ? 'text-green-500' : 'text-slate-300'
+              }`}>
+                {feature.available ? (
+                  <CheckCircle className="w-3 h-3" />
+                ) : (
+                  <XCircle className="w-3 h-3" />
+                )}
+              </div>
+              
+              <span className={`text-xs truncate ${
+                feature.available ? 'text-slate-600' : 'text-slate-400'
+              }`}>
+                {feature.name}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* ✅ COMPACT UPGRADE PROMPT */}
+        {features.some(f => !f.available) && currentPlan !== 'enterprise' && (
+          <div className="mt-3 p-2.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-1.5 mb-1">
+                  <Crown className="w-3 h-3 text-purple-600 flex-shrink-0" />
+                  <span className="text-xs font-medium text-slate-800">
+                    Unlock {features.filter(f => !f.available).length} More Features
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Enhanced learning tools and analytics
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleViewPlans} // ✅ UPDATED: Goes to plan cards section
+                className="ml-2 text-xs px-2 py-1 h-6"
+              >
+                <span className="text-xs">View Plans</span>
+              </Button>
+            </div>
           </div>
         )}
       </div>
-      
-      {/* Status Messages */}
-      {isAtLimit && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-          <div className="flex items-start space-x-2">
-            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-800">Upload limit reached</p>
-              <p className="text-xs text-red-600 mt-1">
-                Upgrade to upload more documents and unlock premium features
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {isNearLimit && !isAtLimit && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-          <div className="flex items-start space-x-2">
-            <TrendingUp className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-yellow-800">Approaching limit</p>
-              <p className="text-xs text-yellow-600 mt-1">
-                Consider upgrading to avoid interruptions
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Upgrade Button */}
-      {(isAtLimit || isNearLimit) && showUpgradeButton && currentPlan !== 'enterprise' && (
-        <div className="space-y-2">
-          <Button
-            variant="premium"
-            onClick={handleUpgrade}
-            className="w-full flex items-center justify-center space-x-2"
+
+      {/* Compact Footer */}
+      {currentPlan !== 'enterprise' && (
+        <div className="mt-3 pt-2 border-t border-slate-100">
+          <button 
+            onClick={handleCompareAllPlans} // ✅ UPDATED: Goes to feature comparison section
+            className="w-full text-center text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
-            <Crown className="w-4 h-4" />
-            <span>Upgrade to {nextPlanInfo.name}</span>
-            <span className="text-xs opacity-75">
-              ({nextPlanInfo.documentsLimit === -1 ? 'Unlimited' : nextPlanInfo.documentsLimit} docs)
-            </span>
-          </Button>
-          
-          <div className="text-center">
-            <a 
-              href="/pricing" 
-              className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              Compare all plans
-            </a>
-          </div>
+            Compare All Plans →
+          </button>
         </div>
       )}
-      
-      {/* Plan Features Summary */}
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <h4 className="text-sm font-medium text-slate-700 mb-2">Current Plan Features:</h4>
-        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-          <div>✓ AI Quiz Generation</div>
-          <div>✓ Basic Analytics</div>
-          {planFeatures.strengthsWeaknesses && <div>✓ Strengths & Weaknesses</div>}
-          {planFeatures.prioritySupport && <div>✓ Priority Support</div>}
-          {planFeatures.teamFeatures && <div>✓ Team Features</div>}
-          {planFeatures.apiAccess && <div>✓ API Access</div>}
-        </div>
-      </div>
     </div>
   )
 }

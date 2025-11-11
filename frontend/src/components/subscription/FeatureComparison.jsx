@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/subscription/FeatureComparison.jsx
- * Feature Comparison Table Component
+ * Feature Comparison Table Component - UPDATED with complete features and Areas of Improvement
  */
 
 import React from 'react'
@@ -9,45 +9,54 @@ import { PLAN_FEATURES, SUBSCRIPTION_PLANS } from './SubscriptionConfig'
 
 const FeatureComparison = ({ className = '' }) => {
   
-  // Define features to compare
+  // ✅ UPDATED: Complete features to compare based on actual plan config
   const comparisonFeatures = [
     {
       category: 'Core Features',
       features: [
         { key: 'documentsLimit', label: 'Document Uploads', type: 'limit' },
-        { key: 'quizGeneration', label: 'AI Quiz Generation', type: 'boolean' },
-        { key: 'basicAnalytics', label: 'Basic Analytics', type: 'boolean' },
-        { key: 'strengthsWeaknesses', label: 'Strengths & Weaknesses Analysis', type: 'boolean' }
+        { key: 'quizGeneration', label: 'AI Quiz Generation', type: 'boolean', defaultValue: true },
+        { key: 'showExplanations', label: 'Quiz Explanations', type: 'boolean' },
+        { key: 'quizHistoryLimit', label: 'Quiz History', type: 'limit' }
+      ]
+    },
+    {
+      category: 'Analytics & Insights',
+      features: [
+        { key: 'advancedAnalytics', label: 'Advanced Analytics', type: 'boolean' },
+        { key: 'strengthsWeaknesses', label: 'Strengths & Weaknesses', type: 'boolean' },
+        { key: 'areasOfImprovement', label: 'Areas of Improvement', type: 'boolean' }, // ✅ NEW
+        { key: 'personalizedFeedback', label: 'Personalized Feedback', type: 'boolean' }
       ]
     },
     {
       category: 'Advanced Features',
       features: [
-        { key: 'customQuizTypes', label: 'Custom Quiz Types', type: 'boolean' },
         { key: 'prioritySupport', label: 'Priority Support', type: 'boolean' },
-        { key: 'apiAccess', label: 'API Access', type: 'boolean' },
-        { key: 'teamFeatures', label: 'Team Collaboration', type: 'boolean' }
-      ]
-    },
-    {
-      category: 'Enterprise Features',
-      features: [
-        { key: 'customBranding', label: 'Custom Branding', type: 'boolean' },
-        { key: 'ssoIntegration', label: 'SSO Integration', type: 'boolean' },
-        { key: 'dedicatedSupport', label: 'Dedicated Support', type: 'boolean' }
+        { key: 'teamFeatures', label: 'Team Collaboration', type: 'boolean' },
+        { key: 'customIntegrations', label: 'Custom Integrations', type: 'boolean' },
+        { key: 'teamCollaboration', label: 'Team Features', type: 'boolean' }
       ]
     }
   ]
   
   const renderFeatureValue = (planKey, feature) => {
     const plan = PLAN_FEATURES[planKey]
-    const value = plan[feature.key]
+    let value = plan[feature.key]
+    
+    // Handle default values for features that all plans have
+    if (value === undefined && feature.defaultValue !== undefined) {
+      value = feature.defaultValue
+    }
     
     if (feature.type === 'limit') {
       if (feature.key === 'documentsLimit') {
         return value === -1 ? 'Unlimited' : `${value} docs`
       }
-      return value
+      if (feature.key === 'quizHistoryLimit') {
+        return value === -1 ? 'Unlimited' : `${value} quizzes`
+      }
+      return value === -1 ? 'Unlimited' : value
     }
     
     if (feature.type === 'boolean') {
@@ -67,13 +76,15 @@ const FeatureComparison = ({ className = '' }) => {
         return <Crown className="w-4 h-4 text-purple-600" />
       case 'pro':
         return <Zap className="w-4 h-4 text-emerald-600" />
+      case 'enterprise':
+        return <Crown className="w-4 h-4 text-indigo-600" />
       default:
         return null
     }
   }
   
   return (
-    <div className={`bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden ${className}`}>
+    <div id="feature-comparison" className={`bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden ${className}`}>
       {/* Header */}
       <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
         <h2 className="text-2xl font-bold text-slate-900 text-center">Feature Comparison</h2>
@@ -97,7 +108,7 @@ const FeatureComparison = ({ className = '' }) => {
                         <span className="font-semibold text-slate-900 capitalize">{plan.name}</span>
                       </div>
                       <span className="text-sm font-bold text-blue-600">
-                        ${plan.price}/mo
+                        {plan.price === 0 ? 'Free' : `$${plan.price}/mo`}
                       </span>
                     </div>
                   </th>
