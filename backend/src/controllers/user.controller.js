@@ -330,3 +330,252 @@ export const manageFocusTimer = async (req, res, next) => {
     next(error);
   }
 };
+
+// ==========================================
+// NEW POINTS MANAGEMENT CONTROLLERS
+// ==========================================
+
+/**
+ * Add points to current user
+ * @route POST /api/users/me/points/add
+ * @access Private
+ */
+export const addUserPoints = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { amount, reason = 'Points added' } = req.body;
+    
+    if (!amount || amount <= 0) {
+      throw HttpError.badRequest('Valid amount is required', {
+        code: 'INVALID_AMOUNT'
+      });
+    }
+
+    const result = await userService.addUserPoints(userId, amount, reason);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Points added successfully',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Add user points controller error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Deduct points from current user
+ * @route POST /api/users/me/points/deduct
+ * @access Private
+ */
+export const deductUserPoints = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { amount, reason = 'Points deducted' } = req.body;
+    
+    if (!amount || amount <= 0) {
+      throw HttpError.badRequest('Valid amount is required', {
+        code: 'INVALID_AMOUNT'
+      });
+    }
+
+    const result = await userService.deductUserPoints(userId, amount, reason);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Points deducted successfully',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Deduct user points controller error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Transfer points to another user
+ * @route POST /api/users/me/points/transfer
+ * @access Private
+ */
+export const transferUserPoints = async (req, res, next) => {
+  try {
+    const fromUserId = req.user.userId;
+    const { toUserId, toEmail, amount, reason = 'Points transfer' } = req.body;
+    
+    if (!amount || amount <= 0) {
+      throw HttpError.badRequest('Valid amount is required');
+    }
+
+    let targetUserId = toUserId;
+    
+    // If email provided instead of userId, find the user
+    if (!targetUserId && toEmail) {
+      const targetUser = await Student.findOne({ email: toEmail });
+      if (!targetUser) {
+        throw HttpError.notFound('Target user not found');
+      }
+      targetUserId = targetUser._id;
+    }
+
+    if (!targetUserId) {
+      throw HttpError.badRequest('Target user ID or email is required');
+    }
+
+    const result = await userService.transferUserPoints(fromUserId, targetUserId, amount, reason);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Points transferred successfully',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Transfer points controller error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Batch points operations
+ * @route POST /api/users/me/points/batch
+ * @access Private
+ */
+export const batchUserPointsOperations = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { operations } = req.body;
+    
+    if (!Array.isArray(operations) || operations.length === 0) {
+      throw HttpError.badRequest('Operations array is required');
+    }
+
+    const result = await userService.batchUserPointsOperations(userId, operations);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Batch operations completed successfully',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Batch points operations controller error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get detailed points summary
+ * @route GET /api/users/me/points/summary
+ * @access Private
+ */
+export const getDetailedPointsSummary = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    
+    const result = await userService.getDetailedPointsSummary(userId);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Points summary retrieved successfully',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Get detailed points summary controller error:', error);
+    next(error);
+  }
+};
+
+// ==============================================
+// ADMIN CONTROLLERS (if you have admin routes)
+// ==============================================
+
+/**
+ * Admin: Add points to any user
+ * @route POST /api/admin/users/:userId/points/add
+ * @access Admin
+ */
+export const adminAddUserPoints = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { amount, reason = 'Admin points addition' } = req.body;
+    
+    if (!amount || amount <= 0) {
+      throw HttpError.badRequest('Valid amount is required');
+    }
+
+    const result = await userService.addUserPoints(userId, amount, reason);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Points added successfully by admin',
+      data: {
+        ...result.data,
+        adminId: req.user.userId,
+        adminAction: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Admin add points controller error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Admin: Deduct points from any user
+ * @route POST /api/admin/users/:userId/points/deduct
+ * @access Admin
+ */
+export const adminDeductUserPoints = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { amount, reason = 'Admin points deduction' } = req.body;
+    
+    if (!amount || amount <= 0) {
+      throw HttpError.badRequest('Valid amount is required');
+    }
+
+    const result = await userService.deductUserPoints(userId, amount, reason);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'Points deducted successfully by admin',
+      data: {
+        ...result.data,
+        adminId: req.user.userId,
+        adminAction: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Admin deduct points controller error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Admin: Get points summary for any user
+ * @route GET /api/admin/users/:userId/points/summary
+ * @access Admin
+ */
+export const adminGetUserPointsSummary = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await userService.getDetailedPointsSummary(userId);
+    
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: 'User points summary retrieved by admin',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Admin get points summary controller error:', error);
+    next(error);
+  }
+};

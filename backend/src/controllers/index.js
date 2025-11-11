@@ -56,7 +56,15 @@ export {
   getUserQuizStats,
   updateUserAvatar,
   updateAcademicInfo,
-  manageFocusTimer
+  manageFocusTimer,
+  addUserPoints,
+  deductUserPoints,
+  transferUserPoints,
+  batchUserPointsOperations,
+  getDetailedPointsSummary,
+  adminAddUserPoints,
+  adminDeductUserPoints,
+  adminGetUserPointsSummary
 } from './user.controller.js';
 
 // Course Controller

@@ -364,6 +364,80 @@ studentSchema.methods.addPoints = function(points) {
 };
 
 /**
+ * Deduct points from user's total points
+ * @param {number} points - Points to deduct
+ * @param {string} reason - Reason for deduction
+ * @returns {Student} Updated student instance
+ */
+studentSchema.methods.deductPoints = function(points, reason = 'Points deducted') {
+  if (points <= 0) {
+    throw new Error('Points to deduct must be greater than 0');
+  }
+  
+  if (this.progress.totalPoints < points) {
+    throw new Error('Insufficient points for deduction');
+  }
+  
+  // Deduct from total points
+  this.progress.totalPoints -= points;
+  
+  // Update last activity
+  this.analytics.lastActiveAt = new Date();
+  
+  return this;
+};
+
+/**
+ * Check if user can afford a deduction
+ * @param {number} points - Points to check
+ * @returns {boolean} Whether user has enough points
+ */
+studentSchema.methods.canAffordDeduction = function(points) {
+  return this.progress.totalPoints >= points;
+};
+
+/**
+ * Get points transaction summary
+ * @returns {Object} Points summary
+ */
+studentSchema.methods.getPointsSummary = function() {
+  return {
+    totalEarned: this.progress.totalPoints,
+    totalUsed: this.progress.pointsUsed,
+    available: this.progress.totalPoints - this.progress.pointsUsed,
+    currentBalance: this.progress.totalPoints
+  };
+};
+
+/**
+ * Batch points operation (add or deduct multiple)
+ * @param {Array} operations - Array of {type: 'add'|'deduct', amount: number, reason: string}
+ * @returns {Student} Updated student instance
+ */
+studentSchema.methods.batchPointsOperation = function(operations) {
+  let totalChange = 0;
+  
+  for (const op of operations) {
+    if (op.type === 'add') {
+      totalChange += op.amount;
+    } else if (op.type === 'deduct') {
+      totalChange -= op.amount;
+    }
+  }
+  
+  // Check if final balance would be negative
+  if (this.progress.totalPoints + totalChange < 0) {
+    throw new Error('Batch operation would result in negative points balance');
+  }
+  
+  // Apply the change
+  this.progress.totalPoints += totalChange;
+  this.analytics.lastActiveAt = new Date();
+  
+  return this;
+};
+
+/**
  * Use points for purchases - Transaction Model compatibility
  */
 studentSchema.methods.usePoints = function(points) {
@@ -623,6 +697,38 @@ studentSchema.statics.findInactiveStudents = function(days = 7) {
       { 'progress.lastStudyDate': null }
     ]
   });
+};
+
+/**
+ * STATIC METHOD: Find users with low points (for admin use)
+ * @param {number} threshold - Point threshold (default: 10)
+ * @returns {Promise<Array>} Users with points below threshold
+ */
+studentSchema.statics.findUsersWithLowPoints = function(threshold = 10) {
+  return this.find({
+    'progress.totalPoints': { $lt: threshold },
+    status: 'active'
+  }).select('name email progress.totalPoints');
+};
+
+/**
+ * STATIC METHOD: Get points distribution stats
+ * @returns {Promise<Array>} Aggregated points statistics
+ */
+studentSchema.statics.getPointsDistribution = function() {
+  return this.aggregate([
+    { $match: { status: 'active' } },
+    {
+      $group: {
+        _id: null,
+        totalUsers: { $sum: 1 },
+        averagePoints: { $avg: '$progress.totalPoints' },
+        maxPoints: { $max: '$progress.totalPoints' },
+        minPoints: { $min: '$progress.totalPoints' },
+        totalPointsInSystem: { $sum: '$progress.totalPoints' }
+      }
+    }
+  ]);
 };
 
 // ==========================================

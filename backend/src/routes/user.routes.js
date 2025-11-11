@@ -17,7 +17,13 @@ import {
   getUserQuizStats,
   updateUserAvatar,
   updateAcademicInfo,
-  manageFocusTimer
+  manageFocusTimer,
+  // NEW POINTS MANAGEMENT IMPORTS:
+  addUserPoints,
+  deductUserPoints,
+  transferUserPoints,
+  batchUserPointsOperations,
+  getDetailedPointsSummary
 } from '#controllers/index.js';
 
 const router = express.Router();
@@ -87,7 +93,7 @@ router.get('/me/stats/documents', getUserDocumentsStats);
 router.get('/me/stats/quizzes', getUserQuizStats);
 
 // ==========================================
-// POINTS SYSTEM ROUTES
+// POINTS SYSTEM ROUTES (EXISTING + NEW)
 // ==========================================
 
 /**
@@ -103,6 +109,41 @@ router.get('/me/points', getUserPointsBalance);
  * @access Private
  */
 router.get('/me/points/history', getUserPointsHistory);
+
+/**
+ * @route GET /api/users/me/points/summary
+ * @description Get detailed points summary with statistics
+ * @access Private
+ */
+router.get('/me/points/summary', getDetailedPointsSummary);
+
+/**
+ * @route POST /api/users/me/points/add
+ * @description Add points to current user
+ * @access Private
+ */
+router.post('/me/points/add', addUserPoints);
+
+/**
+ * @route POST /api/users/me/points/deduct
+ * @description Deduct points from current user
+ * @access Private
+ */
+router.post('/me/points/deduct', deductUserPoints);
+
+/**
+ * @route POST /api/users/me/points/transfer
+ * @description Transfer points to another user
+ * @access Private
+ */
+router.post('/me/points/transfer', transferUserPoints);
+
+/**
+ * @route POST /api/users/me/points/batch
+ * @description Perform batch points operations
+ * @access Private
+ */
+router.post('/me/points/batch', batchUserPointsOperations);
 
 // ==========================================
 // FOCUS TIMER ROUTES

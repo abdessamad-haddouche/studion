@@ -500,6 +500,321 @@ export const manageFocusTimer = async (userId, timerData) => {
   }
 };
 
+// ==========================================
+// NEW POINTS MANAGEMENT FUNCTIONS
+// ==========================================
+
+/**
+ * Add points to user
+ * @param {string} userId - User ID
+ * @param {number} amount - Points to add
+ * @param {string} reason - Reason for addition
+ * @returns {Promise<Object>} Updated points data
+ */
+export const addUserPoints = async (userId, amount, reason = 'Points added') => {
+  try {
+    console.log(`💰 Adding ${amount} points to user: ${userId}`);
+
+    if (amount <= 0) {
+      throw HttpError.badRequest('Amount must be greater than 0');
+    }
+
+    const user = await Student.findById(userId);
+    if (!user) {
+      throw HttpError.notFound('User not found');
+    }
+
+    const previousPoints = user.progress.totalPoints;
+
+    // Add points using model method
+    user.addPoints(amount);
+    await user.save();
+
+    console.log(`✅ Points added successfully: ${previousPoints} → ${user.progress.totalPoints}`);
+
+    return {
+      success: true,
+      data: {
+        pointsAdded: amount,
+        previousTotal: previousPoints,
+        newTotal: user.progress.totalPoints,
+        availablePoints: user.progress.totalPoints - user.progress.pointsUsed,
+        reason: reason,
+        timestamp: new Date()
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Add user points error:', error);
+    
+    if (error.name === 'HttpError') {
+      throw error;
+    }
+    
+    throw HttpError.internalServerError(`Failed to add points: ${error.message}`);
+  }
+};
+
+/**
+ * Deduct points from user
+ * @param {string} userId - User ID
+ * @param {number} amount - Points to deduct
+ * @param {string} reason - Reason for deduction
+ * @returns {Promise<Object>} Updated points data
+ */
+export const deductUserPoints = async (userId, amount, reason = 'Points deducted') => {
+  try {
+    console.log(`💸 Deducting ${amount} points from user: ${userId}`);
+
+    if (amount <= 0) {
+      throw HttpError.badRequest('Amount must be greater than 0');
+    }
+
+    const user = await Student.findById(userId);
+    if (!user) {
+      throw HttpError.notFound('User not found');
+    }
+
+    const previousPoints = user.progress.totalPoints;
+
+    // Check if user has enough points
+    if (!user.canAffordDeduction(amount)) {
+      throw HttpError.badRequest('Insufficient points for deduction', {
+        code: 'INSUFFICIENT_POINTS',
+        context: {
+          requested: amount,
+          available: user.progress.totalPoints
+        }
+      });
+    }
+
+    // Deduct points using model method
+    user.deductPoints(amount, reason);
+    await user.save();
+
+    console.log(`✅ Points deducted successfully: ${previousPoints} → ${user.progress.totalPoints}`);
+
+    return {
+      success: true,
+      data: {
+        pointsDeducted: amount,
+        previousTotal: previousPoints,
+        newTotal: user.progress.totalPoints,
+        availablePoints: user.progress.totalPoints - user.progress.pointsUsed,
+        reason: reason,
+        timestamp: new Date()
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Deduct user points error:', error);
+    
+    if (error.name === 'HttpError') {
+      throw error;
+    }
+    
+    throw HttpError.internalServerError(`Failed to deduct points: ${error.message}`);
+  }
+};
+
+/**
+ * Transfer points between users
+ * @param {string} fromUserId - Source user ID
+ * @param {string} toUserId - Target user ID
+ * @param {number} amount - Points to transfer
+ * @param {string} reason - Reason for transfer
+ * @returns {Promise<Object>} Transfer result
+ */
+export const transferUserPoints = async (fromUserId, toUserId, amount, reason = 'Points transfer') => {
+  try {
+    console.log(`🔄 Transferring ${amount} points from ${fromUserId} to ${toUserId}`);
+
+    if (amount <= 0) {
+      throw HttpError.badRequest('Amount must be greater than 0');
+    }
+
+    if (fromUserId === toUserId) {
+      throw HttpError.badRequest('Cannot transfer points to the same user');
+    }
+
+    // Get both users
+    const [fromUser, toUser] = await Promise.all([
+      Student.findById(fromUserId),
+      Student.findById(toUserId)
+    ]);
+
+    if (!fromUser) {
+      throw HttpError.notFound('Source user not found');
+    }
+    
+    if (!toUser) {
+      throw HttpError.notFound('Target user not found');
+    }
+
+    // Check if source user has enough points
+    if (!fromUser.canAffordDeduction(amount)) {
+      throw HttpError.badRequest('Source user has insufficient points');
+    }
+
+    // Perform transfer
+    fromUser.deductPoints(amount, `Transfer to ${toUser.email}: ${reason}`);
+    toUser.addPoints(amount);
+
+    // Save both users
+    await Promise.all([
+      fromUser.save(),
+      toUser.save()
+    ]);
+
+    console.log(`✅ Points transfer completed successfully`);
+
+    return {
+      success: true,
+      data: {
+        amount: amount,
+        fromUser: {
+          id: fromUserId,
+          email: fromUser.email,
+          newBalance: fromUser.progress.totalPoints
+        },
+        toUser: {
+          id: toUserId,
+          email: toUser.email,
+          newBalance: toUser.progress.totalPoints
+        },
+        reason: reason,
+        timestamp: new Date()
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Transfer points error:', error);
+    
+    if (error.name === 'HttpError') {
+      throw error;
+    }
+    
+    throw HttpError.internalServerError(`Failed to transfer points: ${error.message}`);
+  }
+};
+
+/**
+ * Batch points operations for a user
+ * @param {string} userId - User ID
+ * @param {Array} operations - Array of {type: 'add'|'deduct', amount: number, reason: string}
+ * @returns {Promise<Object>} Batch operation result
+ */
+export const batchUserPointsOperations = async (userId, operations) => {
+  try {
+    console.log(`📊 Performing batch points operations for user: ${userId}`);
+
+    if (!Array.isArray(operations) || operations.length === 0) {
+      throw HttpError.badRequest('Operations array is required and must not be empty');
+    }
+
+    const user = await Student.findById(userId);
+    if (!user) {
+      throw HttpError.notFound('User not found');
+    }
+
+    const previousPoints = user.progress.totalPoints;
+
+    // Validate all operations first
+    for (const op of operations) {
+      if (!['add', 'deduct'].includes(op.type)) {
+        throw HttpError.badRequest(`Invalid operation type: ${op.type}`);
+      }
+      if (!op.amount || op.amount <= 0) {
+        throw HttpError.badRequest('Each operation must have a positive amount');
+      }
+    }
+
+    // Use model batch method
+    user.batchPointsOperation(operations);
+    await user.save();
+
+    console.log(`✅ Batch operations completed: ${previousPoints} → ${user.progress.totalPoints}`);
+
+    return {
+      success: true,
+      data: {
+        operationsCount: operations.length,
+        previousTotal: previousPoints,
+        newTotal: user.progress.totalPoints,
+        pointsChange: user.progress.totalPoints - previousPoints,
+        availablePoints: user.progress.totalPoints - user.progress.pointsUsed,
+        operations: operations,
+        timestamp: new Date()
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Batch points operations error:', error);
+    
+    if (error.name === 'HttpError') {
+      throw error;
+    }
+    
+    throw HttpError.internalServerError(`Failed to perform batch operations: ${error.message}`);
+  }
+};
+
+/**
+ * Get detailed points summary for user
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} Detailed points summary
+ */
+export const getDetailedPointsSummary = async (userId) => {
+  try {
+    console.log(`📋 Getting detailed points summary for user: ${userId}`);
+
+    const user = await Student.findById(userId);
+    if (!user) {
+      throw HttpError.notFound('User not found');
+    }
+
+    const summary = user.getPointsSummary();
+
+    // Get additional statistics
+    const pointsStats = await Student.getPointsDistribution();
+    const userRank = await Student.countDocuments({
+      'progress.totalPoints': { $gt: user.progress.totalPoints },
+      status: 'active'
+    }) + 1;
+
+    return {
+      success: true,
+      data: {
+        user: {
+          id: userId,
+          email: user.email,
+          name: `${user.name.first} ${user.name.last}`
+        },
+        points: summary,
+        statistics: {
+          rank: userRank,
+          averageUserPoints: pointsStats[0]?.averagePoints || 0,
+          percentile: Math.round((1 - (userRank - 1) / (pointsStats[0]?.totalUsers || 1)) * 100)
+        },
+        timestamp: new Date()
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Get detailed points summary error:', error);
+    
+    if (error.name === 'HttpError') {
+      throw error;
+    }
+    
+    throw HttpError.internalServerError(`Failed to get points summary: ${error.message}`);
+  }
+};
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
 /**
  * Helper: Check if user has active study streak
  * @param {Date} lastStudyDate - Last study date
@@ -528,6 +843,10 @@ const calculateOverallPerformance = (averageScore) => {
   return 'needs_improvement';
 };
 
+// ==========================================
+// EXPORTS
+// ==========================================
+
 // Default export
 export default {
   getUserProfile,
@@ -538,5 +857,11 @@ export default {
   getUserPointsBalance,
   getDocumentStatistics,
   getQuizStatistics,
-  manageFocusTimer
+  manageFocusTimer,
+  // NEW POINTS MANAGEMENT FUNCTIONS:
+  addUserPoints,
+  deductUserPoints,
+  transferUserPoints,
+  batchUserPointsOperations,
+  getDetailedPointsSummary
 };
