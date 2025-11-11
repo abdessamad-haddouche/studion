@@ -1,6 +1,7 @@
 /**
  * PATH: src/services/points.service.js
  * Points Service - Handle backend communication for points transactions
+ * FIXED: Correct API endpoints and payload format
  */
 
 import api from './api'
@@ -11,11 +12,11 @@ class PointsService {
    */
   async getUserPoints() {
     try {
-      const response = await api.get('/user/points')
+      const response = await api.get('/users/me/points')  // Fixed endpoint
       return {
         success: true,
-        points: response.data.points || 0,
-        data: response.data
+        points: response.data.data?.totalEarned || 0,  // Fixed data path
+        data: response.data.data
       }
     } catch (error) {
       console.error('Error fetching user points:', error)
@@ -29,29 +30,24 @@ class PointsService {
 
   /**
    * Deduct points from user's account (for course enrollment)
+   * FIXED: Uses correct backend API format
    */
   async deductPoints(pointsToDeduct, courseId, transactionDetails = {}) {
     try {
+      // Fixed payload format to match your backend controller
       const payload = {
-        points: pointsToDeduct,
-        courseId: courseId,
-        transactionType: 'course_enrollment',
-        metadata: {
-          originalPrice: transactionDetails.originalPrice,
-          finalPrice: transactionDetails.finalPrice,
-          discountAmount: transactionDetails.pointsDiscount,
-          enrolledAt: new Date().toISOString(),
-          ...transactionDetails
-        }
+        amount: pointsToDeduct,  // Backend expects 'amount', not 'points'
+        reason: `Course enrollment: ${courseId} - ${transactionDetails.originalPrice ? `$${transactionDetails.originalPrice} course` : 'course purchase'}`
       }
 
-      const response = await api.post('/user/points/deduct', payload)
+      const response = await api.post('/users/me/points/deduct', payload)  // Fixed endpoint
       
       return {
         success: true,
-        newBalance: response.data.newBalance,
-        transactionId: response.data.transactionId,
-        data: response.data
+        newBalance: response.data.data.newTotal,  // Fixed data path
+        pointsDeducted: response.data.data.pointsDeducted,
+        transactionId: response.data.data.timestamp,
+        data: response.data.data
       }
     } catch (error) {
       console.error('Error deducting points:', error)
@@ -65,25 +61,23 @@ class PointsService {
 
   /**
    * Add points to user's account (for bonuses, rewards, etc.)
+   * FIXED: Uses correct backend API format
    */
-  async addPoints(pointsToAdd, reason = 'manual_credit', metadata = {}) {
+  async addPoints(pointsToAdd, reason = 'Manual credit', metadata = {}) {
     try {
       const payload = {
-        points: pointsToAdd,
-        reason: reason,
-        metadata: {
-          creditedAt: new Date().toISOString(),
-          ...metadata
-        }
+        amount: pointsToAdd,  // Backend expects 'amount', not 'points'
+        reason: reason
       }
 
-      const response = await api.post('/user/points/add', payload)
+      const response = await api.post('/users/me/points/add', payload)  // Fixed endpoint
       
       return {
         success: true,
-        newBalance: response.data.newBalance,
-        transactionId: response.data.transactionId,
-        data: response.data
+        newBalance: response.data.data.newTotal,
+        pointsAdded: response.data.data.pointsAdded,
+        transactionId: response.data.data.timestamp,
+        data: response.data.data
       }
     } catch (error) {
       console.error('Error adding points:', error)
@@ -99,13 +93,13 @@ class PointsService {
    */
   async getPointsHistory(page = 1, limit = 20) {
     try {
-      const response = await api.get(`/user/points/history?page=${page}&limit=${limit}`)
+      const response = await api.get(`/users/me/points/history?page=${page}&limit=${limit}`)  // Fixed endpoint
       
       return {
         success: true,
-        transactions: response.data.transactions || [],
-        pagination: response.data.pagination || {},
-        data: response.data
+        transactions: response.data.data?.transactions || [],
+        pagination: response.data.data?.pagination || {},
+        data: response.data.data
       }
     } catch (error) {
       console.error('Error fetching points history:', error)
@@ -113,6 +107,29 @@ class PointsService {
         success: false,
         transactions: [],
         error: error.response?.data?.message || 'Failed to fetch points history'
+      }
+    }
+  }
+
+  /**
+   * Get detailed points summary
+   * NEW: Uses your backend's detailed summary endpoint
+   */
+  async getPointsSummary() {
+    try {
+      const response = await api.get('/users/me/points/summary')
+      
+      return {
+        success: true,
+        summary: response.data.data,
+        points: response.data.data.points,
+        statistics: response.data.data.statistics
+      }
+    } catch (error) {
+      console.error('Error fetching points summary:', error)
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch points summary'
       }
     }
   }
@@ -150,42 +167,50 @@ class PointsService {
 
   /**
    * Calculate enrollment cost with points discount
-   * NEW SYSTEM: 1000 points = $10 discount, max 5000 points = $50 discount
+   * Uses the percentage-based system from your enrollment modal
    */
-  calculateEnrollmentCost(coursePrice, pointsToUse) {
-    const POINTS_PER_10_DOLLARS = 1000 // 1000 points = $10 discount
-    const MAX_POINTS_USABLE = 5000     // Maximum 5000 points can be used
+  calculateEnrollmentCost(coursePrice, userPoints, usePointsDiscount = false) {
+    if (!usePointsDiscount || userPoints < 1000) {
+      return {
+        originalPrice: coursePrice,
+        pointsUsed: 0,
+        pointsDiscount: 0,
+        finalPrice: coursePrice,
+        savings: 0,
+        discountPercentage: 0,
+        canUsePoints: false
+      }
+    }
+
+    // Calculate percentage discount based on points (matching enrollment modal logic)
+    let discountPercentage = 10 // Base 10% for 1000+ points
     
-    // Maximum discount cannot exceed course price
-    const maxDiscountDollars = Math.floor(coursePrice)
-    const maxDiscountPoints = Math.min(MAX_POINTS_USABLE, maxDiscountDollars * 100) // Convert back to old system for compatibility
+    if (userPoints >= 1500) {
+      const extraHundreds = Math.floor((userPoints - 1000) / 500)
+      discountPercentage = Math.min(10 + (extraHundreds * 5), 50) // Max 50% discount
+    }
     
-    // Actual points to use (cannot exceed max or available)
-    const actualPointsToUse = Math.min(pointsToUse, MAX_POINTS_USABLE)
-    
-    // Calculate discount: every 1000 points = $10
-    const discountDollars = Math.floor(actualPointsToUse / POINTS_PER_10_DOLLARS) * 10
-    const maxPossibleDiscount = Math.min(discountDollars, maxDiscountDollars)
-    const finalPrice = Math.max(0, coursePrice - maxPossibleDiscount)
+    const discountAmount = (coursePrice * discountPercentage) / 100
+    const finalPrice = Math.max(0, coursePrice - discountAmount)
+    const pointsToDeduct = Math.min(userPoints, 1000 + (discountPercentage - 10) * 100)
     
     return {
       originalPrice: coursePrice,
-      pointsUsed: actualPointsToUse,
-      pointsDiscount: maxPossibleDiscount,
+      pointsUsed: pointsToDeduct,
+      pointsDiscount: discountAmount,
       finalPrice: finalPrice,
-      savings: maxPossibleDiscount,
-      maxPointsUsable: MAX_POINTS_USABLE
+      savings: discountAmount,
+      discountPercentage: discountPercentage,
+      canUsePoints: true
     }
   }
 
   /**
    * Process course enrollment with points
+   * FIXED: Uses correct API calls and error handling
    */
   async processCourseEnrollment(courseId, coursePrice, pointsToUse = 0) {
     try {
-      // Calculate the cost breakdown
-      const costCalculation = this.calculateEnrollmentCost(coursePrice, pointsToUse)
-      
       // Validate points balance if using points
       if (pointsToUse > 0) {
         const validation = await this.validatePointsBalance(pointsToUse)
@@ -202,9 +227,9 @@ class PointsService {
       let pointsDeductionResult = { success: true, newBalance: null }
       if (pointsToUse > 0) {
         pointsDeductionResult = await this.deductPoints(
-          costCalculation.pointsUsed, 
+          pointsToUse, 
           courseId, 
-          costCalculation
+          { originalPrice: coursePrice }
         )
         
         if (!pointsDeductionResult.success) {
@@ -221,7 +246,6 @@ class PointsService {
         success: true,
         enrollment: {
           courseId,
-          costBreakdown: costCalculation,
           pointsTransaction: pointsDeductionResult,
           enrolledAt: new Date().toISOString()
         },
@@ -234,37 +258,6 @@ class PointsService {
         error: 'Failed to process enrollment'
       }
     }
-  }
-
-  /**
-   * Get points earning opportunities
-   */
-  async getPointsEarningOpportunities() {
-    try {
-      const response = await api.get('/user/points/earning-opportunities')
-      
-      return {
-        success: true,
-        opportunities: response.data.opportunities || [],
-        data: response.data
-      }
-    } catch (error) {
-      console.error('Error fetching earning opportunities:', error)
-      return {
-        success: false,
-        opportunities: [],
-        error: error.response?.data?.message || 'Failed to fetch opportunities'
-      }
-    }
-  }
-
-  /**
-   * Estimate points needed for full course discount
-   */
-  getFullDiscountPoints(coursePrice) {
-    const POINTS_PER_DOLLAR = 100
-    const maxDiscountDollars = Math.floor(coursePrice)
-    return maxDiscountDollars * POINTS_PER_DOLLAR
   }
 
   /**
