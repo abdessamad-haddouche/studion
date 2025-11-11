@@ -295,23 +295,6 @@ const Header = () => {
                 </div>
               </a>
               
-              {/* Featured Courses */}
-              <a 
-                href="/courses/featured" 
-                className="block px-4 py-3 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
-                onClick={() => setIsCoursesDropdownOpen(false)}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium">Featured</div>
-                    <div className="text-xs text-slate-500">Premium handpicked courses</div>
-                  </div>
-                </div>
-              </a>
-              
               <div className="border-t border-slate-200 my-2"></div>
               
               {/* Categories */}

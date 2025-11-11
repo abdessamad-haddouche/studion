@@ -451,17 +451,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
                 >
                   View in Dashboard
                 </Button>
-                
-                {processWithAI && (
-                  <Button
-                    onClick={() => window.location.href = `/quiz/generate/${uploadedDocument?.id}`}
-                    variant="secondary"
-                    size="lg"
-                    className="w-full"
-                  >
-                    Generate Quiz Now
-                  </Button>
-                )}
               </div>
             </div>
           )}
