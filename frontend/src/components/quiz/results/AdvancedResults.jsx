@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/quiz/results/AdvancedResults.jsx
- * Advanced results for premium+ plans - includes strengths/weaknesses analysis
+ * ✅ FIXED: Performance tab now shows "Coming Soon" instead of blank page
  */
 
 import React, { useState } from 'react'
@@ -257,56 +257,101 @@ const QuestionsTab = ({ results }) => (
   </div>
 )
 
-// Performance Tab Component
+// ✅ FIXED: Performance Tab Component with Coming Soon message
 const PerformanceTab = ({ results }) => (
   <div className="space-y-6">
     
-    {/* Detailed Feedback */}
-    {results.feedback && (
-      <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-semibold text-blue-900 mb-3">Detailed Analysis</h4>
-        <p className="text-blue-800">{results.feedback}</p>
+    {/* ✅ Coming Soon Banner */}
+    <div className="text-center py-12">
+      <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+        <Brain className="w-10 h-10 text-purple-600" />
       </div>
-    )}
-
-    {/* Personalized Study Plan */}
-    <div className="p-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
-      <h4 className="font-semibold text-purple-900 mb-4">Recommended Study Plan</h4>
       
-      <div className="space-y-3">
-        {results.weaknesses && results.weaknesses.length > 0 ? (
-          results.weaknesses.map((weakness, index) => (
-            <div key={index} className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-purple-700 text-xs font-bold">{index + 1}</span>
-              </div>
-              <div>
-                <h5 className="font-medium text-purple-900 capitalize">
-                  Focus on {weakness.area.replace('_', ' ')}
-                </h5>
-                <p className="text-purple-800 text-sm">
-                  You scored {weakness.score.toFixed(0)}% in this area. 
-                  Review related concepts and practice similar questions.
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-4">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <p className="text-green-800 font-medium">Excellent performance across all areas!</p>
-            <p className="text-green-700 text-sm">Continue practicing to maintain your strong understanding.</p>
+      <h3 className="text-2xl font-bold text-slate-900 mb-4">
+        🚀 Advanced Performance Analytics Coming Soon!
+      </h3>
+      
+      <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
+        We're working on detailed performance analytics including learning patterns, 
+        skill progression tracking, and AI-powered insights to enhance your study experience.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-4 opacity-75">
+          <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-3" />
+          <h4 className="font-semibold text-slate-900 mb-2">Learning Curve Analysis</h4>
+          <p className="text-sm text-slate-600">Track your improvement over time with detailed progress charts</p>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-lg p-4 opacity-75">
+          <Target className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+          <h4 className="font-semibold text-slate-900 mb-2">Skill Mapping</h4>
+          <p className="text-sm text-slate-600">Visualize your knowledge gaps and strengths across topics</p>
+        </div>
+        
+        <div className="bg-white border border-slate-200 rounded-lg p-4 opacity-75">
+          <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+          <h4 className="font-semibold text-slate-900 mb-2">Predictive Insights</h4>
+          <p className="text-sm text-slate-600">AI recommendations for optimal study paths and timing</p>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6 max-w-2xl mx-auto">
+        <h4 className="font-semibold text-purple-900 mb-3">What's Currently Available:</h4>
+        <div className="text-left space-y-2 text-sm text-purple-800">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+            <span>Basic score and accuracy tracking</span>
           </div>
-        )}
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+            <span>Strengths and weaknesses analysis</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+            <span>Personalized study recommendations</span>
+          </div>
+          <div className="flex items-center space-x-2 opacity-60">
+            <Clock className="w-4 h-4 text-slate-400" />
+            <span>Advanced analytics and predictions (Coming Soon)</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    {/* Performance History Placeholder */}
-    <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg">
-      <h4 className="font-semibold text-slate-900 mb-3">Performance Trends</h4>
-      <p className="text-slate-600 text-sm">
-        Complete more quizzes to see your performance trends and learning progress over time.
-      </p>
+    {/* Current Basic Performance Data */}
+    <div className="bg-slate-50 border border-slate-200 rounded-lg p-6">
+      <h4 className="font-semibold text-slate-900 mb-4">Current Quiz Performance</h4>
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="text-center p-4 bg-white rounded-lg">
+          <div className="text-2xl font-bold text-blue-600 mb-1">
+            {results.accuracy?.toFixed(1) || '0'}%
+          </div>
+          <div className="text-sm text-slate-600">Accuracy</div>
+        </div>
+        
+        <div className="text-center p-4 bg-white rounded-lg">
+          <div className="text-2xl font-bold text-green-600 mb-1">
+            {results.pointsEarned || 0}
+          </div>
+          <div className="text-sm text-slate-600">Points</div>
+        </div>
+        
+        <div className="text-center p-4 bg-white rounded-lg">
+          <div className="text-2xl font-bold text-purple-600 mb-1">
+            {results.durationMinutes || 0}m
+          </div>
+          <div className="text-sm text-slate-600">Time</div>
+        </div>
+        
+        <div className="text-center p-4 bg-white rounded-lg">
+          <div className="text-2xl font-bold text-indigo-600 mb-1">
+            {results.performanceLevel || 'Good'}
+          </div>
+          <div className="text-sm text-slate-600">Level</div>
+        </div>
+      </div>
     </div>
   </div>
 )
