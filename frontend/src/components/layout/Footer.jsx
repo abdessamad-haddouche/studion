@@ -36,7 +36,7 @@ const Footer = () => {
               </div>
               <div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                  Studion
+                  Studease
                 </h3>
                 <p className="text-xs text-slate-400">AI Learning Platform</p>
               </div>
@@ -50,15 +50,15 @@ const Footer = () => {
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm text-slate-400">
                 <Mail className="w-4 h-4" />
-                <span>hello@studion.ai</span>
+                <span>contact@studease.ai</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-slate-400">
                 <Phone className="w-4 h-4" />
-                <span>+1 (555) 123-4567</span>
+                <span>+212 6XX XXX XXX</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-slate-400">
                 <MapPin className="w-4 h-4" />
-                <span>San Francisco, CA</span>
+                <span>Rabat, Morocco</span>
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
             <div className="text-sm text-slate-400">
-              © 2025 Studion AI Learning Platform. All rights reserved.
+              © 2025 Studease AI Learning Platform. All rights reserved.
             </div>
             <div className="flex items-center space-x-1 text-sm text-slate-400">
               <span>Made with</span>

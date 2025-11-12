@@ -296,17 +296,7 @@ const Header = () => {
               </a>
               
               <div className="border-t border-slate-200 my-2"></div>
-              
-              {/* Categories */}
-              <a 
-                href="/courses/categories" 
-                className="block px-4 py-3 text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-colors"
-                onClick={() => setIsCoursesDropdownOpen(false)}
-              >
-                <div className="font-medium text-sm">Browse Categories</div>
-                <div className="text-xs text-slate-500">Programming, Design, Business & more</div>
-              </a>
-            </div>
+              </div>
           )}
         </div>
       </nav>
@@ -413,7 +403,7 @@ const Header = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Studion
+                  Studease
                 </h1>
                 <p className="text-xs text-slate-500 -mt-1">AI Learning Platform</p>
               </div>
