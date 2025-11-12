@@ -9,6 +9,7 @@ import { BookOpen, PlayCircle, CheckCircle } from 'lucide-react'
 import Layout from '../../components/layout/Layout'
 import Button from '../../components/ui/Button'
 import { loadPurchasedCourses, selectPurchasedCourses } from '../../store/slices/coursesSlice'
+import enrollmentService from '../../services/enrollment.service'
 
 const MyCourses = () => {
   const dispatch = useDispatch()
@@ -18,15 +19,12 @@ const MyCourses = () => {
   useEffect(() => {
     dispatch(loadPurchasedCourses())
     
-    // ✅ FIXED: Read from the correct localStorage key
     const loadEnrolledCourses = () => {
       try {
-        const enrolledData = localStorage.getItem('enrolled_courses')
-        if (enrolledData) {
-          const courses = JSON.parse(enrolledData)
-          console.log('📚 Loaded enrolled courses:', courses)
-          setEnrolledCourses(courses)
-        }
+        // Use the service method which now handles user-specific keys
+        const courses = enrollmentService.getEnrolledCourses()
+        console.log('📚 Loaded enrolled courses:', courses)
+        setEnrolledCourses(courses)
       } catch (error) {
         console.error('Error loading enrolled courses:', error)
         setEnrolledCourses([])
