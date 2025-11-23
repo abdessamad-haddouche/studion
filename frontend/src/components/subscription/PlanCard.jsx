@@ -1,23 +1,23 @@
 /**
  * PATH: src/components/subscription/PlanCard.jsx
- * Updated Plan Card with Authentication Check
+ * Updated Plan Card with MAD Currency - NO MORE DOLLARS!
  */
 
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom' // ← ADD THIS
+import { useNavigate } from 'react-router-dom'
 import { Check, Star, Zap, Crown, Building, Lock } from 'lucide-react'
 import Button from '../ui/Button'
 import { changePlan, selectCurrentPlan } from '../../store/slices/subscriptionSlice'
-import { selectIsAuthenticated } from '../../store/slices/authSlice' // ← ADD THIS
+import { selectIsAuthenticated } from '../../store/slices/authSlice'
 import { PLAN_FEATURES } from './SubscriptionConfig'
 import toast from 'react-hot-toast'
 
 const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
   const dispatch = useDispatch()
-  const navigate = useNavigate() // ← ADD THIS
+  const navigate = useNavigate()
   const currentPlan = useSelector(selectCurrentPlan)
-  const isAuthenticated = useSelector(selectIsAuthenticated) // ← ADD THIS
+  const isAuthenticated = useSelector(selectIsAuthenticated)
   const plan = PLAN_FEATURES[planKey]
   
   if (!plan) return null
@@ -25,16 +25,17 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
   const isCurrentPlan = currentPlan === planKey
   const isUpgrade = PLAN_FEATURES[currentPlan]?.price < plan.price
   
-  // Icon mapping (same as before)
+  // Icon mapping
   const iconMap = {
     free: <Star className="w-6 h-6" />,
     basic: <Check className="w-6 h-6" />,
     premium: <Zap className="w-6 h-6" />,
-    pro: <Crown className="w-6 h-6" />,
+    plus: <Crown className="w-6 h-6" />,
+    pro: <Building className="w-6 h-6" />,
     enterprise: <Building className="w-6 h-6" />
   }
   
-  // Color mapping (same as before)
+  // Color mapping
   const colorMap = {
     slate: {
       bg: 'from-slate-50 to-slate-100',
@@ -70,15 +71,39 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
   
   const colors = colorMap[plan.color] || colorMap.slate
   
-  // ✅ UPDATED: Handle plan change with authentication check
-  /**
-   * PATH: src/components/subscription/PlanCard.jsx
-   * Update to show current plan and allow manual selection
-   */
+  // ✅ FIXED: Format price in MAD currency
+  const formatPlanPrice = (planData) => {
+    if (planData.price === 0) return 'Free'
+    
+    // Handle numeric prices - display in MAD
+    if (typeof planData.price === 'number') {
+      const billing = planData.billing === 'year' ? '/year' : '/month'
+      return `${planData.price} MAD${billing}`
+    }
+    
+    // Handle string prices
+    if (typeof planData.price === 'string') {
+      // If already contains MAD, keep it
+      if (planData.price.includes('MAD')) {
+        return planData.price
+      }
+      // Convert any dollar signs to MAD
+      if (planData.price.includes('$')) {
+        const amount = planData.price.replace('$', '').replace('/month', '').replace('/mo', '')
+        const billing = planData.billing === 'year' ? '/year' : '/month'
+        return `${amount} MAD${billing}`
+      }
+      return planData.price
+    }
+    
+    return 'Free'
+  }
+  
+  // Handle plan change with authentication check
   const handlePlanChange = () => {
     if (isCurrentPlan) return
     
-    // ✅ CHECK AUTHENTICATION FIRST
+    // Check authentication first
     if (!isAuthenticated) {
       toast.error('Please log in to upgrade your plan')
       navigate('/login', { 
@@ -90,9 +115,9 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
       return
     }
     
-    // ✅ MANUAL PLAN SELECTION: Ask for confirmation before upgrading
+    // Manual plan selection: Ask for confirmation before upgrading
     const confirmMessage = isUpgrade 
-      ? `Upgrade to ${plan.name} plan for $${plan.price}/month?`
+      ? `Upgrade to ${plan.name} plan for ${formatPlanPrice(plan)}?`
       : `Switch to ${plan.name} plan?`
     
     if (window.confirm(confirmMessage)) {
@@ -109,12 +134,13 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
     }
   }
   
-  // Features list (same as before)
+  // Features list
   const features = [
     `${plan.documentsLimit === -1 ? 'Unlimited' : plan.documentsLimit} documents`,
     plan.quizGeneration && 'AI Quiz Generation',
     plan.basicAnalytics && 'Basic Analytics',
     plan.strengthsWeaknesses && 'Strengths & Weaknesses Analysis',
+    plan.areasOfImprovement && 'Areas of Improvement',
     plan.prioritySupport && 'Priority Support',
     plan.customQuizTypes && 'Custom Quiz Types',
     plan.teamFeatures && 'Team Collaboration',
@@ -171,16 +197,26 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
         <p className="text-slate-600 text-sm">{plan.description}</p>
       </div>
       
-      {/* Price */}
+      {/* ✅ FIXED: Price in MAD */}
       <div className="text-center mb-6">
         <div className="flex items-baseline justify-center">
-          <span className="text-5xl font-bold text-slate-900">
-            ${plan.price}
-          </span>
-          <span className="text-slate-500 ml-2">/month</span>
+          {plan.price === 0 ? (
+            <span className="text-5xl font-bold text-slate-900">Free</span>
+          ) : (
+            <>
+              <span className="text-5xl font-bold text-slate-900">
+                {typeof plan.price === 'number' ? plan.price : plan.price.replace(/[^\d]/g, '')}
+              </span>
+              <span className="text-slate-500 ml-2">
+                MAD{plan.billing === 'year' ? '/year' : '/month'}
+              </span>
+            </>
+          )}
         </div>
         {plan.price > 0 && (
-          <p className="text-slate-500 text-sm mt-2">Billed monthly</p>
+          <p className="text-slate-500 text-sm mt-2">
+            Billed {plan.billing === 'year' ? 'annually' : 'monthly'}
+          </p>
         )}
       </div>
       

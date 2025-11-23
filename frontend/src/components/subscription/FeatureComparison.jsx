@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/subscription/FeatureComparison.jsx
- * Feature Comparison Table Component - UPDATED with complete features and Areas of Improvement
+ * Feature Comparison Table Component - FIXED with MAD pricing instead of dollars
  */
 
 import React from 'react'
@@ -9,7 +9,7 @@ import { PLAN_FEATURES, SUBSCRIPTION_PLANS } from './SubscriptionConfig'
 
 const FeatureComparison = ({ className = '' }) => {
   
-  // ✅ UPDATED: Complete features to compare based on actual plan config
+  // Complete features to compare based on actual plan config
   const comparisonFeatures = [
     {
       category: 'Core Features',
@@ -25,7 +25,7 @@ const FeatureComparison = ({ className = '' }) => {
       features: [
         { key: 'advancedAnalytics', label: 'Advanced Analytics', type: 'boolean' },
         { key: 'strengthsWeaknesses', label: 'Strengths & Weaknesses', type: 'boolean' },
-        { key: 'areasOfImprovement', label: 'Areas of Improvement', type: 'boolean' }, // ✅ NEW
+        { key: 'areasOfImprovement', label: 'Areas of Improvement', type: 'boolean' },
         { key: 'personalizedFeedback', label: 'Personalized Feedback', type: 'boolean' }
       ]
     },
@@ -72,7 +72,7 @@ const FeatureComparison = ({ className = '' }) => {
   
   const getPlanIcon = (planKey) => {
     switch (planKey) {
-      case 'premium':
+      case 'plus':
         return <Crown className="w-4 h-4 text-purple-600" />
       case 'pro':
         return <Zap className="w-4 h-4 text-emerald-600" />
@@ -81,6 +81,27 @@ const FeatureComparison = ({ className = '' }) => {
       default:
         return null
     }
+  }
+  
+  // ✅ FIXED: Format price in MAD instead of dollars
+  const formatPrice = (plan) => {
+    if (plan.price === 0) return 'Free'
+    
+    if (typeof plan.price === 'number') {
+      const billing = plan.billing === 'year' ? '/year' : '/month'
+      return `${plan.price} MAD${billing}`
+    }
+    
+    if (typeof plan.price === 'string') {
+      if (plan.price.includes('MAD')) {
+        return plan.price
+      }
+      // Convert any dollar format
+      const amount = plan.price.replace(/[$]/g, '').replace('/mo', '/month')
+      return `${amount} MAD`
+    }
+    
+    return 'Free'
   }
   
   return (
@@ -108,7 +129,7 @@ const FeatureComparison = ({ className = '' }) => {
                         <span className="font-semibold text-slate-900 capitalize">{plan.name}</span>
                       </div>
                       <span className="text-sm font-bold text-blue-600">
-                        {plan.price === 0 ? 'Free' : `$${plan.price}/mo`}
+                        {formatPrice(plan)}
                       </span>
                     </div>
                   </th>

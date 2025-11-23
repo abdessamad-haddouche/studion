@@ -1,11 +1,11 @@
 /**
  * PATH: src/components/subscription/SubscriptionConfig.js
  * Complete Subscription Configuration with Quiz Features
- * UPDATED: Added "Areas of Improvement" feature for premium plans
+ * UPDATED: Only 3 plans (Free, Plus, Pro) and new points discount logic
  */
 
-// ✅ ADD THESE MISSING EXPORTS AT THE TOP
-export const SUBSCRIPTION_PLANS = ['free', 'basic', 'premium', 'pro', 'enterprise']
+// ✅ UPDATED: Only 3 subscription plans
+export const SUBSCRIPTION_PLANS = ['free', 'plus', 'pro']
 
 export const SUBSCRIPTION_COMPONENTS = {
   PRICING_HEADER: 'PRICING_HEADER',
@@ -23,7 +23,7 @@ export const PLAN_FEATURES = {
     description: 'Get started with basic AI learning tools',
     documentsLimit: 5,
     strengthsWeaknesses: false,
-    areasOfImprovement: false, // ✅ NEW FEATURE
+    areasOfImprovement: false,
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: false,
@@ -37,33 +37,14 @@ export const PLAN_FEATURES = {
     color: 'slate'
   },
 
-  basic: {
-    name: 'Basic',
-    price: 9.99,
-    description: 'Enhanced learning with more documents and features',
-    documentsLimit: 8,
-    strengthsWeaknesses: false,
-    areasOfImprovement: false, // ✅ NEW FEATURE
-    prioritySupport: false,
-    teamFeatures: false,
-    advancedAnalytics: false,
-    // ✅ Quiz Features
-    quizTypes: ['true_false', 'multiple_choice'],
-    showExplanations: true,
-    showStrengthsWeaknesses: false,
-    quizHistoryLimit: 20,
-    advancedQuizAnalytics: false,
-    personalizedFeedback: false,
-    color: 'blue'
-  },
-
-  premium: {
-    name: 'Premium',
-    price: 19.99,
-    description: 'Advanced learning with analytics and insights',
-    documentsLimit: 25,
+  plus: {
+    name: 'Plus',
+    price: 150,
+    currency: 'MAD',
+    description: 'Enhanced learning with premium features and analytics',
+    documentsLimit: 10,
     strengthsWeaknesses: true,
-    areasOfImprovement: true, // ✅ NEW FEATURE - Premium gets this
+    areasOfImprovement: true,
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: true,
@@ -74,37 +55,19 @@ export const PLAN_FEATURES = {
     quizHistoryLimit: -1, // Unlimited
     advancedQuizAnalytics: true,
     personalizedFeedback: true,
-    color: 'purple'
+    color: 'purple',
+    popular: true
   },
 
   pro: {
     name: 'Pro',
-    price: 39.99,
-    description: 'Professional tools for power users',
-    documentsLimit: 100,
-    strengthsWeaknesses: true,
-    areasOfImprovement: true, // ✅ NEW FEATURE - Pro gets this
-    prioritySupport: true,
-    teamFeatures: true,
-    advancedAnalytics: true,
-    // ✅ Quiz Features
-    quizTypes: ['true_false', 'multiple_choice'],
-    showExplanations: true,
-    showStrengthsWeaknesses: true,
-    quizHistoryLimit: -1,
-    advancedQuizAnalytics: true,
-    personalizedFeedback: true,
-    teamCollaboration: true,
-    color: 'green'
-  },
-
-  enterprise: {
-    name: 'Enterprise',
-    price: 99.99,
-    description: 'Complete solution for organizations',
+    price: 1000,
+    currency: 'MAD',
+    billing: 'year',
+    description: 'Professional solution with unlimited documents and advanced features',
     documentsLimit: -1, // Unlimited
     strengthsWeaknesses: true,
-    areasOfImprovement: true, // ✅ NEW FEATURE - Enterprise gets this
+    areasOfImprovement: true,
     prioritySupport: true,
     teamFeatures: true,
     advancedAnalytics: true,
@@ -117,7 +80,10 @@ export const PLAN_FEATURES = {
     personalizedFeedback: true,
     teamCollaboration: true,
     customIntegrations: true,
-    color: 'indigo'
+    apiAccess: true,
+    customBranding: true,
+    dedicatedSupport: true,
+    color: 'emerald'
   }
 }
 
@@ -179,7 +145,7 @@ export const canShowStrengthsWeaknesses = (planKey) => {
   return PLAN_FEATURES[planKey]?.showStrengthsWeaknesses || false
 }
 
-// ✅ NEW: Areas of Improvement helper
+// ✅ Areas of Improvement helper
 export const canShowAreasOfImprovement = (planKey) => {
   return PLAN_FEATURES[planKey]?.areasOfImprovement || false
 }
@@ -235,7 +201,109 @@ export const hasReachedUploadLimit = (userPlan, currentUploads) => {
 export const getNextPlanSuggestion = (currentPlan) => {
   const planIndex = SUBSCRIPTION_PLANS.indexOf(currentPlan)
   if (planIndex === -1 || planIndex === SUBSCRIPTION_PLANS.length - 1) {
-    return 'premium' // Default to premium
+    return 'plus' // Default to plus
   }
   return SUBSCRIPTION_PLANS[planIndex + 1]
+}
+
+/**
+ * ✅ UPDATED POINTS DISCOUNT SYSTEM
+ * New logic: 1000pts = 5%, 2000pts = 10%, 3000pts = 15% (max)
+ */
+
+/**
+ * Calculate points discount percentage
+ * @param {number} userPoints - User's available points
+ * @returns {Object} Discount information
+ */
+export const calculatePointsDiscount = (userPoints) => {
+  // ✅ NEW LOGIC: 1000pts = 5%, 2000pts = 10%, 3000pts = 15% (max)
+  const MAX_USABLE_POINTS = 3000
+  const actualPoints = Math.min(userPoints, MAX_USABLE_POINTS)
+  
+  let discountPercentage = 0
+  let pointsToUse = 0
+  
+  if (actualPoints >= 3000) {
+    discountPercentage = 15 // Max 15%
+    pointsToUse = 3000
+  } else if (actualPoints >= 2000) {
+    discountPercentage = 10 // 10% for 2000+ points
+    pointsToUse = 2000
+  } else if (actualPoints >= 1000) {
+    discountPercentage = 5 // 5% for 1000+ points
+    pointsToUse = 1000
+  }
+  
+  return {
+    discountPercentage,
+    pointsToUse,
+    maxUsablePoints: MAX_USABLE_POINTS,
+    canUsePoints: actualPoints >= 1000,
+    remainingPoints: userPoints - pointsToUse
+  }
+}
+
+/**
+ * Calculate final course price with points discount
+ * @param {number} originalPrice - Course original price
+ * @param {number} userPoints - User's available points
+ * @returns {Object} Price calculation details
+ */
+export const calculateCoursePrice = (originalPrice, userPoints) => {
+  const discount = calculatePointsDiscount(userPoints)
+  
+  if (!discount.canUsePoints) {
+    return {
+      originalPrice,
+      discountAmount: 0,
+      finalPrice: originalPrice,
+      pointsUsed: 0,
+      discountPercentage: 0,
+      canUsePoints: false,
+      message: 'Need at least 1000 points for discount'
+    }
+  }
+  
+  const discountAmount = (originalPrice * discount.discountPercentage) / 100
+  const finalPrice = Math.max(0, originalPrice - discountAmount)
+  
+  return {
+    originalPrice,
+    discountAmount,
+    finalPrice,
+    pointsUsed: discount.pointsToUse,
+    discountPercentage: discount.discountPercentage,
+    canUsePoints: true,
+    maxUsablePoints: discount.maxUsablePoints,
+    remainingPoints: discount.remainingPoints,
+    message: `Save ${discount.discountPercentage}% with ${discount.pointsToUse} points!`
+  }
+}
+
+/**
+ * Format price for premium display - Default to MAD for Morocco
+ */
+export const formatPlanPrice = (plan) => {
+  if (plan.price === 0) return 'Free'
+  
+  const currency = plan.currency || 'MAD'
+  const billing = plan.billing === 'year' ? '/year' : '/month'
+  
+  if (currency === 'MAD') {
+    return `${plan.price} MAD${billing}`
+  }
+  
+  return `${plan.price} ${currency}${billing}`
+}
+
+/**
+ * Get points discount tiers for UI display
+ */
+export const getPointsDiscountTiers = () => {
+  return [
+    { points: 1000, discount: 5, label: '5% Off' },
+    { points: 2000, discount: 10, label: '10% Off' },
+    { points: 3000, discount: 15, label: '15% Off (Max)' }
+  ]
 }

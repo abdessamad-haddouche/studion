@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/subscription/PlansPage.jsx
- * ENHANCED Plans Page with Proper Hash Scroll Handling
+ * ENHANCED Plans Page with MAD Currency - FIXED current subscription banner
  */
 
 import React, { useEffect } from 'react'
@@ -27,7 +27,29 @@ const PlansPage = () => {
   // Get enabled components based on configuration
   const enabledComponents = getEnabledSubscriptionComponents(currentPlan)
   
-  // ✅ ENHANCED: Handle URL hash scrolling on page load and hash changes
+  // ✅ FIXED: Format price in MAD currency
+  const formatCurrentPlanPrice = (plan) => {
+    if (!plan || plan.price === 0) return 'Free'
+    
+    if (typeof plan.price === 'number') {
+      const billing = plan.billing === 'year' ? '/year' : '/month'
+      return `${plan.price} MAD${billing}`
+    }
+    
+    if (typeof plan.price === 'string') {
+      if (plan.price.includes('MAD')) {
+        return plan.price
+      }
+      // Convert any dollar format to MAD
+      const amount = plan.price.replace(/[$]/g, '').replace('/month', '').replace('/mo', '')
+      const billing = plan.billing === 'year' ? '/year' : '/month'
+      return `${amount} MAD${billing}`
+    }
+    
+    return 'Free'
+  }
+  
+  // Handle URL hash scrolling on page load and hash changes
   useEffect(() => {
     document.title = 'Subscription Plans - Studion'
     
@@ -50,7 +72,7 @@ const PlansPage = () => {
           } else {
             console.log('❌ PlansPage: Element not found:', hash)
           }
-        }, 200) // Slightly longer delay to ensure everything is rendered
+        }, 200)
       }
     }
     
@@ -80,19 +102,19 @@ const PlansPage = () => {
     ),
     
     [SUBSCRIPTION_COMPONENTS.PLAN_CARDS]: (
-      <div key="plans" id="plan-cards" className="mb-16 scroll-mt-20"> {/* ✅ PROPER SCROLL ANCHOR */}
+      <div key="plans" id="plan-cards" className="mb-16 scroll-mt-20">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-slate-900 mb-4">Choose Your Learning Plan</h2>
           <p className="text-slate-600 max-w-2xl mx-auto">
             Select the perfect plan to accelerate your education with AI-powered learning tools
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {SUBSCRIPTION_PLANS.map(planKey => (
             <PlanCard
               key={planKey}
               planKey={planKey}
-              highlighted={planKey === 'premium'} // Highlight premium
+              highlighted={planKey === 'plus'} // Highlight plus plan
             />
           ))}
         </div>
@@ -100,13 +122,13 @@ const PlansPage = () => {
     ),
     
     [SUBSCRIPTION_COMPONENTS.FEATURE_COMPARISON]: (
-      <div key="comparison" id="feature-comparison" className="mb-16 scroll-mt-20"> {/* ✅ PROPER SCROLL ANCHOR */}
+      <div key="comparison" id="feature-comparison" className="mb-16 scroll-mt-20">
         <FeatureComparison />
       </div>
     ),
     
     [SUBSCRIPTION_COMPONENTS.FAQ_SECTION]: (
-      <div key="faq" id="faq-section" className="mb-16 scroll-mt-20"> {/* ✅ PROPER SCROLL ANCHOR */}
+      <div key="faq" id="faq-section" className="mb-16 scroll-mt-20">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
           <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
             Frequently Asked Questions
@@ -128,7 +150,7 @@ const PlansPage = () => {
                 What are "Areas of Improvement" in Premium+?
               </h3>
               <p className="text-slate-600 text-sm">
-                Premium and higher plans include AI-powered analysis that identifies specific areas 
+                Plus and Pro plans include AI-powered analysis that identifies specific areas 
                 where you need more practice, with personalized study recommendations to help you improve faster.
               </p>
             </div>
@@ -158,7 +180,7 @@ const PlansPage = () => {
                 What's included in Premium analytics?
               </h3>
               <p className="text-slate-600 text-sm">
-                Premium users get detailed strengths and weaknesses analysis, areas of improvement 
+                Plus and Pro users get detailed strengths and weaknesses analysis, areas of improvement 
                 suggestions, learning progress tracking, and personalized study recommendations.
               </p>
             </div>
@@ -203,19 +225,19 @@ const PlansPage = () => {
               name: "Sarah Johnson",
               role: "Medical Student",
               content: "Studion helped me ace my biochemistry exam. The AI-generated quizzes were spot on!",
-              plan: "Premium"
+              plan: "Plus"
             },
             {
               name: "Ahmed Hassan", 
               role: "Engineering Student",
               content: "The areas of improvement feature showed me exactly what to focus on for my finals.",
-              plan: "Premium"
+              plan: "Plus"
             },
             {
               name: "Lisa Chen",
               role: "MBA Student", 
               content: "Love how I can upload my lecture notes and get instant study materials.",
-              plan: "Basic"
+              plan: "Free"
             }
           ].map((testimonial, index) => (
             <div key={index} className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
@@ -241,7 +263,7 @@ const PlansPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           
-          {/* ✅ CURRENT PLAN BANNER with Areas of Improvement */}
+          {/* ✅ FIXED: CURRENT PLAN BANNER with MAD currency - THIS IS WHERE "$0/month" WAS SHOWING */}
           {currentPlan && (
             <div className="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 p-6">
               <div className="flex items-center justify-between">
@@ -256,8 +278,8 @@ const PlansPage = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-blue-600 mb-1">
-                    ${PLAN_FEATURES[currentPlan]?.price || 0}
-                    <span className="text-lg text-slate-500">/month</span>
+                    {/* ✅ FIXED: This was showing "$0/month" - now shows "Free" or "150 MAD/month" */}
+                    {formatCurrentPlanPrice(PLAN_FEATURES[currentPlan])}
                   </div>
                   <div className="text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">
                     {PLAN_FEATURES[currentPlan]?.documentsLimit === -1 

@@ -1,11 +1,13 @@
 /**
  * PATH: src/services/enrollment.service.js
  * FIXED - User-specific enrollment tracking
+ * ✅ UPDATED: New points discount system (1000pts = 5%, 2000pts = 10%, 3000pts = 15% max)
  * 
  * ✅ CHANGES:
  * - Enrollments are now stored per user ID
  * - Uses Redux auth state to get current user
  * - Fallback to 'guest' if no user logged in
+ * - Updated points discount calculation
  */
 
 class EnrollmentService {
@@ -223,54 +225,90 @@ class EnrollmentService {
   }
 
   /**
-   * Calculate points discount for a course
+   * ✅ UPDATED: Calculate points discount using NEW system
+   * 1000 pts = 5%, 2000 pts = 10%, 3000 pts = 15% (max)
    */
-  calculatePointsDiscount(points, maxPoints = null) {
-    // 1000 points = $10 off
-    const POINTS_PER_DOLLAR = 100 // 100 points = $1
+  calculatePointsDiscount(userPoints, originalPrice) {
+    // ✅ NEW LOGIC: Max 3000 points usable
+    const MAX_USABLE_POINTS = 3000
+    const actualPoints = Math.min(userPoints, MAX_USABLE_POINTS)
     
-    if (maxPoints !== null) {
-      points = Math.min(points, maxPoints)
+    let discountPercentage = 0
+    let pointsToUse = 0
+    
+    if (actualPoints >= 3000) {
+      discountPercentage = 15 // Max 15%
+      pointsToUse = 3000
+    } else if (actualPoints >= 2000) {
+      discountPercentage = 10 // 10% for 2000+ points
+      pointsToUse = 2000
+    } else if (actualPoints >= 1000) {
+      discountPercentage = 5 // 5% for 1000+ points
+      pointsToUse = 1000
     }
     
+    const discountAmount = (originalPrice * discountPercentage) / 100
+    
     return {
-      pointsUsed: points,
-      discountAmount: Math.floor(points / POINTS_PER_DOLLAR),
-      remainingPoints: maxPoints ? maxPoints - points : null
+      pointsUsed: pointsToUse,
+      discountPercentage,
+      discountAmount,
+      maxUsablePoints: MAX_USABLE_POINTS,
+      canUsePoints: actualPoints >= 1000,
+      remainingPoints: userPoints - pointsToUse
     }
   }
 
   /**
-   * Calculate final price with points discount
+   * ✅ UPDATED: Calculate final price with NEW points discount system
    */
-  calculateFinalPrice(originalPrice, pointsToUse, userPoints) {
-    const maxDiscount = Math.floor(originalPrice) // Can't discount more than the price
-    const discount = this.calculatePointsDiscount(pointsToUse)
-    
-    // Ensure user has enough points
-    if (pointsToUse > userPoints) {
-      throw new Error('Insufficient points')
+  calculateFinalPrice(originalPrice, userPoints) {
+    if (userPoints < 1000) {
+      return {
+        originalPrice: originalPrice,
+        pointsUsed: 0,
+        pointsDiscount: 0,
+        discountPercentage: 0,
+        finalPrice: originalPrice,
+        savings: 0,
+        canUsePoints: false,
+        message: 'Need at least 1000 points for discount'
+      }
     }
-    
-    // Ensure discount doesn't exceed price
-    const finalDiscountAmount = Math.min(discount.discountAmount, maxDiscount)
-    const actualPointsUsed = finalDiscountAmount * 100 // Convert back to points
+
+    const discount = this.calculatePointsDiscount(userPoints, originalPrice)
+    const finalPrice = Math.max(0, originalPrice - discount.discountAmount)
     
     return {
       originalPrice: originalPrice,
-      pointsUsed: actualPointsUsed,
-      pointsDiscount: finalDiscountAmount,
-      finalPrice: Math.max(0, originalPrice - finalDiscountAmount),
-      savings: finalDiscountAmount
+      pointsUsed: discount.pointsUsed,
+      pointsDiscount: discount.discountAmount,
+      discountPercentage: discount.discountPercentage,
+      finalPrice: finalPrice,
+      savings: discount.discountAmount,
+      canUsePoints: true,
+      maxUsablePoints: discount.maxUsablePoints,
+      remainingPoints: discount.remainingPoints,
+      message: `Save ${discount.discountPercentage}% with ${discount.pointsUsed} points!`
     }
   }
 
   /**
-   * Get maximum points that can be used for a course
+   * ✅ UPDATED: Get maximum points that can be used for a course
    */
   getMaxUsablePoints(coursePrice, userPoints) {
-    const maxPointsForPrice = Math.floor(coursePrice) * 100 // Can use points up to course price
-    return Math.min(maxPointsForPrice, userPoints)
+    return Math.min(3000, userPoints) // Max 3000 points can be used
+  }
+
+  /**
+   * ✅ NEW: Get points discount tiers for display
+   */
+  getPointsDiscountTiers() {
+    return [
+      { points: 1000, discount: 5, label: '5% Off' },
+      { points: 2000, discount: 10, label: '10% Off' },
+      { points: 3000, discount: 15, label: '15% Off (Max)' }
+    ]
   }
 
   /**

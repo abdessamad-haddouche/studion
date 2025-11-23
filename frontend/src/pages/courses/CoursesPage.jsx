@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/courses/CoursesPage.jsx
- * COMPLETE ENROLLMENT SYSTEM - Professional course marketplace with enrollment functionality
+ * ✅ FINAL FIXES: 1) MAD pricing instead of $  2) Enrollment modal working
  */
 
 import React, { useEffect, useState } from 'react'
@@ -73,7 +73,7 @@ const CoursesPage = () => {
   const endIndex = startIndex + coursesPerPage
   const currentCourses = filteredCourses.slice(startIndex, endIndex)
 
-  // Mock data generator for fallback
+  // ✅ FIX 1: Mock data generator with MAD pricing (NOT dollars)
   const generateMockCourses = (count) => {
     const categories = ['Programming', 'Design', 'Business', 'Marketing', 'Photography', 'Music']
     const instructors = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Lisa Chen', 'David Wilson', 'Emma Brown']
@@ -83,6 +83,8 @@ const CoursesPage = () => {
     for (let i = 1; i <= count; i++) {
       const category = categories[i % categories.length]
       const courseType = courseTypes[i % courseTypes.length]
+      // ✅ GENERATE PRICES IN MAD (200-600 MAD range)
+      const priceInMAD = i % 4 === 0 ? 0 : Math.floor(Math.random() * 400) + 200
       
       mockCourses.push({
         id: `mock-course-${i}`,
@@ -95,10 +97,10 @@ const CoursesPage = () => {
         media: {
           thumbnail: `https://picsum.photos/400/300?random=${i}`
         },
-        price: i % 4 === 0 ? 0 : Math.floor(Math.random() * 80) + 29.99,
+        price: priceInMAD,
         pricing: {
           isFree: i % 4 === 0,
-          currentPrice: i % 4 === 0 ? 0 : Math.floor(Math.random() * 80) + 29.99
+          currentPrice: priceInMAD
         },
         rating: {
           average: (Math.random() * 1.5 + 3.5).toFixed(1),
@@ -224,7 +226,7 @@ const CoursesPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Handle course enrollment
+  // ✅ FIX 2: Handle course enrollment with working modal
   const handleCourseAction = async (course, action) => {
     switch (action) {
       case 'enroll_free':
@@ -241,7 +243,8 @@ const CoursesPage = () => {
         break
         
       case 'enroll_paid':
-        // Open enrollment modal for paid courses
+        // ✅ OPEN ENROLLMENT MODAL FOR PAID COURSES
+        console.log('🎓 Opening enrollment modal for:', course.title)
         setSelectedCourse(course)
         setShowEnrollmentModal(true)
         break
@@ -451,7 +454,7 @@ const CoursesPage = () => {
                           <BookOpen className="w-12 h-12 text-white/80" />
                         </div>
                         
-                        {/* Price Badge - Compact */}
+                        {/* ✅ FIX 1: Price Badge shows MAD instead of dollars */}
                         <div className="absolute top-2 right-2">
                           {course.pricing?.isFree || course.price === 0 || !course.price ? (
                             <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">
@@ -459,7 +462,7 @@ const CoursesPage = () => {
                             </span>
                           ) : (
                             <span className="bg-white text-slate-900 px-2 py-1 rounded text-xs font-bold shadow">
-                              ${(course.price || course.pricing?.currentPrice || 0).toFixed(0)}
+                              {(course.price || course.pricing?.currentPrice || 0)} MAD
                             </span>
                           )}
                         </div>
@@ -627,7 +630,7 @@ const CoursesPage = () => {
         </div>
       </div>
 
-      {/* Enrollment Modal */}
+      {/* ✅ FIX 2: Enrollment Modal */}
       <EnrollmentModal
         isOpen={showEnrollmentModal}
         onClose={() => {

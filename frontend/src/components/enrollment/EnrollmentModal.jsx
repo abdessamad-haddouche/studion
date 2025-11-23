@@ -1,7 +1,7 @@
 /**
  * PATH: src/components/enrollment/EnrollmentModal.jsx
  * FINAL FIXED: Professional Enrollment Modal with percentage-based discount system
- * 1000+ points = 10% off, 1500+ points = 15% off, etc. (max 50% off)
+ * 1000+ points = 5% off, 2000+ points = 10% off, 3000+ points = 15% off (max)
  * Points are properly deducted from Redux store
  */
 
@@ -52,18 +52,18 @@ const EnrollmentModal = ({
       }
       
       if (usePointsDiscount && actualUserPoints >= 1000) {
-        // Calculate percentage discount based on points
-        let discountPercentage = 10 // Base 10% for 1000+ points
+        // ✅ FIXED: Calculate percentage discount based on points
+        let discountPercentage = 5 // Base 5% for 1000+ points
         
-        if (actualUserPoints >= 1500) {
-          // Additional discount for more points: 1500+ = 15%, 2000+ = 20%, etc.
-          const extraHundreds = Math.floor((actualUserPoints - 1000) / 500)
-          discountPercentage = Math.min(10 + (extraHundreds * 5), 50) // Max 50% discount
+        if (actualUserPoints >= 3000) {
+          discountPercentage = 15 // Max 15% for 3000+ points
+        } else if (actualUserPoints >= 2000) {
+          discountPercentage = 10 // 10% for 2000+ points
         }
         
         const discountAmount = (coursePrice * discountPercentage) / 100
         const finalPrice = Math.max(0, coursePrice - discountAmount)
-        const pointsToDeduct = Math.min(actualUserPoints, 1000 + (discountPercentage - 10) * 100) // Points used for discount
+        const pointsToDeduct = Math.min(actualUserPoints, 1000 + (discountPercentage - 5) * 200) // Points used for discount
         
         calculation = {
           originalPrice: coursePrice,
@@ -192,7 +192,7 @@ const EnrollmentModal = ({
               <p className="text-sm text-purple-700">
                 <strong>{costBreakdown.pointsUsed.toLocaleString()} points</strong> used for 
                 <strong> {costBreakdown.discountPercentage}% discount</strong> 
-                (${costBreakdown.pointsDiscount.toFixed(2)} saved)
+                ({costBreakdown.pointsDiscount.toFixed(0)} MAD saved)
               </p>
             </div>
           )}
@@ -280,7 +280,7 @@ const EnrollmentModal = ({
                       <span className="text-sm font-semibold text-slate-800">Use points for discount</span>
                     </div>
                     <div className="text-xs text-slate-600">
-                      Get {costBreakdown?.discountPercentage || 10}% off with your {actualUserPoints.toLocaleString()} points
+                      Get {costBreakdown?.discountPercentage || 5}% off with your {actualUserPoints.toLocaleString()} points
                     </div>
                   </div>
                   <button
@@ -307,7 +307,7 @@ const EnrollmentModal = ({
                       </div>
                       <div className="text-xs text-green-700 space-y-1">
                         <div>• {actualUserPoints.toLocaleString()} points = {costBreakdown?.discountPercentage}% discount</div>
-                        <div>• You save ${costBreakdown?.savings?.toFixed(2)} on this course</div>
+                        <div>• You save {costBreakdown?.savings?.toFixed(0)} MAD on this course</div>
                         <div>• {costBreakdown?.pointsUsed} points will be deducted</div>
                       </div>
                     </div>
@@ -345,7 +345,7 @@ const EnrollmentModal = ({
                 <div className="text-xs text-slate-600 space-y-1">
                   <div>You need at least 1,000 points for a discount</div>
                   <div>You currently have {actualUserPoints.toLocaleString()} points</div>
-                  <div>Need {(1000 - actualUserPoints).toLocaleString()} more points for 10% off</div>
+                  <div>Need {(1000 - actualUserPoints).toLocaleString()} more points for 5% off</div>
                 </div>
               </div>
             )}
@@ -362,14 +362,14 @@ const EnrollmentModal = ({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Course Price</span>
-                  <span>${costBreakdown.originalPrice.toFixed(2)}</span>
+                  <span>{costBreakdown.originalPrice.toFixed(0)} MAD</span>
                 </div>
                 
                 {usePointsDiscount && costBreakdown.canUsePoints && (
                   <>
                     <div className="flex justify-between text-purple-600">
                       <span>Points Discount ({costBreakdown.discountPercentage}%)</span>
-                      <span>-${costBreakdown.pointsDiscount.toFixed(2)}</span>
+                      <span>-{costBreakdown.pointsDiscount.toFixed(0)} MAD</span>
                     </div>
                     <hr className="border-slate-300" />
                   </>
@@ -378,14 +378,14 @@ const EnrollmentModal = ({
                 <div className="flex justify-between font-bold text-lg">
                   <span>Final Price</span>
                   <span className={costBreakdown.finalPrice === 0 ? 'text-green-600' : 'text-slate-900'}>
-                    {costBreakdown.finalPrice === 0 ? 'FREE' : `$${costBreakdown.finalPrice.toFixed(2)}`}
+                    {costBreakdown.finalPrice === 0 ? 'FREE' : `${costBreakdown.finalPrice.toFixed(0)} MAD`}
                   </span>
                 </div>
 
                 {usePointsDiscount && costBreakdown.savings > 0 && (
                   <div className="bg-green-100 border border-green-200 rounded p-2 mt-3">
                     <div className="text-green-800 text-sm font-medium text-center">
-                      🎉 You save ${costBreakdown.savings.toFixed(2)} ({costBreakdown.discountPercentage}% off) with {costBreakdown.pointsUsed} points!
+                      🎉 You save {costBreakdown.savings.toFixed(0)} MAD ({costBreakdown.discountPercentage}% off) with {costBreakdown.pointsUsed} points!
                     </div>
                   </div>
                 )}
@@ -445,7 +445,7 @@ const EnrollmentModal = ({
               ) : (
                 <>
                   <CreditCard className="w-4 h-4 mr-2" />
-                  {costBreakdown?.finalPrice === 0 ? 'Enroll for Free' : `Enroll Now - $${costBreakdown?.finalPrice?.toFixed(2) || coursePrice.toFixed(2)}`}
+                  {costBreakdown?.finalPrice === 0 ? 'Enroll for Free' : `Enroll Now - ${costBreakdown?.finalPrice?.toFixed(0) || coursePrice.toFixed(0)} MAD`}
                 </>
               )}
             </Button>

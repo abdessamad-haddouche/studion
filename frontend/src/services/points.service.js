@@ -1,7 +1,7 @@
 /**
  * PATH: src/services/points.service.js
  * Points Service - Handle backend communication for points transactions
- * FIXED: Correct API endpoints and payload format
+ * ✅ UPDATED: New points discount system (1000pts = 5%, 2000pts = 10%, 3000pts = 15% max)
  */
 
 import api from './api'
@@ -166,8 +166,8 @@ class PointsService {
   }
 
   /**
-   * Calculate enrollment cost with points discount
-   * Uses the percentage-based system from your enrollment modal
+   * ✅ UPDATED: Calculate enrollment cost with NEW points discount system
+   * 1000 pts = 5%, 2000 pts = 10%, 3000 pts = 15% (max)
    */
   calculateEnrollmentCost(coursePrice, userPoints, usePointsDiscount = false) {
     if (!usePointsDiscount || userPoints < 1000) {
@@ -178,36 +178,83 @@ class PointsService {
         finalPrice: coursePrice,
         savings: 0,
         discountPercentage: 0,
-        canUsePoints: false
+        canUsePoints: false,
+        message: 'Need at least 1000 points for discount'
       }
     }
 
-    // Calculate percentage discount based on points (matching enrollment modal logic)
-    let discountPercentage = 10 // Base 10% for 1000+ points
+    // ✅ NEW LOGIC: Calculate discount based on available points
+    const MAX_USABLE_POINTS = 3000
+    const actualPoints = Math.min(userPoints, MAX_USABLE_POINTS)
     
-    if (userPoints >= 1500) {
-      const extraHundreds = Math.floor((userPoints - 1000) / 500)
-      discountPercentage = Math.min(10 + (extraHundreds * 5), 50) // Max 50% discount
+    let discountPercentage = 0
+    let pointsToUse = 0
+    
+    if (actualPoints >= 3000) {
+      discountPercentage = 15 // Max 15%
+      pointsToUse = 3000
+    } else if (actualPoints >= 2000) {
+      discountPercentage = 10 // 10% for 2000+ points
+      pointsToUse = 2000
+    } else if (actualPoints >= 1000) {
+      discountPercentage = 5 // 5% for 1000+ points
+      pointsToUse = 1000
     }
     
     const discountAmount = (coursePrice * discountPercentage) / 100
     const finalPrice = Math.max(0, coursePrice - discountAmount)
-    const pointsToDeduct = Math.min(userPoints, 1000 + (discountPercentage - 10) * 100)
     
     return {
       originalPrice: coursePrice,
-      pointsUsed: pointsToDeduct,
+      pointsUsed: pointsToUse,
       pointsDiscount: discountAmount,
       finalPrice: finalPrice,
       savings: discountAmount,
       discountPercentage: discountPercentage,
-      canUsePoints: true
+      canUsePoints: true,
+      maxUsablePoints: MAX_USABLE_POINTS,
+      remainingPoints: userPoints - pointsToUse,
+      message: `Save ${discountPercentage}% with ${pointsToUse} points!`
+    }
+  }
+
+  /**
+   * ✅ NEW: Get points discount tiers for UI display
+   */
+  getPointsDiscountTiers() {
+    return [
+      { points: 1000, discount: 5, label: '5% Off', description: 'Basic discount' },
+      { points: 2000, discount: 10, label: '10% Off', description: 'Better savings' },
+      { points: 3000, discount: 15, label: '15% Off', description: 'Maximum discount' }
+    ]
+  }
+
+  /**
+   * ✅ NEW: Check which discount tier user qualifies for
+   */
+  getQualifiedDiscountTier(userPoints) {
+    const tiers = this.getPointsDiscountTiers()
+    
+    for (let i = tiers.length - 1; i >= 0; i--) {
+      if (userPoints >= tiers[i].points) {
+        return {
+          ...tiers[i],
+          qualified: true,
+          nextTier: i < tiers.length - 1 ? tiers[i + 1] : null
+        }
+      }
+    }
+    
+    return {
+      qualified: false,
+      nextTier: tiers[0],
+      pointsNeeded: tiers[0].points - userPoints
     }
   }
 
   /**
    * Process course enrollment with points
-   * FIXED: Uses correct API calls and error handling
+   * ✅ UPDATED: Uses new discount calculation logic
    */
   async processCourseEnrollment(courseId, coursePrice, pointsToUse = 0) {
     try {
