@@ -1,168 +1,228 @@
 /**
- * PATH: src/services/api.js
- * Enhanced API client with detailed debugging
+ * API CLIENT
+ * @description 
  */
 
 import axios from 'axios'
 
-// Create axios instance
+// ===========================================
+// BULLETPROOF URL DETECTION
+// ===========================================
+
+const detectBackendURL = () => {
+  // Try environment variables first
+  if (import.meta.env?.VITE_API_URL) {
+    console.log('🎯 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  if (process.env?.REACT_APP_API_URL) {
+    console.log('🎯 Using REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Fallback: Try to detect the correct port
+  const currentHost = window.location.hostname;
+  const possiblePorts = [5000, 8000, 3001, 4000];
+  
+  console.log(`🔍 No env vars found. Current host: ${currentHost}`);
+  console.log('🎯 Using fallback URL: http://localhost:5000/api');
+  
+  // Always fallback to port 5000 since that's what your backend uses
+  return 'http://localhost:5000/api';
+};
+
+// Get the final API URL
+const API_BASE_URL = detectBackendURL();
+
+console.log('🚀 FINAL API BASE URL:', API_BASE_URL);
+
+// ===========================================
+// AXIOS INSTANCE WITH BULLETPROOF CONFIG
+// ===========================================
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 10000,
+  baseURL: API_BASE_URL,
+  timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   }
 })
 
-// Request interceptor to add auth token
+// ===========================================
+// REQUEST INTERCEPTOR WITH DETAILED LOGGING
+// ===========================================
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken')
     
-    console.log('🚀 Making request to:', config.url)
-    console.log('🔑 Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND')
+    // Show FULL URL being called
+    const fullURL = `${config.baseURL}${config.url}`;
+    console.log('🚀 Making request to FULL URL:', fullURL);
+    console.log('🔑 Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
     
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-      console.log('✅ Authorization header set')
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ Authorization header set');
     } else {
-      console.log('❌ No token - request will be unauthorized')
+      console.log('❌ No token - request will be unauthorized');
     }
     
-    return config
+    return config;
   },
   (error) => {
-    console.log('❌ Request interceptor error:', error)
-    return Promise.reject(error)
+    console.error('❌ Request interceptor error:', error);
+    return Promise.reject(error);
   }
 )
 
-// Response interceptor to handle auth errors
+// ===========================================
+// RESPONSE INTERCEPTOR WITH ERROR HANDLING
+// ===========================================
+
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ Response received:', response.status, response.config.url)
+    const fullURL = `${response.config.baseURL}${response.config.url}`;
+    console.log('✅ Response received from:', fullURL, 'Status:', response.status);
     
-    // ✅ ADD THIS - Log response data for documents endpoint
-    if (response.config.url.includes('/documents')) {
-      console.log('📄 Documents API Response Data:', response.data)
-      console.log('📄 Documents Array:', response.data.data || response.data.documents || response.data)
+    // Auto-save token on successful login
+    if (response.config.url.includes('/auth/login') && response.data?.data?.tokens?.accessToken) {
+      const token = response.data.data.tokens.accessToken;
+      localStorage.setItem('accessToken', token);
+      console.log('🔑 Token saved to localStorage');
     }
     
-    return response
+    return response;
   },
   (error) => {
-    console.log('🚨 Response error:', error.response?.status, error.config?.url)
+    const fullURL = error.config ? `${error.config.baseURL}${error.config.url}` : 'Unknown URL';
     
-    if (error.response?.status === 401) {
-      console.log('🚨 401 Unauthorized - clearing token and redirecting')
-      localStorage.removeItem('accessToken')
+    console.error('🚨 Response error from:', fullURL);
+    console.error('🚨 Error status:', error.response?.status);
+    console.error('🚨 Error message:', error.message);
+    console.error('🚨 Error details:', error.response?.data || 'No response data');
+    
+    // Network/Connection errors
+    if (!error.response) {
+      console.error('🌐 NETWORK ERROR: Cannot connect to backend server');
+      console.error('🔧 Check if backend is running on:', API_BASE_URL.replace('/api', ''));
       
-      if (!window.location.pathname.includes('/login')) {
-        console.log('🔄 Redirecting to login page')
-        window.location.href = '/login'
+      // Show user-friendly error
+      alert(`❌ Cannot connect to server!\n\nPlease check:\n1. Backend is running (npm run dev)\n2. Backend URL: ${API_BASE_URL.replace('/api', '')}\n3. No firewall blocking the connection`);
+    }
+    
+    // Authentication errors
+    if (error.response?.status === 401) {
+      console.log('🚨 401 Unauthorized - clearing token');
+      localStorage.removeItem('accessToken');
+      
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        console.log('🔄 Redirecting to login page');
+        window.location.href = '/login';
       }
     }
-    return Promise.reject(error)
+    
+    return Promise.reject(error);
   }
 )
 
-// Auth API endpoints
+// ===========================================
+// API ENDPOINTS
+// ===========================================
+
 export const authAPI = {
-  register: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => {
-    console.log('🔐 Attempting login...')
-    return api.post('/auth/login', credentials)
+  register: (userData) => {
+    console.log('📝 Attempting registration for:', userData.email);
+    return api.post('/auth/register', userData);
   },
-  logout: () => api.post('/auth/logout'),
+  
+  login: (credentials) => {
+    console.log('🔐 Attempting login for:', credentials.email);
+    return api.post('/auth/login', credentials);
+  },
+  
+  logout: () => {
+    console.log('👋 Logging out user');
+    localStorage.removeItem('accessToken');
+    return api.post('/auth/logout');
+  },
+  
   refreshToken: () => api.post('/auth/refresh-token'),
   verifyToken: () => api.get('/auth/verify'),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password })
 }
 
-// Documents API
-export const documentsAPI = {
-  getAll: (config = {}) => {
-    console.log('📄 Fetching documents with config:', config.params)
-    return api.get('/documents', config)
-  },
-  upload: (formData) => api.post('/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getById: (id) => api.get(`/documents/${id}`),
-  update: (id, data) => api.put(`/documents/${id}`, data),
-  delete: (id, params = {}) => api.delete(`/documents/${id}`, { params }),
-  getSummary: (id) => api.get(`/documents/${id}/summary`),
-  process: (id) => api.post(`/documents/${id}/process`),
-  generateQuiz: (id, data) => api.post(`/documents/${id}/generate-quiz`, data),
-  customAnalysis: (id, data) => api.post(`/documents/${id}/custom-analysis`, data),
-  getAnalytics: (id) => api.get(`/documents/${id}/analytics`)
-}
-
-
-
-export const quizzesAPI = {
-  getAll: () => api.get('/quizzes'),
-  generate: (documentId, options) => api.post('/quizzes/generate', { documentId, ...options }),
-  submit: (quizId, answers) => api.post(`/quizzes/${quizId}/submit`, { answers }),
-  getResults: (attemptId) => api.get(`/quiz-attempts/${attemptId}`)
+export const userAPI = {
+  getCurrentUser: () => api.get('/users/me'),
+  updateProfile: (data) => api.put('/users/me', data),
+  getStats: () => api.get('/users/me/stats'),
+  getPointsBalance: () => api.get('/users/me/points'),
+  getPointsHistory: () => api.get('/users/me/points/history'),
 }
 
 export const coursesAPI = {
-  // Get all courses with filtering
   getAll: (params) => api.get('/courses', { params }),
-  
-  // Get course by ID
   getById: (id) => api.get(`/courses/${id}`),
-  
-  // Get featured courses
   getFeatured: (limit = 6) => api.get('/courses/featured', { params: { limit } }),
-  
-  // Get courses by category
-  getByCategory: (category, filters) => api.get(`/courses/category/${category}`, { params: filters }),
-  
-  // Calculate price with points discount
-  calculatePrice: (id, data) => api.post(`/courses/${id}/calculate-price`, data),
-  
-  // Purchase course
   purchase: (id, data) => api.post(`/courses/${id}/purchase`, data),
-  
-  // Get user's purchased courses
   getPurchased: () => api.get('/courses/purchased'),
-  
-  // Get recommended courses
-  getRecommended: () => api.get('/courses/recommended'),
-  
-  // Apply course discount
-  applyCourseDiscount: (id, data) => api.post(`/courses/${id}/discount`, data),
-  
-  // Get course catalog by source
-  getCatalog: (source, params) => api.get(`/courses/catalog/${source}`, { params })
 }
 
-export const userAPI = {
-  getProfile: () => api.get('/user/profile'),
-  updateProfile: (data) => api.put('/user/profile', data),
-  getAnalytics: () => api.get('/user/analytics'),
-  getPoints: () => api.get('/user/points'),
-  
-  // ✅ FIXED: Change from '/user/stats' to '/users/me/stats'
-  getStats: () => {
-    console.log('📊 Fetching user stats from /users/me/stats')
-    return api.get('/users/me/stats')
+export const documentsAPI = {
+  getAll: (params = {}) => api.get('/documents', { params }),
+  getById: (id) => api.get(`/documents/${id}`),
+  upload: (formData) => api.post('/documents', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  update: (id, data) => api.put(`/documents/${id}`, data),
+  delete: (id, params = {}) => api.delete(`/documents/${id}`, { params }),
+}
+
+export const quizzesAPI = {
+  getAll: (params = {}) => api.get('/quizzes', { params }),
+  getById: (id) => api.get(`/quizzes/${id}`),
+  generate: (data) => api.post('/quizzes/generate', data),
+  startAttempt: (id) => api.post(`/quizzes/${id}/attempt`),
+  submitAnswer: (id, attemptId, data) => api.put(`/quizzes/${id}/attempt/${attemptId}`, data),
+}
+
+// ===========================================
+// UTILITY FUNCTIONS
+// ===========================================
+
+export const apiUtils = {
+  isAuthenticated: () => !!localStorage.getItem('accessToken'),
+  getToken: () => localStorage.getItem('accessToken'),
+  clearAuth: () => {
+    localStorage.removeItem('accessToken');
+    console.log('🚨 Authentication cleared');
+  },
+  setToken: (token) => {
+    localStorage.setItem('accessToken', token);
+    console.log('🔑 Token set in localStorage');
   },
   
-  // ✅ NEW: Added getCurrentUser method
-  getCurrentUser: () => {
-    console.log('👤 Fetching current user from /users/me')
-    return api.get('/users/me')
-  },
-  
-  // ✅ ADD: Other endpoints matching your backend routes
-  getDocumentStats: () => api.get('/users/me/stats/documents'),
-  getQuizStats: () => api.get('/users/me/stats/quizzes'),
-  getPointsBalance: () => api.get('/users/me/points'),
-  getPointsHistory: () => api.get('/users/me/points/history'),
+  // Test backend connection
+  testConnection: async () => {
+    try {
+      console.log('🧪 Testing backend connection...');
+      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/api/status`);
+      
+      if (response.ok) {
+        console.log('✅ Backend connection successful!');
+        return true;
+      } else {
+        console.error('❌ Backend responded with error:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Backend connection failed:', error.message);
+      return false;
+    }
+  }
 }
 
 export default api
