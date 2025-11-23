@@ -1,7 +1,10 @@
 /**
  * PATH: src/components/subscription/SubscriptionConfig.js
- * Complete Subscription Configuration with Quiz Features
- * UPDATED: Only 3 plans (Free, Plus, Pro) and new points discount logic
+ * ✅ FIXED: Correct Features for All Plans
+ * 
+ * FREE: Multiple Choice ✅, Explanations ✅, Analytics ✅, 5 Documents
+ * PLUS: All Quiz Types ✅, Explanations ✅, Analytics ✅, UNLIMITED Documents ✅
+ * PRO: All Plus Features ✅, Team Features ✅, Priority Support ✅, UNLIMITED Documents ✅
  */
 
 // ✅ UPDATED: Only 3 subscription plans
@@ -20,20 +23,21 @@ export const PLAN_FEATURES = {
   free: {
     name: 'Free',
     price: 0,
-    description: 'Get started with basic AI learning tools',
+    description: 'Complete learning tools with 5 documents',
     documentsLimit: 5,
-    strengthsWeaknesses: false,
-    areasOfImprovement: false,
+    strengthsWeaknesses: true,
+    areasOfImprovement: true,
     prioritySupport: false,
     teamFeatures: false,
-    advancedAnalytics: false,
-    // ✅ Quiz Features
-    quizTypes: ['true_false'],
-    showExplanations: false,
-    showStrengthsWeaknesses: false,
-    quizHistoryLimit: 5,
-    advancedQuizAnalytics: false,
-    personalizedFeedback: false,
+    advancedAnalytics: true,
+    basicAnalytics: true, // ✅ ADDED: Analytics for free plan
+    // ✅ FIXED: Quiz Features - ALL UNLOCKED FOR FREE
+    quizTypes: ['true_false', 'multiple_choice'], // ✅ FIXED: Multiple choice included
+    showExplanations: true, // ✅ FIXED: Explanations included  
+    showStrengthsWeaknesses: true,
+    quizHistoryLimit: -1,
+    advancedQuizAnalytics: true,
+    personalizedFeedback: true,
     color: 'slate'
   },
 
@@ -41,20 +45,22 @@ export const PLAN_FEATURES = {
     name: 'Plus',
     price: 150,
     currency: 'MAD',
-    description: 'Enhanced learning with premium features and analytics',
-    documentsLimit: 10,
+    description: 'Enhanced learning with unlimited documents and premium features',
+    documentsLimit: -1, // ✅ ALREADY FIXED: Unlimited documents
     strengthsWeaknesses: true,
     areasOfImprovement: true,
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: true,
+    basicAnalytics: true,
     // ✅ Quiz Features
-    quizTypes: ['true_false', 'multiple_choice'],
+    quizTypes: ['true_false', 'multiple_choice', 'fill_blank', 'short_answer'], // ✅ Enhanced quiz types
     showExplanations: true,
     showStrengthsWeaknesses: true,
     quizHistoryLimit: -1, // Unlimited
     advancedQuizAnalytics: true,
     personalizedFeedback: true,
+    enhancedAI: true, // ✅ ADDED: Enhanced AI feature
     color: 'purple',
     popular: true
   },
@@ -64,20 +70,22 @@ export const PLAN_FEATURES = {
     price: 1000,
     currency: 'MAD',
     billing: 'year',
-    description: 'Professional solution with unlimited documents and advanced features',
-    documentsLimit: -1, // Unlimited
+    description: 'Professional solution with unlimited documents and team features',
+    documentsLimit: -1, // ✅ ALREADY FIXED: Unlimited
     strengthsWeaknesses: true,
     areasOfImprovement: true,
     prioritySupport: true,
     teamFeatures: true,
     advancedAnalytics: true,
+    basicAnalytics: true,
     // ✅ Quiz Features
-    quizTypes: ['true_false', 'multiple_choice'],
+    quizTypes: ['true_false', 'multiple_choice', 'fill_blank', 'short_answer', 'custom'],
     showExplanations: true,
     showStrengthsWeaknesses: true,
     quizHistoryLimit: -1,
     advancedQuizAnalytics: true,
     personalizedFeedback: true,
+    enhancedAI: true,
     teamCollaboration: true,
     customIntegrations: true,
     apiAccess: true,

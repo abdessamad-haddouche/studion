@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/UploadModal.jsx
- * Updated Upload Modal with Plan Limits Check
+ * FIXED: Remove Generate Quiz button from upload success
  */
 
 import React, { useState, useRef, useEffect } from 'react'
@@ -247,18 +247,16 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h5 className="font-semibold text-blue-900 mb-2">Upgrade to continue uploading:</h5>
                 <div className="space-y-2 text-sm text-blue-800">
-                  <div>• <strong>Basic ($9.99/mo):</strong> 8 documents</div>
-                  <div>• <strong>Premium ($19.99/mo):</strong> 25 documents + Analytics</div>
-                  <div>• <strong>Pro ($39.99/mo):</strong> 100 documents + Team features</div>
-                  <div>• <strong>Enterprise ($99.99/mo):</strong> Unlimited documents</div>
+                  <div>• <strong>Plus (150 MAD/mo):</strong> Unlimited documents</div>
+                  <div>• <strong>Pro (1000 MAD/year):</strong> Unlimited + Team features</div>
                 </div>
               </div>
               
               <div className="space-y-3">
                 <Button
                   onClick={() => {
-                    onClose() // Close the upload modal
-                    window.location.href = '/pricing' // ✅ Navigate to pricing/subscription page
+                    onClose() // Close the upload modal first
+                    window.location.href = '/subscription' // ✅ FIX: Navigate to subscription page
                   }}
                   variant="premium"
                   className="w-full flex items-center justify-center space-x-2"
@@ -395,7 +393,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Keep all your existing upload steps: uploading, processing, complete, error */}
           {uploadStep === 'uploading' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-blue-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -429,17 +426,15 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
+          {/* ✅ FIXED: Upload Success - Only "View in Dashboard" */}
           {uploadStep === 'complete' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-green-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h4 className="font-semibold text-slate-900 mb-2">Document ready!</h4>
+              <h4 className="font-semibold text-slate-900 mb-2">Document Uploaded!</h4>
               <p className="text-slate-600 mb-4">
-                {processWithAI 
-                  ? 'Your document has been analyzed and is ready for quiz generation'
-                  : 'Your document has been uploaded successfully'
-                }
+                Your document has been uploaded successfully and is ready to use.
               </p>
               
               <div className="space-y-2">

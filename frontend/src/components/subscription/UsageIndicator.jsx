@@ -1,6 +1,10 @@
 /**
  * PATH: src/components/subscription/UsageIndicator.jsx
- * COMPACT & PROFESSIONAL - FIXED with MAD pricing instead of dollars
+ * ✅ FIXED: Correct Features Display - Uses PLAN_FEATURES instead of hardcoded values
+ * 
+ * FREE: Multiple Choice ✅, Explanations ✅, Analytics ✅, 5 Documents
+ * PLUS: All Quiz Types ✅, Explanations ✅, Analytics ✅, UNLIMITED Documents ✅  
+ * PRO: All Features ✅, Team Features ✅, UNLIMITED Documents ✅
  */
 
 import React from 'react'
@@ -27,41 +31,92 @@ import {
   selectUploadProgress 
 } from '../../store/slices/subscriptionSlice'
 
+// ✅ FIXED: Import PLAN_FEATURES to get correct features dynamically
+import { PLAN_FEATURES } from './SubscriptionConfig'
+
 const UsageIndicator = ({ className = '' }) => {
   const currentPlan = useSelector(selectCurrentPlan)
   const planFeatures = useSelector(selectPlanFeatures)
   const uploadProgress = useSelector(selectUploadProgress)
 
-  // Get compact feature list for current plan
-  const getPlanFeatures = (plan) => {
-    const baseFeatures = {
-      free: [
-        { name: 'True/False Quizzes', available: true, icon: Brain },
-        { name: 'Basic Upload', available: true, icon: FileText },
-        { name: '5 Documents', available: true, icon: FileText },
-        { name: 'Multiple Choice', available: false, icon: Brain },
-        { name: 'Explanations', available: false, icon: Lightbulb },
-        { name: 'Analytics', available: false, icon: BarChart3 }
-      ],
-      plus: [
-        { name: 'All Quiz Types', available: true, icon: Brain },
-        { name: 'Explanations', available: true, icon: Lightbulb },
-        { name: '10 Documents', available: true, icon: FileText },
-        { name: 'Enhanced AI', available: true, icon: Zap },
-        { name: 'Analytics', available: true, icon: BarChart3 },
-        { name: 'Improvement Areas', available: true, icon: TrendingUp }
-      ],
-      pro: [
-        { name: 'All Plus Features', available: true, icon: Crown },
-        { name: 'Unlimited Docs', available: true, icon: FileText },
-        { name: 'Priority Support', available: true, icon: Shield },
-        { name: 'Team Features', available: true, icon: Users },
-        { name: 'Improvement Areas', available: true, icon: TrendingUp },
-        { name: 'Advanced Analytics', available: true, icon: BarChart3 }
-      ]
+  // ✅ FIXED: Get features dynamically from PLAN_FEATURES instead of hardcoding
+  const getPlanFeatures = (planKey) => {
+    const plan = PLAN_FEATURES[planKey] || PLAN_FEATURES.free
+    
+    // ✅ FIXED: Build features array based on actual plan configuration
+    const features = []
+    
+    // Document limit
+    features.push({
+      name: plan.documentsLimit === -1 ? 'Unlimited Docs' : `${plan.documentsLimit} Documents`,
+      available: true,
+      icon: FileText
+    })
+    
+    // Quiz types
+    if (plan.quizTypes?.includes('multiple_choice')) {
+      features.push({
+        name: 'Multiple Choice',
+        available: true,
+        icon: Brain
+      })
+    } else {
+      features.push({
+        name: 'Multiple Choice',
+        available: false,
+        icon: Brain
+      })
     }
-
-    return baseFeatures[plan] || baseFeatures.free
+    
+    // Explanations
+    features.push({
+      name: 'Explanations',
+      available: !!plan.showExplanations,
+      icon: Lightbulb
+    })
+    
+    // Analytics
+    features.push({
+      name: 'Analytics',
+      available: !!(plan.basicAnalytics || plan.advancedAnalytics),
+      icon: BarChart3
+    })
+    
+    // Enhanced AI (Plus/Pro)
+    if (plan.enhancedAI) {
+      features.push({
+        name: 'Enhanced AI',
+        available: true,
+        icon: Zap
+      })
+    }
+    
+    // Areas of Improvement  
+    features.push({
+      name: 'Improvement Areas',
+      available: !!plan.areasOfImprovement,
+      icon: TrendingUp
+    })
+    
+    // Team Features (Pro only)
+    if (planKey === 'pro') {
+      features.push({
+        name: 'Team Features',
+        available: !!plan.teamFeatures,
+        icon: Users
+      })
+    }
+    
+    // Priority Support (Pro only)
+    if (planKey === 'pro') {
+      features.push({
+        name: 'Priority Support',
+        available: !!plan.prioritySupport,
+        icon: Shield
+      })
+    }
+    
+    return features.slice(0, 6) // Show max 6 features
   }
 
   const features = getPlanFeatures(currentPlan)
@@ -70,7 +125,7 @@ const UsageIndicator = ({ className = '' }) => {
   const getPlanColor = (plan) => {
     const colors = {
       free: 'slate',
-      plus: 'purple',
+      plus: 'purple', 
       pro: 'emerald'
     }
     return colors[plan] || 'slate'
@@ -187,7 +242,7 @@ const UsageIndicator = ({ className = '' }) => {
         </div>
       )}
 
-      {/* Feature Grid - 2 rows of 3 */}
+      {/* ✅ FIXED: Feature Grid - Shows CORRECT features from PLAN_FEATURES */}
       <div className="space-y-3">
         <h4 className="text-xs font-medium text-slate-700">Features</h4>
         
@@ -225,7 +280,7 @@ const UsageIndicator = ({ className = '' }) => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600">
-                  Enhanced learning tools and analytics
+                  {currentPlan === 'free' ? 'Enhanced learning tools with unlimited uploads' : 'Team features and priority support'}
                 </p>
               </div>
               <Button
