@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/courses/MyCourses.jsx
- * FIXED - Reads from correct localStorage key: enrolled_courses
+ * FIXED - Properly loads user stats so header shows correct points balance
  */
 
 import React, { useEffect, useState } from 'react'
@@ -8,7 +8,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { BookOpen, PlayCircle, CheckCircle } from 'lucide-react'
 import Layout from '../../components/layout/Layout'
 import Button from '../../components/ui/Button'
-import { loadPurchasedCourses, selectPurchasedCourses } from '../../store/slices/coursesSlice'
+import { loadPurchasedCourses, selectPurchasedCourses, fetchUserPoints } from '../../store/slices/coursesSlice'
+import { fetchUserStats } from '../../store/slices/userStatsSlice'
 import enrollmentService from '../../services/enrollment.service'
 
 const MyCourses = () => {
@@ -17,21 +18,28 @@ const MyCourses = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([])
 
   useEffect(() => {
-    dispatch(loadPurchasedCourses())
-    
-    const loadEnrolledCourses = () => {
+    // ✅ FIXED: Load all required data including user stats for header
+    const initializePage = async () => {
       try {
-        // Use the service method which now handles user-specific keys
+        // Load purchased courses from Redux
+        await dispatch(loadPurchasedCourses())
+        
+        // ✅ FIXED: Fetch user points for header
+        await dispatch(fetchUserPoints())
+        
+        // ✅ FIXED: Fetch user stats for header display
+        await dispatch(fetchUserStats())
+        
+        // Load enrolled courses from localStorage
         const courses = enrollmentService.getEnrolledCourses()
         console.log('📚 Loaded enrolled courses:', courses)
         setEnrolledCourses(courses)
       } catch (error) {
-        console.error('Error loading enrolled courses:', error)
-        setEnrolledCourses([])
+        console.error('Error initializing My Courses page:', error)
       }
     }
-    
-    loadEnrolledCourses()
+
+    initializePage()
   }, [dispatch])
 
   // Combine all courses (enrolled + purchased from Redux)
