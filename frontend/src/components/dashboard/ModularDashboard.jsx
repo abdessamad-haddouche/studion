@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/ModularDashboard.jsx
- * COMPLETE Enhanced Modular Dashboard with Auto-Refresh - FIXED: Removed debug info
+ * COMPLETE Enhanced Modular Dashboard with Processing Notification System
  */
 
 import React, { useEffect, useState } from 'react'
@@ -20,6 +20,7 @@ import DocumentsGrid from './DocumentsGrid'
 import QuickActions from './QuickActions'
 import UploadModal from './UploadModal'
 import LoadingSpinner from '../ui/LoadingSpinner'
+import ProcessingNotification from './ProcessingNotification' // ✅ NEW IMPORT
 
 // Redux
 import {
@@ -50,6 +51,10 @@ const ModularDashboard = () => {
   // Local state
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
+  
+  // ✅ NEW: Processing notification state
+  const [processingDocuments, setProcessingDocuments] = useState([])
+  const [showProcessingNotification, setShowProcessingNotification] = useState(false)
 
   const getDocumentsToShow = () => {
     const limit = planFeatures.documentsLimit
@@ -60,6 +65,20 @@ const ModularDashboard = () => {
   }
 
   const documentsLimit = getDocumentsToShow()
+
+  // ✅ NEW: Track processing documents
+  useEffect(() => {
+    if (documents) {
+      const processing = documents.filter(doc => 
+        doc.status === 'processing' || doc.status === 'pending'
+      )
+      
+      setProcessingDocuments(processing)
+      setShowProcessingNotification(processing.length > 0)
+      
+      console.log('📊 Processing documents updated:', processing.length)
+    }
+  }, [documents])
 
   // ✅ ADDED: Check for quiz completion and refresh on mount
   useEffect(() => {
@@ -136,11 +155,26 @@ const ModularDashboard = () => {
   }
 
   /**
-   * Fix the upload success flow and refresh user stats
+   * ✅ ENHANCED: Upload success with processing notification
    */
   const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     toast.success('Document uploaded successfully! 🎉')
+    
+    // ✅ NEW: Show processing notification immediately
+    if (document) {
+      setProcessingDocuments(prev => [...prev, document])
+      setShowProcessingNotification(true)
+      
+      // Show helpful toast about processing time
+      toast(
+        `🧠 AI is now analyzing your document. This typically takes 2-4 minutes. We'll notify you when it's ready!`,
+        { 
+          duration: 6000,
+          icon: '⏱️'
+        }
+      )
+    }
     
     try {
       await Promise.all([
@@ -155,14 +189,35 @@ const ModularDashboard = () => {
     }
   }
 
+  // ✅ NEW: Manual refresh function for processing notification
+  const handleProcessingRefresh = async () => {
+    try {
+      console.log('🔄 Manual refresh triggered from processing notification')
+      await dispatch(fetchUserDocuments({ limit: documentsLimit })).unwrap()
+      
+      // Check if any documents completed
+      const stillProcessing = documents?.filter(doc => 
+        doc.status === 'processing' || doc.status === 'pending'
+      ) || []
+      
+      if (stillProcessing.length < processingDocuments.length) {
+        toast.success('✅ Some documents have finished processing!')
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing from processing notification:', error)
+      toast.error('Failed to refresh document status')
+    }
+  }
+
   useEffect(() => {
     console.log('📊 Dashboard State Update:', {
       hasDocuments,
       documentsCount: documents?.length,
+      processingCount: processingDocuments.length,
       isLoading,
       forceRender
     })
-  }, [hasDocuments, documents, isLoading, forceRender])
+  }, [hasDocuments, documents, processingDocuments, isLoading, forceRender])
 
   const handleUploadModalClose = () => {
     setShowUploadModal(false)
@@ -242,6 +297,15 @@ const ModularDashboard = () => {
 
   return (
     <div className="space-y-0">
+      {/* ✅ NEW: Processing Notification - Shows at top when documents are processing */}
+      {showProcessingNotification && processingDocuments.length > 0 && (
+        <ProcessingNotification
+          processingDocuments={processingDocuments}
+          onRefresh={handleProcessingRefresh}
+          className="mb-6"
+        />
+      )}
+      
       {/* Render enabled components in order */}
       {enabledComponents.map(componentKey => componentMap[componentKey])}
       
@@ -251,8 +315,6 @@ const ModularDashboard = () => {
         onClose={handleUploadModalClose}
         onSuccess={handleUploadSuccess}
       />
-      
-      {/* ✅ REMOVED: Debug Info section completely removed */}
     </div>
   )
 }
