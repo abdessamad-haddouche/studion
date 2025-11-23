@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsTable.jsx
- * FIXED - Same fix applied to table view
+ * FIXED - Show edit/delete buttons for ALL documents including failed ones
  */
 
 import React, { useState } from 'react'
@@ -545,6 +545,7 @@ const DocumentsTable = ({
                       </span>
                     </td>
                     
+                    {/* ✅ FIXED: Show edit/delete buttons for ALL documents */}
                     <td className="px-4 py-4">
                       {isShowingDeleteConfirm ? (
                         <div className="flex items-center space-x-1">
@@ -607,6 +608,16 @@ const DocumentsTable = ({
                             title="Download"
                           >
                             <Download className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditing(document)}
+                            className="p-1"
+                            title="Edit title"
+                          >
+                            <Edit3 className="w-4 h-4" />
                           </Button>
                           
                           <Button

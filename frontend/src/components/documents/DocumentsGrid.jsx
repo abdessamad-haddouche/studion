@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsGrid.jsx
- * FIXED - Proper handling of search with no results vs no documents at all
+ * FIXED - Show edit/delete buttons for ALL documents including failed ones, remove Views/Quizzes display
  */
 
 import React, { useState } from 'react'
@@ -473,7 +473,7 @@ const DocumentsGrid = ({
                 </div>
               </div>
 
-              {/* Actions Section - ALL YOUR EXISTING FUNCTIONALITY */}
+              {/* Actions Section - ✅ FIXED: Show edit/delete for ALL documents */}
               <div className="px-4 pb-4">
                 {isShowingDeleteConfirm ? (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-3">
@@ -510,30 +510,51 @@ const DocumentsGrid = ({
                       </button>
                     </div>
                   </div>
-                ) : isProcessed ? (
+                ) : (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleRevise(document)}
-                        className="flex items-center justify-center space-x-1 text-xs"
-                      >
-                        <BookOpen className="w-3 h-3" />
-                        <span>Study</span>
-                      </Button>
-                      
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleQuiz(document)}
-                        className="flex items-center justify-center space-x-1 text-xs"
-                      >
-                        <Brain className="w-3 h-3" />
-                        <span>Quiz</span>
-                      </Button>
-                    </div>
+                    {/* ✅ FIXED: Only show Study/Quiz buttons for completed documents */}
+                    {isProcessed && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleRevise(document)}
+                          className="flex items-center justify-center space-x-1 text-xs"
+                        >
+                          <BookOpen className="w-3 h-3" />
+                          <span>Study</span>
+                        </Button>
+                        
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleQuiz(document)}
+                          className="flex items-center justify-center space-x-1 text-xs"
+                        >
+                          <Brain className="w-3 h-3" />
+                          <span>Quiz</span>
+                        </Button>
+                      </div>
+                    )}
 
+                    {/* ✅ FIXED: Show processing state for processing documents */}
+                    {document.status === 'processing' && (
+                      <div className="text-center py-2">
+                        <div className="flex items-center justify-center space-x-2 text-xs text-blue-600 mb-2">
+                          <Clock className="w-3 h-3 animate-spin" />
+                          <span>AI Processing...</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-1">
+                          <div 
+                            className="bg-blue-500 h-1 rounded-full transition-all duration-300 animate-pulse"
+                            style={{ width: '60%' }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">Usually takes 10-30 seconds</p>
+                      </div>
+                    )}
+
+                    {/* ✅ FIXED: Show edit/delete buttons for ALL documents (including failed) */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <div className="flex items-center space-x-2">
                         <button
@@ -554,58 +575,7 @@ const DocumentsGrid = ({
                       </button>
                     </div>
 
-                    {document.analytics && (
-                      <div className="text-xs text-slate-500 text-center pt-2 border-t border-slate-100">
-                        <div className="flex justify-between">
-                          <span>Views: {document.analytics.viewCount || 0}</span>
-                          <span>Quizzes: {document.analytics.quizGeneratedCount || 0}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : document.status === 'processing' ? (
-                  <div className="text-center py-4">
-                    <div className="flex items-center justify-center space-x-2 text-xs text-blue-600 mb-3">
-                      <Clock className="w-4 h-4 animate-spin" />
-                      <span>AI Processing...</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300 animate-pulse"
-                        style={{ width: '60%' }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2">Usually takes 10-30 seconds</p>
-                  </div>
-                ) : document.status === 'pending' ? (
-                  <div className="text-center py-4">
-                    <Clock className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                    <p className="text-sm text-yellow-700 font-medium mb-2">Waiting for processing</p>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {/* trigger processing */}}
-                      className="text-xs"
-                    >
-                      Start Processing
-                    </Button>
-                  </div>
-                ) : document.status === 'failed' ? (
-                  <div className="text-center py-4">
-                    <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-2" />
-                    <p className="text-sm text-red-700 font-medium mb-2">Processing failed</p>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {/* retry processing */}}
-                      className="text-xs"
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-xs text-slate-500">Document uploaded</p>
+                    {/* ✅ REMOVED: Views and Quizzes analytics display */}
                   </div>
                 )}
               </div>
