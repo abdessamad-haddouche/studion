@@ -1,5 +1,6 @@
 /**
  * PATH: src/components/quiz/results/AdvancedResults.jsx
+ * ✅ UPDATED: Reordered tabs - Question Analysis FIRST, then Overview, then Performance
  * ✅ FIXED: Performance tab now shows "Coming Soon" instead of blank page
  */
 
@@ -19,13 +20,14 @@ import Button from '../../ui/Button'
 import QuestionCard from '../taking/QuestionCard'
 
 const AdvancedResults = ({ results }) => {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('questions') // ✅ CHANGED: Default to 'questions' instead of 'overview'
 
   if (!results) return null
 
+  // ✅ UPDATED: Reordered tabs - Question Analysis FIRST
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'questions', label: 'Question Analysis', icon: BookOpen },
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'performance', label: 'Performance', icon: Brain }
   ]
 
@@ -55,12 +57,13 @@ const AdvancedResults = ({ results }) => {
 
         {/* Tab Content */}
         <div className="p-6">
-          {activeTab === 'overview' && (
-            <OverviewTab results={results} />
-          )}
-          
+          {/* ✅ REORDERED: Questions tab first */}
           {activeTab === 'questions' && (
             <QuestionsTab results={results} />
+          )}
+          
+          {activeTab === 'overview' && (
+            <OverviewTab results={results} />
           )}
           
           {activeTab === 'performance' && (
@@ -83,7 +86,59 @@ const AdvancedResults = ({ results }) => {
   )
 }
 
-// Overview Tab Component
+// ✅ MOVED: Questions Tab Component - NOW FIRST
+const QuestionsTab = ({ results }) => (
+  <div className="space-y-6">
+    {results.detailedResults.map((result, index) => (
+      <div key={index} className="border-b border-slate-100 last:border-0 pb-6 last:pb-0">
+        <QuestionCard
+          question={{
+            id: result.questionId,
+            question: result.question,
+            options: result.options || [],
+            explanation: result.explanation,
+            correctAnswer: result.correctAnswer,
+            correctAnswerIndex: result.correctAnswerIndex
+          }}
+          questionNumber={index + 1}
+          questionType="multiple_choice"
+          answer={result.userAnswer}
+          showExplanations={true}
+          showResult={true}
+          isCorrect={result.isCorrect}
+        />
+        
+        {/* Enhanced feedback with personalized insights */}
+        {result.personalizedFeedback && (
+          <div className={`mt-4 p-4 rounded-lg ${
+            result.personalizedFeedback.type === 'strength' 
+              ? 'bg-green-50 border border-green-200' 
+              : 'bg-amber-50 border border-amber-200'
+          }`}>
+            <h5 className={`font-medium mb-2 ${
+              result.personalizedFeedback.type === 'strength' ? 'text-green-900' : 'text-amber-900'
+            }`}>
+              {result.personalizedFeedback.type === 'strength' ? '💪 Strength Identified' : '🎯 Improvement Area'}
+            </h5>
+            <p className={`text-sm ${
+              result.personalizedFeedback.type === 'strength' ? 'text-green-800' : 'text-amber-800'
+            }`}>
+              {result.personalizedFeedback.message}
+            </p>
+            {result.personalizedFeedback.skillCategory && (
+              <div className="mt-2 text-xs text-slate-600">
+                Skill: {result.personalizedFeedback.skillCategory} | 
+                Topic: {result.personalizedFeedback.topicArea}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+)
+
+// Overview Tab Component - NOW SECOND
 const OverviewTab = ({ results }) => (
   <div className="space-y-6">
     
@@ -205,59 +260,7 @@ const OverviewTab = ({ results }) => (
   </div>
 )
 
-// Questions Tab Component
-const QuestionsTab = ({ results }) => (
-  <div className="space-y-6">
-    {results.detailedResults.map((result, index) => (
-      <div key={index} className="border-b border-slate-100 last:border-0 pb-6 last:pb-0">
-        <QuestionCard
-          question={{
-            id: result.questionId,
-            question: result.question,
-            options: result.options || [],
-            explanation: result.explanation,
-            correctAnswer: result.correctAnswer,
-            correctAnswerIndex: result.correctAnswerIndex
-          }}
-          questionNumber={index + 1}
-          questionType="multiple_choice"
-          answer={result.userAnswer}
-          showExplanations={true}
-          showResult={true}
-          isCorrect={result.isCorrect}
-        />
-        
-        {/* Enhanced feedback with personalized insights */}
-        {result.personalizedFeedback && (
-          <div className={`mt-4 p-4 rounded-lg ${
-            result.personalizedFeedback.type === 'strength' 
-              ? 'bg-green-50 border border-green-200' 
-              : 'bg-amber-50 border border-amber-200'
-          }`}>
-            <h5 className={`font-medium mb-2 ${
-              result.personalizedFeedback.type === 'strength' ? 'text-green-900' : 'text-amber-900'
-            }`}>
-              {result.personalizedFeedback.type === 'strength' ? '💪 Strength Identified' : '🎯 Improvement Area'}
-            </h5>
-            <p className={`text-sm ${
-              result.personalizedFeedback.type === 'strength' ? 'text-green-800' : 'text-amber-800'
-            }`}>
-              {result.personalizedFeedback.message}
-            </p>
-            {result.personalizedFeedback.skillCategory && (
-              <div className="mt-2 text-xs text-slate-600">
-                Skill: {result.personalizedFeedback.skillCategory} | 
-                Topic: {result.personalizedFeedback.topicArea}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
-)
-
-// ✅ FIXED: Performance Tab Component with Coming Soon message
+// ✅ FIXED: Performance Tab Component with Coming Soon message - NOW THIRD
 const PerformanceTab = ({ results }) => (
   <div className="space-y-6">
     

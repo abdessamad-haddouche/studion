@@ -2,6 +2,7 @@
  * PATH: src/components/quiz/results/QuizResults.jsx
  * COMPLETE Enhanced Quiz Results with Dashboard Refresh Trigger - FULL CODE
  * 
+ * ✅ UPDATED: Show all features for ALL users (free, basic, premium, pro)
  * ✅ ADDED:
  * - Trigger stats refresh when quiz is completed
  * - Set localStorage flag for dashboard to detect completion
@@ -17,8 +18,6 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Trophy, Clock, Target, ArrowLeft, RotateCcw, Share2 } from 'lucide-react'
 import Button from '../../ui/Button'
 import LoadingSpinner from '../../ui/LoadingSpinner'
-import BasicResults from './BasicResults'
-import EnhancedResults from './EnhancedResults'
 import AdvancedResults from './AdvancedResults'
 import { selectCurrentPlan, selectPlanFeatures } from '../../../store/slices/subscriptionSlice'
 import { updateStatsAfterQuiz, fetchUserStats } from '../../../store/slices/userStatsSlice'
@@ -210,18 +209,8 @@ const QuizResults = () => {
   const renderResults = () => {
     if (!results) return null
     
-    switch (currentPlan) {
-      case 'free':
-        return <BasicResults results={results} />
-      case 'basic':
-        return <EnhancedResults results={results} />
-      case 'premium':
-      case 'pro':
-      case 'enterprise':
-        return <AdvancedResults results={results} />
-      default:
-        return <BasicResults results={results} />
-    }
+    // ✅ UPDATED: Show AdvancedResults for ALL users (free, basic, premium, pro)
+    return <AdvancedResults results={results} />
   }
 
   const getPerformanceColor = (percentage = 0) => {
@@ -445,25 +434,8 @@ const QuizResults = () => {
           </div>
         </div>
 
-        {/* Subscription-Based Results */}
+        {/* Results - Show AdvancedResults for ALL users */}
         {renderResults()}
-
-        {/* Plan Upgrade CTA (if applicable) */}
-        {currentPlan === 'free' && (
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-center text-white mt-8">
-            <h3 className="text-xl font-bold mb-2">Unlock Detailed Analysis</h3>
-            <p className="mb-4 opacity-90">
-              Upgrade to Basic or higher to see answer explanations and detailed feedback
-            </p>
-            <Button
-              variant="secondary"
-              onClick={() => window.location.href = '/pricing'}
-              className="bg-white text-blue-600 hover:bg-blue-50"
-            >
-              Upgrade Now
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   )
