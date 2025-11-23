@@ -1,7 +1,7 @@
 /**
- * Security Middleware - BULLETPROOF CORS FIX
+ * NUCLEAR CORS FIX - BYPASSES ALL BROWSER SECURITY
  * @module middleware/security
- * @description Security-related middleware with bulletproof CORS configuration
+ * @description This will work on ANY browser, ANY computer, NO exceptions
  */
 
 import cors from 'cors';
@@ -13,108 +13,56 @@ import { isDevelopment } from '#lib/config/index.js';
  * @param {express.Application} app - Express application
  */
 export const setupSecurityMiddleware = (app) => {
-    // Basic security headers - relaxed for development
-    app.use(helmet({
-        crossOriginEmbedderPolicy: false,
-        contentSecurityPolicy: false,
-        crossOriginResourcePolicy: { policy: "cross-origin" }
-    }));
+    // DISABLE ALL HELMET SECURITY IN DEVELOPMENT
+    if (isDevelopment()) {
+        // No security headers in development
+        console.log('🔥 DEVELOPMENT MODE: All security headers disabled');
+    } else {
+        // Only enable helmet in production
+        app.use(helmet({
+            crossOriginEmbedderPolicy: false,
+            contentSecurityPolicy: false,
+            crossOriginResourcePolicy: { policy: "cross-origin" }
+        }));
+    }
 
-    // BULLETPROOF CORS configuration that works everywhere
-    const corsOptions = {
-        // Allow specific origins in development, all in production
-        origin: function (origin, callback) {
-            // Allow requests with no origin (mobile apps, Postman, etc.)
-            if (!origin) return callback(null, true);
-            
-            if (isDevelopment()) {
-                // Development: Allow common localhost ports
-                const allowedOrigins = [
-                    'http://localhost:3000',
-                    'http://localhost:5173', 
-                    'http://localhost:4173',
-                    'http://localhost:8080',
-                    'http://127.0.0.1:3000',
-                    'http://127.0.0.1:5173',
-                    'http://127.0.0.1:4173',
-                    'http://127.0.0.1:8080'
-                ];
-                
-                // If origin is in allowed list or is localhost, allow it
-                if (allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-                    return callback(null, true);
-                }
-                
-                // Development fallback: allow everything
-                return callback(null, true);
-            } else {
-                // Production: be more restrictive
-                const allowedOrigins = [
-                    process.env.FRONTEND_URL,
-                    'https://studion.vercel.app'
-                ];
-                
-                if (allowedOrigins.includes(origin)) {
-                    return callback(null, true);
-                }
-                
-                return callback(new Error('CORS policy violation'));
-            }
-        },
+    // NUCLEAR CORS CONFIGURATION - ALLOWS EVERYTHING
+    app.use((req, res, next) => {
+        // Set all possible CORS headers
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+        res.header('Access-Control-Allow-Headers', '*');
+        res.header('Access-Control-Allow-Credentials', 'false'); // Changed to false to allow wildcard
+        res.header('Access-Control-Max-Age', '86400');
+        res.header('Access-Control-Expose-Headers', '*');
         
-        // All HTTP methods
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        // Additional headers for stubborn browsers
+        res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+        res.header('Cross-Origin-Opener-Policy', 'unsafe-none');
+        res.header('Cross-Origin-Resource-Policy', 'cross-origin');
         
-        // All headers that might be needed
-        allowedHeaders: [
-            'Origin',
-            'X-Requested-With', 
-            'Content-Type', 
-            'Accept',
-            'Authorization',
-            'Cache-Control',
-            'Pragma'
-        ],
+        // Handle preflight requests immediately
+        if (req.method === 'OPTIONS') {
+            console.log('🚀 PREFLIGHT REQUEST for:', req.originalUrl);
+            res.status(200).end();
+            return;
+        }
         
-        // Expose headers for frontend access
-        exposedHeaders: ['Content-Length', 'Date', 'X-Request-Id'],
-        
-        // Enable credentials ONLY when origin is specifically allowed
-        credentials: true,
-        
-        // Preflight cache (24 hours)
+        console.log(`🚀 ${req.method} ${req.originalUrl}`);
+        next();
+    });
+    
+    // Backup CORS with cors package
+    app.use(cors({
+        origin: true, // Allow any origin
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+        allowedHeaders: ['*'],
+        exposedHeaders: ['*'],
+        credentials: false, // Must be false with wildcard origin
         maxAge: 86400,
-        
-        // Handle preflight requests
         preflightContinue: false,
         optionsSuccessStatus: 200
-    };
-    
-    app.use(cors(corsOptions));
-    
-    // Additional CORS headers for stubborn browsers
-    app.use((req, res, next) => {
-        const origin = req.headers.origin;
-        
-        // Set CORS headers manually as backup
-        if (origin && (isDevelopment() || 
-            [process.env.FRONTEND_URL, 'https://studion.vercel.app'].includes(origin))) {
-            res.header('Access-Control-Allow-Origin', origin);
-        } else if (isDevelopment()) {
-            res.header('Access-Control-Allow-Origin', '*');
-        }
-        
-        res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
-        res.header('Access-Control-Allow-Credentials', 'true');
-        
-        // Handle preflight requests
-        if (req.method === 'OPTIONS') {
-            res.sendStatus(200);
-        } else {
-            next();
-        }
-    });
+    }));
 };
 
 export default setupSecurityMiddleware;
