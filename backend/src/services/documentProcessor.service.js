@@ -1,7 +1,7 @@
 /**
  * Document Processing Service
  * @module services/documentProcessor
- * @description Document processing with text extraction capabilities
+ * @description Document processing with text extraction capabilities and token management
  */
 
 import fs from 'fs';
@@ -10,14 +10,16 @@ import pdfParse from 'pdf-parse';
 import { HttpError } from '#exceptions/index.js';
 
 /**
- * Document processing configuration
+ * Document processing configuration - UPDATED for token management
  */
 const PROCESSING_CONFIG = {
   // Maximum file size for processing (50MB)
   maxFileSize: 50 * 1024 * 1024,
   
-  // Maximum text length to extract (1MB of text)
-  maxTextLength: 1024 * 1024,
+  // 🔥 REDUCED Maximum text length to stay within AI API limits
+  // Roughly 80,000 tokens worth of text (1 token ≈ 4 characters)
+  // This leaves room for prompts and responses in AI calls
+  maxTextLength: 320 * 1024, // 320KB instead of 1MB
   
   // Supported file types
   supportedTypes: ['.pdf', '.docx', '.txt'],
@@ -80,11 +82,38 @@ const extractTextFromPDF = async (filePath, options = {}) => {
       throw new Error('No text content found in PDF');
     }
     
-    // Truncate text if too long
+    // 🔥 SMART TRUNCATION with better logging
     let extractedText = pdfData.text;
+    let wasTruncated = false;
+    
     if (extractedText.length > PROCESSING_CONFIG.maxTextLength) {
-      console.log(`⚠️ Text truncated from ${extractedText.length} to ${PROCESSING_CONFIG.maxTextLength} characters`);
-      extractedText = extractedText.substring(0, PROCESSING_CONFIG.maxTextLength) + '\n\n[Content truncated for processing...]';
+      console.log(`⚠️ Text length (${extractedText.length} chars) exceeds limit (${PROCESSING_CONFIG.maxTextLength} chars)`);
+      console.log(`⚠️ Estimated tokens: ${Math.ceil(extractedText.length / 4)} (DeepSeek limit: ~131,000 tokens)`);
+      
+      // Try to find a good breaking point
+      let breakPoint = PROCESSING_CONFIG.maxTextLength;
+      
+      // Look for paragraph break first (double newline)
+      const paragraphBreak = extractedText.lastIndexOf('\n\n', PROCESSING_CONFIG.maxTextLength);
+      if (paragraphBreak > PROCESSING_CONFIG.maxTextLength * 0.7) {
+        breakPoint = paragraphBreak;
+        console.log(`✂️ Using paragraph break at position ${breakPoint}`);
+      } else {
+        // Look for sentence break
+        const sentenceBreak = extractedText.lastIndexOf('.', PROCESSING_CONFIG.maxTextLength);
+        if (sentenceBreak > PROCESSING_CONFIG.maxTextLength * 0.8) {
+          breakPoint = sentenceBreak + 1;
+          console.log(`✂️ Using sentence break at position ${breakPoint}`);
+        } else {
+          console.log(`✂️ Using hard truncation at position ${breakPoint}`);
+        }
+      }
+      
+      extractedText = extractedText.substring(0, breakPoint).trim() + '\n\n[Content truncated for processing...]';
+      wasTruncated = true;
+      
+      console.log(`✂️ Text truncated: ${pdfData.text.length} → ${extractedText.length} chars`);
+      console.log(`✂️ Estimated tokens after truncation: ${Math.ceil(extractedText.length / 4)}`);
     }
     
     console.log(`✅ PDF text extracted successfully (${extractedText.length} characters, ${pdfData.numpages} pages)`);
@@ -97,6 +126,10 @@ const extractTextFromPDF = async (filePath, options = {}) => {
         wordCount: extractedText.split(/\s+/).length,
         characterCount: extractedText.length,
         originalSize: fileStats.size,
+        originalTextLength: pdfData.text.length,
+        wasTruncated: wasTruncated,
+        truncationRatio: wasTruncated ? (extractedText.length / pdfData.text.length) : 1,
+        estimatedTokens: Math.ceil(extractedText.length / 4),
         extractionMethod: 'pdf-parse',
         processingTime: processingTime
       },
@@ -148,6 +181,8 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
         wordCount: null,
         characterCount: null,
         originalSize: fileStats.size,
+        wasTruncated: false,
+        estimatedTokens: 50, // Placeholder tokens
         extractionMethod: 'placeholder',
         processingTime: processingTime
       },
@@ -193,11 +228,32 @@ const extractTextFromTXT = async (filePath, options = {}) => {
     
     // Read text file with UTF-8 encoding
     let text = fs.readFileSync(filePath, 'utf-8');
+    const originalLength = text.length;
+    let wasTruncated = false;
     
-    // Truncate if too long
+    // 🔥 SMART TRUNCATION for TXT files too
     if (text.length > PROCESSING_CONFIG.maxTextLength) {
-      console.log(`⚠️ Text truncated from ${text.length} to ${PROCESSING_CONFIG.maxTextLength} characters`);
-      text = text.substring(0, PROCESSING_CONFIG.maxTextLength) + '\n\n[Content truncated for processing...]';
+      console.log(`⚠️ TXT text length (${text.length} chars) exceeds limit (${PROCESSING_CONFIG.maxTextLength} chars)`);
+      
+      // Try to find a good breaking point
+      let breakPoint = PROCESSING_CONFIG.maxTextLength;
+      
+      // Look for paragraph break first (double newline)
+      const paragraphBreak = text.lastIndexOf('\n\n', PROCESSING_CONFIG.maxTextLength);
+      if (paragraphBreak > PROCESSING_CONFIG.maxTextLength * 0.7) {
+        breakPoint = paragraphBreak;
+      } else {
+        // Look for sentence break
+        const sentenceBreak = text.lastIndexOf('.', PROCESSING_CONFIG.maxTextLength);
+        if (sentenceBreak > PROCESSING_CONFIG.maxTextLength * 0.8) {
+          breakPoint = sentenceBreak + 1;
+        }
+      }
+      
+      text = text.substring(0, breakPoint).trim() + '\n\n[Content truncated for processing...]';
+      wasTruncated = true;
+      
+      console.log(`✂️ TXT text truncated: ${originalLength} → ${text.length} chars`);
     }
     
     const processingTime = Date.now() - startTime;
@@ -212,6 +268,10 @@ const extractTextFromTXT = async (filePath, options = {}) => {
         wordCount: text.split(/\s+/).length,
         characterCount: text.length,
         originalSize: fileStats.size,
+        originalTextLength: originalLength,
+        wasTruncated: wasTruncated,
+        truncationRatio: wasTruncated ? (text.length / originalLength) : 1,
+        estimatedTokens: Math.ceil(text.length / 4),
         extractionMethod: 'utf8-read',
         processingTime: processingTime
       },
@@ -297,6 +357,14 @@ export const extractDocumentText = async (filePath, options = {}) => {
       });
     }
     
+    // 🔥 LOG TOKEN ESTIMATION
+    const estimatedTokens = result.metadata.estimatedTokens || Math.ceil(result.text.length / 4);
+    console.log(`🧮 Token estimation: ~${estimatedTokens} tokens (DeepSeek limit: 131,072 tokens)`);
+    
+    if (estimatedTokens > 100000) {
+      console.log(`⚠️ High token count detected - may need chunking for AI processing`);
+    }
+    
     return result;
     
   } catch (error) {
@@ -335,7 +403,10 @@ export const getDocumentStats = async (filePath) => {
       fileSizeFormatted: formatFileSize(fileStats.size),
       isSupported: PROCESSING_CONFIG.supportedTypes.includes(fileExtension),
       createdAt: fileStats.birthtime,
-      modifiedAt: fileStats.mtime
+      modifiedAt: fileStats.mtime,
+      // 🔥 ADD TOKEN ESTIMATION
+      estimatedMaxTokens: Math.ceil((PROCESSING_CONFIG.maxTextLength / 4)), // Rough estimation
+      tokenLimit: 131072 // DeepSeek limit
     };
     
   } catch (error) {

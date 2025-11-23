@@ -1,7 +1,7 @@
 /**
  * AI Service - Complete Enhanced Version
  * @module services/ai
- * @description AI service with comprehensive quiz generation capabilities
+ * @description AI service with comprehensive quiz generation capabilities and token management
  */
 
 import fs from 'fs';
@@ -21,9 +21,50 @@ const DEEPSEEK_CONFIG = {
   apiUrl: 'https://api.deepseek.com/v1/chat/completions',
   apiKey: process.env.DEEPSEEK_API_KEY,
   model: 'deepseek-coder',
-  maxTokens: 8192,
+  maxTokens: 4096, // Reduced from 8192
   temperature: 0.7,
   timeout: 300000 // 5 minutes timeout for big requests
+};
+
+// 🔥 TOKEN MANAGEMENT FUNCTIONS
+/**
+ * Estimate token count (rough approximation: 1 token ≈ 4 characters)
+ */
+const estimateTokenCount = (text) => {
+  return Math.ceil(text.length / 4);
+};
+
+/**
+ * Smart text chunking that preserves sentence structure
+ */
+const chunkTextForAI = (text, maxTokens = 80000) => {
+  const maxChars = maxTokens * 4; // Convert tokens to characters
+  
+  if (text.length <= maxChars) {
+    return text;
+  }
+  
+  console.log(`⚠️ Text too long (${text.length} chars, ~${estimateTokenCount(text)} tokens). Chunking to ${maxTokens} tokens...`);
+  
+  // Try to find a good breaking point (end of paragraph or sentence)
+  let breakPoint = maxChars;
+  
+  // Look for paragraph break first (double newline)
+  const paragraphBreak = text.lastIndexOf('\n\n', maxChars);
+  if (paragraphBreak > maxChars * 0.7) {
+    breakPoint = paragraphBreak;
+  } else {
+    // Look for sentence break
+    const sentenceBreak = text.lastIndexOf('.', maxChars);
+    if (sentenceBreak > maxChars * 0.8) {
+      breakPoint = sentenceBreak + 1;
+    }
+  }
+  
+  const chunkedText = text.substring(0, breakPoint).trim();
+  console.log(`✂️ Text chunked: ${text.length} → ${chunkedText.length} chars (~${estimateTokenCount(chunkedText)} tokens)`);
+  
+  return chunkedText;
 };
 
 // 🔥 COMPREHENSIVE QUIZ GENERATION CONFIGURATION
@@ -136,7 +177,7 @@ const callDeepSeekAPI = async (messages, options = {}) => {
 };
 
 /**
- * 🔥 ORIGINAL FUNCTION: Process document with AI (your existing function)
+ * 🔥 UPDATED FUNCTION: Process document with AI with token management
  */
 export const processDocumentWithAI = async (filePath, options = {}) => {
   try {
@@ -156,6 +197,9 @@ export const processDocumentWithAI = async (filePath, options = {}) => {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
     }
 
+    // 🔥 CHUNK TEXT TO STAY WITHIN TOKEN LIMITS
+    const chunkedText = chunkTextForAI(extractionResult.text, 80000); // Leave room for prompt + response
+
     const prompt = `
 Please analyze this document and provide:
 1. A comprehensive summary (3-4 paragraphs)
@@ -163,7 +207,7 @@ Please analyze this document and provide:
 3. Main topics covered (3-5 topics)
 
 Document content:
-${extractionResult.text}
+${chunkedText}
 
 Please respond in JSON format:
 {
@@ -177,7 +221,12 @@ Please respond in JSON format:
       content: prompt
     }];
 
-    const response = await callDeepSeekAPI(messages);
+    // 🔥 REDUCE MAX_TOKENS TO STAY WITHIN LIMIT
+    const response = await callDeepSeekAPI(messages, {
+      maxTokens: 4096, // Reduced from 8192
+      temperature: 0.7
+    });
+    
     let content = response.choices[0]?.message?.content || '';
     
     // Parse JSON response
@@ -196,12 +245,15 @@ Please respond in JSON format:
       summary: parsedResult.summary,
       keyPoints: parsedResult.keyPoints || [],
       topics: parsedResult.topics || [],
-      extractedText: extractionResult.text,
+      extractedText: extractionResult.text, // Return full text
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
         wordCount: extractionResult.metadata.wordCount,
         pageCount: extractionResult.metadata.pageCount,
+        originalTextLength: extractionResult.text.length,
+        processedTextLength: chunkedText.length,
+        wasChunked: chunkedText.length < extractionResult.text.length,
         processingTime: Date.now()
       }
     };
@@ -219,7 +271,7 @@ Please respond in JSON format:
 };
 
 /**
- * 🔥 ORIGINAL FUNCTION: Generate quiz from document (your existing function)
+ * 🔥 ORIGINAL FUNCTION: Generate quiz from document (with token management)
  */
 export const generateQuizFromDocument = async (filePath, options = {}) => {
   try {
@@ -245,6 +297,9 @@ export const generateQuizFromDocument = async (filePath, options = {}) => {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
     }
 
+    // 🔥 CHUNK TEXT FOR QUIZ GENERATION
+    const chunkedText = chunkTextForAI(extractionResult.text, 70000);
+
     const prompt = `Create a ${difficulty} difficulty quiz with ${questionCount} ${questionType.replace('_', ' ')} questions based on this document.
 
 ${questionType === 'multiple_choice' ? 'Each question should have 4 options with one correct answer.' :
@@ -252,7 +307,7 @@ ${questionType === 'multiple_choice' ? 'Each question should have 4 options with
   'Each question should have a fill-in-the-blank format.'}
 
 Document content:
-${extractionResult.text}
+${chunkedText}
 
 Respond ONLY with this JSON format:
 {
@@ -280,7 +335,11 @@ Respond ONLY with this JSON format:
       content: prompt
     }];
 
-    const response = await callDeepSeekAPI(messages);
+    const response = await callDeepSeekAPI(messages, {
+      maxTokens: 4096, // Reduced
+      temperature: 0.7
+    });
+    
     let content = response.choices[0]?.message?.content || '';
     
     const startIndex = content.indexOf('{');
@@ -299,7 +358,8 @@ Respond ONLY with this JSON format:
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        wasChunked: chunkedText.length < extractionResult.text.length
       }
     };
 
@@ -314,7 +374,7 @@ Respond ONLY with this JSON format:
 };
 
 /**
- * 🔥 NEW FUNCTION: Generate comprehensive quiz collection
+ * 🔥 NEW FUNCTION: Generate comprehensive quiz collection with token management
  */
 export const generateComprehensiveQuizCollection = async (filePath, options = {}) => {
   const startTime = Date.now();
@@ -360,7 +420,7 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
     // AI API Call Timer (THE MAIN ONE)
     const aiStartTime = Date.now();
     const response = await callDeepSeekAPI(messages, {
-      maxTokens: 4096,  // Reduced for speed
+      maxTokens: 4096,  // Reduced for token management
       temperature: 0.3  // Lower for faster generation
     });
     const aiEndTime = Date.now();
@@ -438,14 +498,11 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
 };
 
 /**
- * Build comprehensive quiz prompt
- */
-/**
- * Build SUPER FAST quiz prompt - 3 quizzes, 20 questions each, progressive difficulty
+ * Build OPTIMIZED quiz prompt with token management
  */
 const buildComprehensiveQuizPrompt = (documentText) => {
-  // Use more text for better context - 2000 chars for richer concept extraction
-  const truncatedText = documentText.substring(0, 2000);
+  // 🔥 CHUNK TEXT FOR QUIZ GENERATION
+  const chunkedText = chunkTextForAI(documentText, 60000); // Smaller chunk for quiz generation
   
   return `TASK: Generate EXACTLY 2 complete quizzes testing CORE CONCEPTS from this educational content.
 
@@ -759,7 +816,7 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
 }
 
 CONTENT TO ANALYZE FOR CORE CONCEPTS:
-${truncatedText}
+${chunkedText}
 
 IMPORTANT REMINDERS:
 1. Make strength descriptions encouraging and specific about what knowledge the user demonstrates
@@ -891,9 +948,6 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
 /**
  * Validate individual question
  */
-/**
- * Validate individual question
- */
 const validateQuestion = (question, questionId, questionType) => {
   try {
     if (!question.question || typeof question.question !== 'string') {
@@ -1001,17 +1055,24 @@ export const generateCustomText = async (filePath, prompt, options = {}) => {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
     }
 
+    // 🔥 CHUNK TEXT FOR CUSTOM GENERATION
+    const chunkedText = chunkTextForAI(extractionResult.text, 70000);
+
     const fullPrompt = `${prompt}
 
 Document content:
-${extractionResult.text}`;
+${chunkedText}`;
 
     const messages = [{
       role: 'user',
       content: fullPrompt
     }];
 
-    const response = await callDeepSeekAPI(messages, options);
+    const response = await callDeepSeekAPI(messages, {
+      maxTokens: 4096, // Reduced
+      ...options
+    });
+    
     const generatedText = response.choices[0]?.message?.content || '';
 
     return {
@@ -1020,7 +1081,8 @@ ${extractionResult.text}`;
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
-        prompt: prompt
+        prompt: prompt,
+        wasChunked: chunkedText.length < extractionResult.text.length
       }
     };
 
