@@ -1,9 +1,10 @@
 /**
  * PATH: src/components/documents/DocumentsGrid.jsx
- * FIXED - Show edit/delete buttons for ALL documents including failed ones, remove Views/Quizzes display
+ * ENHANCED - Added ProcessingNotification + Auto-refresh polling + localStorage persistence
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { 
   FileText, 
   CheckCircle, 
@@ -19,13 +20,17 @@ import {
   MoreHorizontal,
   Calendar,
   HardDrive,
-  Search
+  Search,
+  Sparkles,
+  Zap
 } from 'lucide-react'
 import Button from '../ui/Button'
 import DocumentReviseModal from './DocumentReviseModal'
 import QuizSelectionModal from '../quiz/modals/QuizSelectionModal'
 import { canAccessFeature } from './DocumentsPageConfig'
 import { documentsAPI } from '../../services/api'
+import { fetchUserDocuments } from '../../store/slices/documentsSlice'
+import ProcessingNotification from '../dashboard/ProcessingNotification' // ✅ IMPORT FROM DASHBOARD
 import toast from 'react-hot-toast'
 
 const DocumentsGrid = ({
@@ -40,10 +45,11 @@ const DocumentsGrid = ({
   currentSearchTerm = '',
   onClearSearch,
   onClearFilters,
-  // ✅ NEW: Add totalDocumentsCount to distinguish between no docs vs no search results
   totalDocumentsCount = 0,
   className = ''
 }) => {
+  const dispatch = useDispatch()
+  
   // Modal states
   const [reviseModal, setReviseModal] = useState({ isOpen: false, document: null })
   const [quizModal, setQuizModal] = useState({ isOpen: false, document: null })
@@ -54,6 +60,139 @@ const DocumentsGrid = ({
   const [isUpdating, setIsUpdating] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // ✅ ENHANCED: Processing tracking with localStorage persistence
+  const [processingStartTimes, setProcessingStartTimes] = useState(() => {
+    // Load from localStorage on mount
+    const saved = localStorage.getItem('documents_processing_times')
+    return saved ? JSON.parse(saved) : {}
+  })
+
+  // ✅ NEW: Processing notification state (SAME AS DASHBOARD)
+  const [processingDocuments, setProcessingDocuments] = useState([])
+  const [showProcessingNotification, setShowProcessingNotification] = useState(false)
+
+  // ✅ ENHANCED: Auto-refresh polling for processing documents
+  useEffect(() => {
+    const hasProcessingDocs = documents && documents.some(doc => 
+      doc.status === 'processing' || doc.status === 'pending'
+    )
+
+    if (!hasProcessingDocs) return
+
+    console.log('🔄 Starting auto-refresh polling for processing documents')
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log('📡 Polling for document status updates...')
+        await dispatch(fetchUserDocuments({ limit: 1000 }))
+      } catch (error) {
+        console.error('❌ Polling error:', error)
+      }
+    }, 15000) // Poll every 15 seconds
+
+    return () => {
+      console.log('🛑 Stopping auto-refresh polling')
+      clearInterval(pollInterval)
+    }
+  }, [documents, dispatch])
+
+  // ✅ ENHANCED: Track processing documents + save to localStorage
+  useEffect(() => {
+    if (documents) {
+      const newStartTimes = { ...processingStartTimes }
+      let hasNewProcessing = false
+      let completedDocuments = []
+
+      documents.forEach(doc => {
+        const docId = doc.id || doc._id
+        
+        if ((doc.status === 'processing' || doc.status === 'pending') && !newStartTimes[docId]) {
+          // New processing document
+          newStartTimes[docId] = Date.now()
+          hasNewProcessing = true
+          console.log('▶️ Started tracking processing for:', doc.title)
+        } else if (doc.status === 'completed' && newStartTimes[docId]) {
+          // Document completed processing
+          completedDocuments.push(doc)
+          delete newStartTimes[docId]
+          console.log('✅ Document processing completed:', doc.title)
+        } else if (doc.status === 'failed' && newStartTimes[docId]) {
+          // Document failed processing
+          delete newStartTimes[docId]
+          console.log('❌ Document processing failed:', doc.title)
+        }
+      })
+
+      // Show completion toasts
+      completedDocuments.forEach(doc => {
+        toast.success(`🎉 "${doc.title}" processing completed! Ready for quizzes.`, {
+          duration: 5000,
+          icon: '✅'
+        })
+      })
+
+      if (hasNewProcessing || Object.keys(newStartTimes).length !== Object.keys(processingStartTimes).length) {
+        setProcessingStartTimes(newStartTimes)
+        
+        // ✅ Save to localStorage
+        localStorage.setItem('documents_processing_times', JSON.stringify(newStartTimes))
+      }
+
+      // ✅ Update processing notification state (SAME AS DASHBOARD)
+      const processing = documents.filter(doc => 
+        doc.status === 'processing' || doc.status === 'pending'
+      )
+      
+      setProcessingDocuments(processing)
+      setShowProcessingNotification(processing.length > 0)
+    }
+  }, [documents])
+
+  // ✅ ENHANCED: Get processing time elapsed with localStorage persistence
+  const getProcessingTimeElapsed = (document) => {
+    const docId = document.id || document._id
+    const startTime = processingStartTimes[docId]
+    if (!startTime) return 0
+    return Math.floor((Date.now() - startTime) / 1000)
+  }
+
+  // ✅ Get processing estimate (SAME AS DASHBOARD)
+  const getProcessingEstimate = (document) => {
+    const size = document?.file?.size || 0
+    if (size < 1024 * 1024) return 120      // 2 minutes for small PDFs
+    if (size < 5 * 1024 * 1024) return 180  // 3 minutes for medium PDFs  
+    return 240                              // 4 minutes for large PDFs
+  }
+
+  // ✅ Format time (SAME AS DASHBOARD)
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    if (minutes > 0) {
+      return `${minutes}m ${secs}s`
+    }
+    return `${secs}s`
+  }
+
+  // ✅ NEW: Handle processing notification refresh (SAME AS DASHBOARD)
+  const handleProcessingRefresh = async () => {
+    try {
+      console.log('🔄 Manual refresh triggered from processing notification')
+      await dispatch(fetchUserDocuments({ limit: 1000 }))
+      
+      const stillProcessing = documents?.filter(doc => 
+        doc.status === 'processing' || doc.status === 'pending'
+      ) || []
+      
+      if (stillProcessing.length < processingDocuments.length) {
+        toast.success('✅ Some documents have finished processing!')
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing from processing notification:', error)
+      toast.error('Failed to refresh document status')
+    }
+  }
 
   // Get status info for a document
   const getStatusInfo = (status) => {
@@ -112,7 +251,7 @@ const DocumentsGrid = ({
     return date.toLocaleDateString()
   }
 
-  // ✅ ALL YOUR EXISTING FUNCTIONS - KEEPING EVERYTHING
+  // ✅ ALL YOUR EXISTING FUNCTIONS REMAIN THE SAME
   const startEditing = (document) => {
     setEditingDocument(document.id)
     setEditTitle(document.title || '')
@@ -222,28 +361,16 @@ const DocumentsGrid = ({
     return selectedDocuments.includes(documentId)
   }
 
-  // ✅ FIXED: Proper empty state logic - SAME AS DocumentsTable.jsx
+  // ✅ EMPTY STATE LOGIC (SAME AS BEFORE)
   if (!documents || documents.length === 0) {
-    console.log('🎯 GRID EMPTY STATE DEBUG:', {
-      documentsLength: documents?.length || 0,
-      totalDocumentsCount,
-      currentSearchTerm,
-      hasSearch: currentSearchTerm && currentSearchTerm.trim(),
-      userHasDocuments: totalDocumentsCount > 0,
-      willShowSearchEmpty: !!(currentSearchTerm && currentSearchTerm.trim()),
-      willShowTrulyEmpty: totalDocumentsCount === 0
-    })
-
     const hasSearch = currentSearchTerm && currentSearchTerm.trim()
     const hasFilters = filters && Object.keys(filters).some(key => 
       key !== 'search' && filters[key] && filters[key] !== null && filters[key] !== ''
     )
     
-    // ✅ KEY FIX: Check if user actually has documents vs search returning no results
     const userHasDocuments = totalDocumentsCount > 0
     
     if (hasSearch || hasFilters) {
-      // ✅ SEARCH/FILTER RESULTS EMPTY STATE - User has documents but search found nothing
       return (
         <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center ${className}`}>
           <div className="w-16 h-16 bg-slate-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -304,7 +431,6 @@ const DocumentsGrid = ({
         </div>
       )
     } else if (!userHasDocuments) {
-      // ✅ TRULY NO DOCUMENTS - User has never uploaded anything
       return (
         <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center ${className}`}>
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -323,7 +449,6 @@ const DocumentsGrid = ({
         </div>
       )
     } else {
-      // ✅ USER HAS DOCUMENTS BUT NONE ARE CURRENTLY DISPLAYED (edge case)
       return (
         <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center ${className}`}>
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -343,9 +468,17 @@ const DocumentsGrid = ({
     }
   }
 
-  // ✅ MAIN DOCUMENTS GRID RENDER - ALL YOUR EXISTING FUNCTIONALITY PRESERVED
   return (
     <div className={className}>
+      {/* ✅ NEW: Processing Notification (SAME AS DASHBOARD) */}
+      {showProcessingNotification && processingDocuments.length > 0 && (
+        <ProcessingNotification
+          processingDocuments={processingDocuments}
+          onRefresh={handleProcessingRefresh}
+          className="mb-6"
+        />
+      )}
+
       {/* Documents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {documents.map((document) => {
@@ -354,6 +487,11 @@ const DocumentsGrid = ({
           const isProcessed = document.status === 'completed'
           const isEditing = editingDocument === document.id
           const isShowingDeleteConfirm = deleteConfirm === document.id
+          
+          // ✅ ENHANCED: Processing calculations with localStorage persistence
+          const elapsed = getProcessingTimeElapsed(document)
+          const estimate = getProcessingEstimate(document)
+          const progress = document.status === 'processing' ? Math.min((elapsed / estimate) * 100, 95) : 0
           
           return (
             <div 
@@ -473,7 +611,7 @@ const DocumentsGrid = ({
                 </div>
               </div>
 
-              {/* Actions Section - ✅ FIXED: Show edit/delete for ALL documents */}
+              {/* Actions Section */}
               <div className="px-4 pb-4">
                 {isShowingDeleteConfirm ? (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-3">
@@ -512,7 +650,7 @@ const DocumentsGrid = ({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* ✅ FIXED: Only show Study/Quiz buttons for completed documents */}
+                    {/* Study/Quiz buttons for completed documents */}
                     {isProcessed && (
                       <div className="grid grid-cols-2 gap-2">
                         <Button
@@ -537,24 +675,100 @@ const DocumentsGrid = ({
                       </div>
                     )}
 
-                    {/* ✅ FIXED: Show processing state for processing documents */}
+                    {/* ✅ ENHANCED: Processing state with auto-refresh */}
                     {document.status === 'processing' && (
-                      <div className="text-center py-2">
-                        <div className="flex items-center justify-center space-x-2 text-xs text-blue-600 mb-2">
-                          <Clock className="w-3 h-3 animate-spin" />
-                          <span>AI Processing...</span>
+                      <div className="space-y-3">
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+                              <span className="text-xs font-medium text-slate-700">AI Processing</span>
+                            </div>
+                            <span className="text-xs text-blue-600 font-medium">
+                              {Math.round(progress)}%
+                            </span>
+                          </div>
+                          
+                          <div className="w-full bg-slate-200 rounded-full h-1.5 mb-2">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center space-x-1 text-slate-600">
+                              <Zap className="w-3 h-3 text-yellow-500" />
+                              <span>Elapsed: {formatTime(elapsed)}</span>
+                            </div>
+                            <span className="text-slate-500">
+                              ~{formatTime(Math.max(0, estimate - elapsed))} left
+                            </span>
+                          </div>
+                          
+                          <div className="mt-2 pt-2 border-t border-blue-200">
+                            <div className="text-xs text-blue-700">
+                              <div className="flex justify-between items-center">
+                                <span>📖 Text extraction</span>
+                                <CheckCircle className="w-3 h-3 text-green-500" />
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>🧠 AI analysis</span>
+                                {progress > 40 ? (
+                                  <CheckCircle className="w-3 h-3 text-green-500" />
+                                ) : (
+                                  <Clock className="w-3 h-3 text-blue-500 animate-spin" />
+                                )}
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>🎯 Quiz generation</span>
+                                {progress > 80 ? (
+                                  <CheckCircle className="w-3 h-3 text-green-500" />
+                                ) : (
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="w-full bg-slate-200 rounded-full h-1">
-                          <div 
-                            className="bg-blue-500 h-1 rounded-full transition-all duration-300 animate-pulse"
-                            style={{ width: '60%' }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2">Usually takes 10-30 seconds</p>
                       </div>
                     )}
 
-                    {/* ✅ FIXED: Show edit/delete buttons for ALL documents (including failed) */}
+                    {/* Pending state */}
+                    {document.status === 'pending' && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                        <div className="flex items-center justify-center space-x-2 text-xs text-yellow-700 mb-1">
+                          <Clock className="w-3 h-3" />
+                          <span className="font-medium">Queued for Processing</span>
+                        </div>
+                        <p className="text-xs text-yellow-600">
+                          Your document is in the queue. Processing will begin shortly.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Failed state */}
+                    {document.status === 'failed' && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                        <div className="flex items-center justify-center space-x-2 text-xs text-red-700 mb-1">
+                          <AlertCircle className="w-3 h-3" />
+                          <span className="font-medium">Processing Failed</span>
+                        </div>
+                        <p className="text-xs text-red-600 mb-2">
+                          There was an issue processing this document.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => toast.info('Please try re-uploading the document or contact support')}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Edit/delete buttons for ALL documents */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <div className="flex items-center space-x-2">
                         <button
@@ -574,8 +788,6 @@ const DocumentsGrid = ({
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
-
-                    {/* ✅ REMOVED: Views and Quizzes analytics display */}
                   </div>
                 )}
               </div>

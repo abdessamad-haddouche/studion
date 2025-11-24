@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/documents/DocumentsPage.jsx
- * ENHANCED with Client-Side Search Filtering
+ * ENHANCED with Client-Side Search Filtering + Processing Indicators from Dashboard
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import Layout from '../../components/layout/Layout'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import toast from 'react-hot-toast'
 
 // Configuration
 import { 
@@ -68,7 +69,7 @@ const DocumentsPage = () => {
   const totalDocumentsCount = useSelector(selectTotalDocumentsCount)
   const searchState = useSelector(selectSearchState)
   
-  // ✅ NEW: Client-side filtering state
+  // ✅ Client-side filtering state
   const [allDocuments, setAllDocuments] = useState([])
   const [filteredDocuments, setFilteredDocuments] = useState([])
   const [isLocalFiltering, setIsLocalFiltering] = useState(false)
@@ -79,14 +80,13 @@ const DocumentsPage = () => {
   const [selectedDocuments, setSelectedDocuments] = useState([])
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentSearch, setCurrentSearch] = useState('')
-
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Get subscription limits
   const documentLimits = getDocumentLimits(currentPlan)
   const paginationSettings = getPaginationSettings(currentPlan)
 
-  // ✅ NEW: Client-side search filtering function
+  // ✅ Client-side search filtering function
   const filterDocumentsLocally = useCallback((allDocs, searchTerm, filterParams) => {
     let filteredDocs = [...allDocs]
     
@@ -255,7 +255,7 @@ const DocumentsPage = () => {
   const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     
-    // Add new document to allDocuments for client-side filtering
+    // ✅ Add new document to allDocuments for client-side filtering
     setAllDocuments(prev => [document.document, ...prev])
     
     await Promise.all([
@@ -267,7 +267,7 @@ const DocumentsPage = () => {
   const handleDocumentUpdate = (updatedDocument) => {
     console.log('📝 Document updated:', updatedDocument)
     
-    // Update in allDocuments for client-side filtering
+    // ✅ Update in allDocuments for client-side filtering
     setAllDocuments(prev => 
       prev.map(doc => doc.id === updatedDocument.id ? updatedDocument : doc)
     )
@@ -408,42 +408,42 @@ const DocumentsPage = () => {
   }
 
   const handleRefreshDocuments = async () => {
-  setIsRefreshing(true)
-  
-  try {
-    console.log('🔄 Manual refresh triggered by user')
+    setIsRefreshing(true)
     
-    // Clear local filtering state
-    setIsLocalFiltering(false)
-    setFilteredDocuments([])
-    
-    // Fetch fresh data from server
-    await Promise.all([
-      fetchDocuments({}), // Get all documents fresh
-      dispatch(fetchTotalDocumentsCount()),
-      dispatch(fetchDocumentStats()),
-      dispatch(fetchUserStats())
-    ])
-    
-    // Update allDocuments for client-side filtering
-    const refreshedDocs = documents || []
-    setAllDocuments(refreshedDocs)
-    
-    console.log('✅ Manual refresh completed')
-    toast.success('Documents refreshed!')
-    
-  } catch (error) {
-    console.error('❌ Refresh failed:', error)
-    toast.error('Failed to refresh documents')
-  } finally {
-    setIsRefreshing(false)
+    try {
+      console.log('🔄 Manual refresh triggered by user')
+      
+      // Clear local filtering state
+      setIsLocalFiltering(false)
+      setFilteredDocuments([])
+      
+      // Fetch fresh data from server
+      await Promise.all([
+        fetchDocuments({}), // Get all documents fresh
+        dispatch(fetchTotalDocumentsCount()),
+        dispatch(fetchDocumentStats()),
+        dispatch(fetchUserStats())
+      ])
+      
+      // Update allDocuments for client-side filtering
+      const refreshedDocs = documents || []
+      setAllDocuments(refreshedDocs)
+      
+      console.log('✅ Manual refresh completed')
+      toast.success('Documents refreshed!')
+      
+    } catch (error) {
+      console.error('❌ Refresh failed:', error)
+      toast.error('Failed to refresh documents')
+    } finally {
+      setIsRefreshing(false)
+    }
   }
-}
 
   // ✅ Get the documents to display (filtered or regular)
   const displayedDocuments = isLocalFiltering ? filteredDocuments : documents
 
-  // ✅ COMPONENT MAPPING with filtered documents
+  // ✅ COMPONENT MAPPING with enhanced processing indicators
   const componentMap = {
     [DOCUMENTS_COMPONENTS.HEADER]: (
       <DocumentsHeader
@@ -472,7 +472,7 @@ const DocumentsPage = () => {
     [DOCUMENTS_COMPONENTS.GRID]: (
       <DocumentsGrid
         key="grid"
-        documents={displayedDocuments} // ✅ Use filtered documents
+        documents={displayedDocuments} // ✅ Use filtered documents with processing indicators
         selectedDocuments={selectedDocuments}
         onDocumentSelect={handleDocumentSelect}
         onDocumentUpdate={handleDocumentUpdate}
@@ -494,7 +494,7 @@ const DocumentsPage = () => {
     [DOCUMENTS_COMPONENTS.TABLE]: (
       <DocumentsTable
         key="table"
-        documents={displayedDocuments} // ✅ Use filtered documents
+        documents={displayedDocuments} // ✅ Use filtered documents with processing indicators
         selectedDocuments={selectedDocuments}
         onDocumentSelect={handleDocumentSelect}
         onDocumentUpdate={handleDocumentUpdate}
@@ -593,13 +593,13 @@ const DocumentsPage = () => {
     )
   }
 
-  // MAIN RENDER
+  // ✅ MAIN RENDER with enhanced processing indicators
   return (
     <Layout>
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
-          {/* ✅ Render enabled components with filtered documents */}
+          {/* ✅ Render enabled components with enhanced processing indicators */}
           {enabledComponents.map(componentKey => componentMap[componentKey])}
           
         </div>

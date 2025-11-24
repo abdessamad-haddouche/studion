@@ -1,13 +1,6 @@
 /**
  * PATH: src/components/dashboard/ProcessingNotification.jsx
- * Premium Processing Notification Component
- * 
- * Features:
- * - Shows processing time estimates
- * - Auto-polls for status updates
- * - Smart notifications
- * - Progress indicators
- * - Auto-refresh when complete
+ * FIXED - Added localStorage persistence for processing times
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -22,7 +15,25 @@ const ProcessingNotification = ({
   className = '' 
 }) => {
   const dispatch = useDispatch()
-  const [timeElapsed, setTimeElapsed] = useState({})
+  
+  // ✅ FIXED: Load processing times from localStorage
+  const [timeElapsed, setTimeElapsed] = useState(() => {
+    const saved = localStorage.getItem('dashboard_processing_times')
+    if (!saved) return {}
+    
+    const savedTimes = JSON.parse(saved)
+    const elapsed = {}
+    
+    // Convert saved start times to elapsed times
+    Object.keys(savedTimes).forEach(docId => {
+      const startTime = savedTimes[docId]
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000)
+      elapsed[docId] = { elapsed: elapsedSeconds, startTime }
+    })
+    
+    return elapsed
+  })
+  
   const [showDetails, setShowDetails] = useState(false)
   const [lastPollTime, setLastPollTime] = useState(null)
 
@@ -63,25 +74,31 @@ const ProcessingNotification = ({
     if (processingDocuments.length === 0) return
 
     try {
-      console.log('🔄 ProcessingNotification: Polling for document updates...')
+      console.log('🔄 Dashboard ProcessingNotification: Polling for document updates...')
       await dispatch(fetchUserDocuments({ limit: 1000 })).unwrap()
       setLastPollTime(new Date())
     } catch (error) {
-      console.error('❌ Failed to poll for updates:', error)
+      console.error('❌ Dashboard ProcessingNotification: Failed to poll for updates:', error)
     }
   }, [dispatch, processingDocuments.length])
 
-  // Timer effect for elapsed time tracking
+  // ✅ FIXED: Timer effect for elapsed time tracking with localStorage sync
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeElapsed(prev => {
         const newTimeElapsed = {}
+        
+        // Get current saved times from localStorage
+        const saved = localStorage.getItem('dashboard_processing_times')
+        const savedTimes = saved ? JSON.parse(saved) : {}
+        
         processingDocuments.forEach(doc => {
           const docId = doc.id || doc._id
-          const startTime = prev[docId]?.startTime || Date.now()
+          const startTime = savedTimes[docId] || prev[docId]?.startTime || Date.now()
           const elapsed = Math.floor((Date.now() - startTime) / 1000)
           newTimeElapsed[docId] = { elapsed, startTime }
         })
+        
         return newTimeElapsed
       })
     }, 1000)
