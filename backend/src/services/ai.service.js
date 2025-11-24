@@ -20,7 +20,7 @@ if (!process.env.DEEPSEEK_API_KEY) {
 const DEEPSEEK_CONFIG = {
   apiUrl: 'https://api.deepseek.com/v1/chat/completions',
   apiKey: process.env.DEEPSEEK_API_KEY,
-  model: 'deepseek-coder', // 'deepseek-coder' 'deepseek-reasoner'
+  model: 'deepseek-reasoner', // 'deepseek-coder' 'deepseek-reasoner'
   maxTokens: 8192,
   temperature: 0.7,
   timeout: 300000 // 5 minutes timeout for big requests
@@ -276,8 +276,39 @@ Please respond in JSON format:
       throw new Error('No JSON found in AI response');
     }
     
-    const jsonContent = content.substring(startIndex, endIndex);
-    const parsedResult = JSON.parse(jsonContent);
+    let jsonContent = content.substring(startIndex, endIndex);
+
+    // Clean up common JSON issues
+    jsonContent = jsonContent
+      .replace(/[\u201C\u201D]/g, '"')  // Fix smart quotes
+      .replace(/[\u2018\u2019]/g, "'")  // Fix smart apostrophes
+      .replace(/,\s*}/g, '}')          // Remove trailing commas
+      .replace(/,\s*]/g, ']')          // Remove trailing commas in arrays
+      .replace(/\n/g, ' ')             // Remove line breaks
+      .replace(/\r/g, '')              // Remove carriage returns
+      .trim();
+
+    let parsedResult;
+    try {
+      parsedResult = JSON.parse(jsonContent);
+    } catch (parseError) {
+      console.error('❌ JSON parse failed, attempting cleanup...');
+      console.error('❌ Problematic JSON:', jsonContent.substring(1100, 1300)); // Show around error position
+      
+      // Try more aggressive cleanup
+      jsonContent = jsonContent
+        .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')  // Add quotes to unquoted keys
+        .replace(/:\s*([^",\[\]{}]+?)(\s*[,}])/g, ': "$1"$2')          // Quote unquoted values
+        .replace(/: "(\d+)"([,}])/g, ': $1$2')                         // Unquote numbers
+        .replace(/: "(true|false|null)"([,}])/g, ': $1$2')            // Unquote booleans/null
+        
+      try {
+        parsedResult = JSON.parse(jsonContent);
+        console.log('✅ JSON recovered after cleanup');
+      } catch (secondError) {
+        throw new Error(`JSON parsing failed even after cleanup: ${secondError.message}`);
+      }
+    }
 
     return {
       success: true,

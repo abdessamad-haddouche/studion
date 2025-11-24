@@ -252,7 +252,7 @@ const documentSchema = new mongoose.Schema({
 
     topics: [{
       type: String,
-      maxlength: 100
+      maxlength: 300
     }]
   },
 
