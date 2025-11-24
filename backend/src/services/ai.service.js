@@ -20,7 +20,7 @@ if (!process.env.DEEPSEEK_API_KEY) {
 const DEEPSEEK_CONFIG = {
   apiUrl: 'https://api.deepseek.com/v1/chat/completions',
   apiKey: process.env.DEEPSEEK_API_KEY,
-  model: 'deepseek-reasoner',
+  model: 'deepseek-coder', // 'deepseek-coder' 'deepseek-reasoner'
   maxTokens: 8192,
   temperature: 0.7,
   timeout: 300000 // 5 minutes timeout for big requests
@@ -37,7 +37,7 @@ const estimateTokenCount = (text) => {
 /**
  * Smart text chunking that preserves sentence structure
  */
-const chunkTextForAI = (text, maxTokens = 80000) => {
+const chunkTextForAI = (text, maxTokens = 50000) => {
   const maxChars = maxTokens * 4; // Convert tokens to characters
   
   if (text.length <= maxChars) {
@@ -782,8 +782,8 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType, language = 'en') =
       questions: validatedQuestions,
       // ✅ ENSURE AI METADATA IS PROPERLY SET
       aiMetadata: {
-        questionType: expectedType,  // ✅ THIS IS KEY FOR SEARCH
-        type: expectedType,          // ✅ BACKUP FIELD
+        questionType: expectedType, 
+        type: expectedType, 
         generationType: 'bulk_generation',
         model: 'deepseek-coder',
         originalQuestionCount: validatedQuestions.length,
