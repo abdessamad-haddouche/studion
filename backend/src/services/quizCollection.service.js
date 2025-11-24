@@ -16,7 +16,7 @@ import { QUIZ_GENERATION_CONFIG } from './ai.service.js';
  * @param {string} userId - User ID who owns the quizzes
  * @returns {Promise<Object>} Storage result with created quiz IDs
  */
-export const storeQuizCollection = async (quizCollection, documentId, userId) => {
+export const storeQuizCollection = async (quizCollection, documentId, userId, language = 'en') => {
   try {
     console.log(`💾 Storing quiz collection for document: ${documentId}`);
     console.log(`👤 User ID: ${userId}`);
@@ -64,6 +64,7 @@ export const storeQuizCollection = async (quizCollection, documentId, userId) =>
             model: 'deepseek-coder',
             questionType: determineQuestionType(quizData),
             type: determineQuestionType(quizData),
+            language: language,
             generationType: 'comprehensive_collection',
             originalQuizId: quizData.quizId,
             generatedAt: new Date(),

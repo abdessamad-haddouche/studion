@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/quiz/taking/TrueFalseQuestion.jsx
- * Fixed to use neutral colors during quiz taking
+ * Fixed to use actual question options for multilingual support (Vrai/Faux, Verdadero/Falso, etc.)
  */
 
 import React from 'react'
@@ -20,9 +20,11 @@ const TrueFalseQuestion = ({
     }
   }
 
+  // ✅ FIXED: USE ACTUAL QUESTION OPTIONS (supports any language)
+  const questionOptions = question.options || ['True', 'False']
   const options = [
-    { value: 0, label: 'True', icon: CheckCircle },
-    { value: 1, label: 'False', icon: XCircle }
+    { value: 0, label: questionOptions[0], icon: CheckCircle },
+    { value: 1, label: questionOptions[1], icon: XCircle }
   ]
 
   return (
@@ -56,7 +58,7 @@ const TrueFalseQuestion = ({
             buttonClass += 'border-slate-200 bg-slate-50 text-slate-600'
           }
         } else {
-          // ✅ FIXED: Quiz taking mode - NEUTRAL COLORS ONLY
+          // ✅ Quiz taking mode - NEUTRAL COLORS ONLY
           if (isUserAnswer) {
             buttonClass += 'border-blue-400 bg-blue-50 text-blue-800' // Selected = blue
           } else {
@@ -82,7 +84,7 @@ const TrueFalseQuestion = ({
                       ? 'border-red-500 bg-red-500'
                       : 'border-slate-300'
                     : isUserAnswer 
-                      ? 'border-blue-400 bg-blue-400' // ✅ FIXED: Blue instead of color-based
+                      ? 'border-blue-400 bg-blue-400' // ✅ Blue instead of color-based
                       : 'border-slate-300'
                 }`}>
                   {((showResult && (isUserAnswer || isCorrectAnswer)) || (!showResult && isUserAnswer)) && (
@@ -92,7 +94,7 @@ const TrueFalseQuestion = ({
                 
                 {/* Option Content */}
                 <div className="flex items-center space-x-3">
-                  <option.icon className="w-5 h-5 text-slate-600" /> {/* ✅ FIXED: Neutral color */}
+                  <option.icon className="w-5 h-5 text-slate-600" />
                   <span className="font-medium text-lg">{option.label}</span>
                 </div>
               </div>

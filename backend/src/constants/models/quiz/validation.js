@@ -86,8 +86,16 @@ export const QUESTION_VALIDATION_RULES = Object.freeze({
       ERROR_MESSAGE: 'Correct answer must be option index (0-3)'
     },
     TRUE_FALSE: {
-      PATTERN: /^(0|1)$/, // 0 for false, 1 for true
-      ERROR_MESSAGE: 'Correct answer must be 0 (false) or 1 (true)'
+      VALID_OPTIONS: [
+        ['True', 'False'],       // English
+        ['Vrai', 'Faux'],        // French
+        ['Verdadero', 'Falso'],  // Spanish
+        ['Vero', 'Falso'],       // Italian
+        ['صحيح', 'خطأ'],         // Arabic
+        ['是', '否'],             // Chinese
+        ['正しい', '間違い'],      // Japanese
+      ],
+      ERROR_MESSAGE: 'True/false options must be in a supported language format'
     },
     FILL_IN_BLANK: {
       MIN_LENGTH: 1,
