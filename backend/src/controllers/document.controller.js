@@ -1,7 +1,7 @@
 /**
- * Enhanced Document Controller - With Comprehensive Quiz Generation
+ * Enhanced Document Controller - With Comprehensive Quiz Generation and Language Support
  * @module controllers/document-enhanced
- * @description Enhanced document controller with bulk quiz generation after processing
+ * @description Enhanced document controller with bulk quiz generation after processing and language detection
  */
 
 import '#docs/swagger/document-routes-docs.js';
@@ -25,6 +25,7 @@ import {
   generateComprehensiveQuizCollection ,
 } from '#services/ai.service.js';
 import { storeQuizCollection } from '#services/quizCollection.service.js';
+import Quiz from '#models/quiz/Quiz.js';
 
 
 // ==========================================
@@ -63,7 +64,7 @@ export const upload = multer({
 // ==========================================
 
 /**
- * Upload document and trigger comprehensive processing
+ * Upload document and trigger comprehensive processing with language support
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
@@ -99,7 +100,7 @@ export const uploadDocument = async (req, res, next) => {
     const processImmediately = req.body.processImmediately === 'true';
     
     if (processImmediately) {
-      console.log(`🚀 Starting immediate comprehensive processing...`);
+      console.log(`🚀 Starting immediate comprehensive processing with language detection...`);
       
       // Trigger comprehensive processing in background
       processDocumentComprehensively(document._id)
@@ -131,11 +132,11 @@ export const uploadDocument = async (req, res, next) => {
 };
 
 // ==========================================
-// COMPREHENSIVE DOCUMENT PROCESSING
+// COMPREHENSIVE DOCUMENT PROCESSING WITH LANGUAGE SUPPORT
 // ==========================================
 
 /**
- * 🔥 COMPREHENSIVE DOCUMENT PROCESSING
+ * 🔥 COMPREHENSIVE DOCUMENT PROCESSING WITH LANGUAGE DETECTION
  * Process document with AI summarization + generate complete quiz collection
  * @param {string} documentId - Document ID to process
  * @returns {Promise<Object>} Processing result
@@ -144,7 +145,7 @@ export const processDocumentComprehensively = async (documentId) => {
   let document;
   
   try {
-    console.log(`🏭 Starting comprehensive processing for document: ${documentId}`);
+    console.log(`🏭 Starting comprehensive processing with language detection for document: ${documentId}`);
     
     // Get document
     document = await Document.findById(documentId).select('+file.storagePath');
@@ -160,7 +161,7 @@ export const processDocumentComprehensively = async (documentId) => {
     await document.save();
     
     
-    // STEP 1: Generate AI Summary
+    // STEP 1: Generate AI Summary with Language Detection
     const summaryResult = await processDocumentWithAI(document.file.storagePath);
 
     console.log(summaryResult);
@@ -170,17 +171,18 @@ export const processDocumentComprehensively = async (documentId) => {
       throw new Error(`AI summarization failed: ${summaryResult.error}`);
     }
     
+    console.log(`🌍 Document language detected: ${summaryResult.metadata.detectedLanguage}`);
     
-    // Update document with summary
+    // Update document with summary and language
     document.content.extractedText = summaryResult.extractedText;
     document.content.summary = summaryResult.summary;
     document.content.keyPoints = summaryResult.keyPoints;
     document.content.topics = summaryResult.topics;
 
-    // update file metadata
+    // update file metadata including language
     document.file.metadata.pageCount = summaryResult.metadata.pageCount;
     document.file.metadata.wordCount = summaryResult.metadata.wordCount;
-    // document.file.metadata.language = "";
+    document.file.metadata.language = summaryResult.metadata.detectedLanguage || 'en';
     document.complexity = "";
     document.quality = "";
 
@@ -214,20 +216,21 @@ export const processDocumentComprehensively = async (documentId) => {
     
     try {
       await document.save();
-      console.log(`✅ Document saved successfully with extracted text`);
+      console.log(`✅ Document saved successfully with extracted text and language info`);
     } catch (saveError) {
       console.error(`❌ CRITICAL: Document save failed:`, saveError);
       console.error(`❌ Save error details:`, JSON.stringify(saveError, null, 2));
       throw saveError;
     }
     
-    // STEP 2: Generate Comprehensive Quiz Collection
+    // STEP 2: Generate Comprehensive Quiz Collection (in detected language)
     const quizCollectionResult = await generateComprehensiveQuizCollection(document.file.storagePath);
     
     if (!quizCollectionResult.success) {
       throw new Error(`Quiz collection generation failed: ${quizCollectionResult.error}`);
     }
     
+    console.log(`🎯 Quiz collection generated in language: ${quizCollectionResult.metadata.detectedLanguage}`);
     
     // STEP 3: Store Individual Quizzes
     const storageResult = await storeQuizCollection(
@@ -246,23 +249,25 @@ export const processDocumentComprehensively = async (documentId) => {
     document.processing.stage = 'completed';
     document.processing.completedAt = new Date();
     
-    // Add comprehensive processing metadata
+    // Add comprehensive processing metadata including language info
     document.processing.comprehensiveMetadata = {
       summaryGenerated: true,
       quizCollectionGenerated: true,
       quizzesStored: storageResult.storedQuizzes.length,
       quizzesFailed: storageResult.failedQuizzes.length,
       totalQuestions: quizCollectionResult.quizCollection.metadata?.totalQuestions || 0,
+      detectedLanguage: summaryResult.metadata.detectedLanguage, // 🆕 NEW: Include language in metadata
       processingCompletedAt: new Date()
     };
     
     await document.save();
     
-    console.log(`🎉 Comprehensive processing completed successfully for document: ${documentId}`);
+    console.log(`🎉 Comprehensive processing completed successfully for document: ${documentId} in ${summaryResult.metadata.detectedLanguage}`);
     
     return {
       success: true,
       documentId: document._id,
+      detectedLanguage: summaryResult.metadata.detectedLanguage, // 🆕 NEW: Return detected language
       summary: {
         summaryGenerated: true,
         summaryLength: summaryResult.summary.length,
@@ -342,7 +347,7 @@ export const processPendingDocument  = async (req, res, next) => {
     
     res.status(200).json({
       success: true,
-      message: 'Comprehensive processing started',
+      message: 'Comprehensive processing started with language detection',
       documentId: documentId,
       status: 'processing'
     });
@@ -379,7 +384,7 @@ export const getAllDocuments = async (req, res, next) => {
     
     const documents = await getUserDocuments(userId, options);
     
-    // Enhance with quiz collection info
+    // Enhance with quiz collection info and language info
     const enhancedDocuments = await Promise.all(
       documents.map(async (doc) => {
         let quizInfo = null;
@@ -402,9 +407,11 @@ export const getAllDocuments = async (req, res, next) => {
           }
         }
         
+        const docData = doc.toJSON();
         return {
-          ...doc.toJSON(),
-          quizInfo
+          ...docData,
+          quizInfo,
+          language: doc.file?.metadata?.language || 'en' // 🆕 NEW: Include detected language in response
         };
       })
     );
@@ -426,7 +433,7 @@ export const getAllDocuments = async (req, res, next) => {
 };
 
 /**
- * Get document by ID with enhanced quiz information
+ * Get document by ID with enhanced quiz information and language info
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
@@ -449,11 +456,13 @@ export const getDocumentById = async (req, res, next) => {
       }
     }
     
+    const docData = document.toJSON();
     res.status(200).json({
       success: true,
       document: {
-        ...document.toJSON(),
-        quizInfo
+        ...docData,
+        quizInfo,
+        language: document.file?.metadata?.language || 'en' // 🆕 NEW: Include detected language
       }
     });
     
@@ -514,7 +523,7 @@ export const deleteDocument = async (req, res, next) => {
 };
 
 /**
- * Get document summary
+ * Get document summary with language info
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
@@ -536,6 +545,7 @@ export const getDocumentSummary = async (req, res, next) => {
         text: document.content.summary,
         keyPoints: document.content.keyPoints,
         topics: document.content.topics,
+        language: document.file?.metadata?.language || 'en', // 🆕 NEW: Include language info
         metadata: document.processing.aiMetadata
       }
     });
@@ -547,7 +557,7 @@ export const getDocumentSummary = async (req, res, next) => {
 };
 
 /**
- * Generate custom analysis of document
+ * Generate custom analysis of document with language awareness
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
@@ -575,6 +585,7 @@ export const generateCustomAnalysis = async (req, res, next) => {
       analysis: {
         prompt: prompt,
         generatedText: analysisResult.generatedText,
+        language: analysisResult.metadata.detectedLanguage || document.file?.metadata?.language || 'en', // 🆕 NEW: Include language
         metadata: analysisResult.metadata
       }
     });
@@ -604,6 +615,7 @@ export const getDocumentAnalytics = async (req, res, next) => {
         views: document.analytics.viewCount,
         downloads: document.analytics.downloadCount,
         quizzesGenerated: document.analytics.quizGeneratedCount,
+        language: document.file?.metadata?.language || 'en', // 🆕 NEW: Include language in analytics
         lastViewed: document.analytics.lastViewedAt,
         lastDownloaded: document.analytics.lastDownloadedAt
       }
@@ -631,6 +643,7 @@ export const getAIServiceStatus = async (req, res, next) => {
         status: statusResult.success ? 'operational' : 'error',
         model: 'deepseek-chat',
         available: statusResult.success,
+        languageSupport: Object.keys(LANGUAGE_PROMPTS || {}), // 🆕 NEW: Show supported languages
         lastChecked: new Date().toISOString(),
         details: statusResult
       }
@@ -644,6 +657,7 @@ export const getAIServiceStatus = async (req, res, next) => {
         status: 'error',
         model: 'deepseek-chat',
         available: false,
+        languageSupport: [], // 🆕 NEW: Empty array on error
         lastChecked: new Date().toISOString(),
         error: error.message
       }

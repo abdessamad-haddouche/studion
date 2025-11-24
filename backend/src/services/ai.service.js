@@ -20,8 +20,8 @@ if (!process.env.DEEPSEEK_API_KEY) {
 const DEEPSEEK_CONFIG = {
   apiUrl: 'https://api.deepseek.com/v1/chat/completions',
   apiKey: process.env.DEEPSEEK_API_KEY,
-  model: 'deepseek-coder',
-  maxTokens: 4096, // Reduced from 8192
+  model: 'deepseek-reasoner',
+  maxTokens: 8192,
   temperature: 0.7,
   timeout: 300000 // 5 minutes timeout for big requests
 };
@@ -75,7 +75,7 @@ const QUIZ_GENERATION_CONFIG = {
     hard: 1     
   },
   questionTypes: ['true_false', 'multiple_choice', 'fill_blank'],
-  questionsPerQuiz: 10,
+  questionsPerQuiz: 10, // Keep as 10 - DO NOT CHANGE
   
   get totalQuizzesPerDifficulty() {
     return this.questionTypes.length * 3;
@@ -88,6 +88,39 @@ const QUIZ_GENERATION_CONFIG = {
   get totalQuestions() {
     return this.totalQuizzes * this.questionsPerQuiz;
   }
+};
+
+/**
+ * 🆕 DETECT DOCUMENT LANGUAGE
+ */
+const detectLanguage = (text) => {
+  const textSample = text.substring(0, 1000).toLowerCase();
+  
+  // French indicators
+  const frenchWords = ['le', 'la', 'les', 'de', 'des', 'du', 'et', 'un', 'une', 'dans', 'pour', 'avec', 'sur', 'par', 'que', 'qui', 'est', 'sont', 'ont', 'à', 'au', 'aux'];
+  const englishWords = ['the', 'and', 'of', 'to', 'a', 'in', 'for', 'is', 'on', 'that', 'by', 'this', 'with', 'from', 'they', 'we', 'been', 'have', 'their', 'said'];
+  const spanishWords = ['el', 'la', 'de', 'que', 'y', 'en', 'un', 'es', 'se', 'no', 'te', 'lo', 'le', 'da', 'su', 'por', 'son', 'con', 'para', 'una'];
+  
+  const frenchScore = frenchWords.reduce((score, word) => {
+    return score + (textSample.split(' ').filter(w => w === word).length);
+  }, 0);
+  
+  const englishScore = englishWords.reduce((score, word) => {
+    return score + (textSample.split(' ').filter(w => w === word).length);
+  }, 0);
+  
+  const spanishScore = spanishWords.reduce((score, word) => {
+    return score + (textSample.split(' ').filter(w => w === word).length);
+  }, 0);
+  
+  console.log(`🔍 Language detection scores: French=${frenchScore}, English=${englishScore}, Spanish=${spanishScore}`);
+  
+  if (frenchScore > englishScore && frenchScore > spanishScore) {
+    return 'fr';
+  } else if (spanishScore > englishScore) {
+    return 'es';
+  }
+  return 'en'; // Default to English
 };
 
 /**
@@ -197,14 +230,20 @@ export const processDocumentWithAI = async (filePath, options = {}) => {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
     }
 
+    // 🆕 DETECT LANGUAGE
+    const detectedLanguage = detectLanguage(extractionResult.text);
+    console.log(`🌍 Detected language: ${detectedLanguage}`);
+
     // 🔥 CHUNK TEXT TO STAY WITHIN TOKEN LIMITS
-    const chunkedText = chunkTextForAI(extractionResult.text, 80000); // Leave room for prompt + response
+    const chunkedText = chunkTextForAI(extractionResult.text, 100000); // Leave room for prompt + response
 
     const prompt = `
 Please analyze this document and provide:
 1. A comprehensive summary (3-4 paragraphs)
 2. Key points (5-7 bullet points)
 3. Main topics covered (3-5 topics)
+
+${detectedLanguage === 'fr' ? 'Veuillez répondre en français.' : detectedLanguage === 'es' ? 'Por favor responde en español.' : 'Please respond in English.'}
 
 Document content:
 ${chunkedText}
@@ -221,9 +260,9 @@ Please respond in JSON format:
       content: prompt
     }];
 
-    // 🔥 REDUCE MAX_TOKENS TO STAY WITHIN LIMIT
+    // 🔥 RESTORE ORIGINAL MAX_TOKENS
     const response = await callDeepSeekAPI(messages, {
-      maxTokens: 4096, // Reduced from 8192
+      maxTokens: 8192,
       temperature: 0.7
     });
     
@@ -246,6 +285,7 @@ Please respond in JSON format:
       keyPoints: parsedResult.keyPoints || [],
       topics: parsedResult.topics || [],
       extractedText: extractionResult.text, // Return full text
+      detectedLanguage: detectedLanguage, // 🆕 ADD LANGUAGE INFO
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
@@ -254,6 +294,7 @@ Please respond in JSON format:
         originalTextLength: extractionResult.text.length,
         processedTextLength: chunkedText.length,
         wasChunked: chunkedText.length < extractionResult.text.length,
+        detectedLanguage: detectedLanguage, // 🆕 ADD TO METADATA
         processingTime: Date.now()
       }
     };
@@ -336,7 +377,7 @@ Respond ONLY with this JSON format:
     }];
 
     const response = await callDeepSeekAPI(messages, {
-      maxTokens: 4096, // Reduced
+      maxTokens: 8192,
       temperature: 0.7
     });
     
@@ -408,9 +449,13 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
     
     console.log(`✅ Text extracted successfully (${extractionResult.text.length} characters)`);
 
+    // 🆕 DETECT LANGUAGE
+    const detectedLanguage = detectLanguage(extractionResult.text);
+    console.log(`🌍 Detected language for quizzes: ${detectedLanguage}`);
+
     // Prompt Building Timer
     const promptStart = Date.now();
-    const prompt = buildComprehensiveQuizPrompt(extractionResult.text);
+    const prompt = buildComprehensiveQuizPrompt(extractionResult.text, detectedLanguage);
     const messages = [{ role: 'user', content: prompt }];
     const promptTime = Date.now() - promptStart;
     console.log(`⏱️  Prompt building completed in ${promptTime}ms`);
@@ -420,7 +465,7 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
     // AI API Call Timer (THE MAIN ONE)
     const aiStartTime = Date.now();
     const response = await callDeepSeekAPI(messages, {
-      maxTokens: 4096,  // Reduced for token management
+      maxTokens: 8192,  // RESTORE ORIGINAL
       temperature: 0.3  // Lower for faster generation
     });
     const aiEndTime = Date.now();
@@ -437,7 +482,8 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
       throw HttpError.internalServerError('DeepSeek returned empty quiz response');
     }
 
-    const quizCollection = parseComprehensiveQuizCollection(rawResponse);
+    // 🆕 IMPROVED JSON PARSING WITH RECOVERY
+    const quizCollection = parseComprehensiveQuizCollection(rawResponse, detectedLanguage);
 
     if (!quizCollection.quizzes || quizCollection.quizzes.length === 0) {
       throw HttpError.badRequest('No valid quizzes found in AI response');
@@ -471,6 +517,7 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
         documentStats: fileStats,
         expectedQuizzes: QUIZ_GENERATION_CONFIG.totalQuizzes,
         actualQuizzes: quizCollection.quizzes.length,
+        detectedLanguage: detectedLanguage, // 🆕 ADD LANGUAGE INFO
         timingBreakdown: {
           totalTime: totalDuration,
           fileResolutionTime: fileResolutionTime,
@@ -498,13 +545,42 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
 };
 
 /**
- * Build OPTIMIZED quiz prompt with token management
+ * 🆕 Build OPTIMIZED quiz prompt with language support
  */
-const buildComprehensiveQuizPrompt = (documentText) => {
+const buildComprehensiveQuizPrompt = (documentText, language = 'en') => {
   // 🔥 CHUNK TEXT FOR QUIZ GENERATION
   const chunkedText = chunkTextForAI(documentText, 60000); // Smaller chunk for quiz generation
   
+  // 🆕 LANGUAGE-SPECIFIC SETTINGS
+  const languageSettings = {
+    en: {
+      instruction: 'Please respond in English.',
+      trueOption: 'True',
+      falseOption: 'False',
+      sampleQuestion: 'What is the primary purpose of financial ratio analysis?',
+      sampleOptions: ['To calculate taxes', 'To evaluate company performance and financial health', 'To determine employee salaries', 'To set product prices']
+    },
+    fr: {
+      instruction: 'Veuillez répondre en français.',
+      trueOption: 'Vrai',
+      falseOption: 'Faux',
+      sampleQuestion: 'Quel est l\'objectif principal de l\'analyse des ratios financiers?',
+      sampleOptions: ['Calculer les impôts', 'Évaluer la performance et la santé financière de l\'entreprise', 'Déterminer les salaires des employés', 'Fixer les prix des produits']
+    },
+    es: {
+      instruction: 'Por favor responde en español.',
+      trueOption: 'Verdadero',
+      falseOption: 'Falso',
+      sampleQuestion: '¿Cuál es el propósito principal del análisis de ratios financieros?',
+      sampleOptions: ['Calcular impuestos', 'Evaluar el rendimiento y la salud financiera de la empresa', 'Determinar los salarios de los empleados', 'Establecer precios de productos']
+    }
+  };
+
+  const settings = languageSettings[language] || languageSettings.en;
+  
   return `TASK: Generate EXACTLY 2 complete quizzes testing CORE CONCEPTS from this educational content.
+
+${settings.instruction}
 
 CRITICAL REQUIREMENTS:
 1. Focus on CONCEPTS, PRINCIPLES, and KNOWLEDGE - NOT document metadata
@@ -512,29 +588,20 @@ CRITICAL REQUIREMENTS:
 3. Avoid questions about "this document", "the author", "this chapter", etc.
 4. EVERY question MUST have correctAnswer field
 5. EVERY question MUST have correctAnswerIndex field
-6. 🆕 EVERY question MUST have skillCategory and topicArea fields
-7. 🆕 EVERY question MUST have personalized strength and weakness descriptions specific to that question
-8. Multiple choice: 4 options, correct answer must match one option exactly
-9. True/False: options ["True", "False"], correct answer must be "True" or "False"
+6. Each quiz must have EXACTLY 10 questions - NO MORE, NO LESS
+7. EVERY question MUST have skillCategory and topicArea fields
+8. EVERY question MUST have personalized strength and weakness descriptions specific to that question
+9. Multiple choice: 4 options, correct answer must match one option exactly
+10. True/False: options ["${settings.trueOption}", "${settings.falseOption}"], correct answer must be "${settings.trueOption}" or "${settings.falseOption}"
 
-🆕 SKILL CATEGORIES (choose one for each question):
+SKILL CATEGORIES (choose one for each question):
 - factual_recall: Basic facts, definitions, and memorization
 - conceptual_understanding: Understanding relationships and concepts
 - analytical_thinking: Analysis, interpretation, and evaluation
 - procedural_knowledge: How-to knowledge and processes
 - critical_thinking: Judgment, evaluation, and decision-making
 
-🆕 TOPIC AREAS: Extract the main subject/topic from the document content (e.g., "financial_analysis", "project_management", "data_structures")
-
-🆕 PERSONALIZED STRENGTH/WEAKNESS DESCRIPTIONS:
-- strength: Write a specific, encouraging message about what the user demonstrates they understand well if they answer correctly. Be specific to the question content, not generic.
-- weakness: Write a specific, helpful message about what the user should review or study more if they answer incorrectly. Be specific to the question content, not generic.
-
-EXAMPLES:
-❌ Generic (BAD): "strength": "analytical_thinking", "weakness": "conceptual_understanding"
-✅ Specific (GOOD): "strength": "Excellent understanding of financial ratio purposes and their role in business performance evaluation", "weakness": "Should review the fundamental purposes of financial analysis and why ratios are essential for evaluating company health"
-
-GENERATE EXACTLY THIS JSON STRUCTURE:
+GENERATE EXACTLY THIS JSON STRUCTURE WITH 10 QUESTIONS EACH:
 
 {
   "quizzes": [
@@ -545,133 +612,16 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
       "questions": [
         {
           "id": 1,
-          "question": "What is the primary purpose of financial ratio analysis?",
-          "options": ["To calculate taxes", "To evaluate company performance and financial health", "To determine employee salaries", "To set product prices"],
-          "correctAnswer": "To evaluate company performance and financial health",
+          "question": "${settings.sampleQuestion}",
+          "options": ${JSON.stringify(settings.sampleOptions)},
+          "correctAnswer": "${settings.sampleOptions[1]}",
           "correctAnswerIndex": 1,
-          "explanation": "Financial ratio analysis helps assess a company's financial performance and health",
+          "explanation": "Explanation here",
           "points": 1,
           "skillCategory": "conceptual_understanding",
           "topicArea": "financial_analysis",
-          "strength": "Strong understanding of financial analysis fundamentals and the role of ratios in performance evaluation",
-          "weakness": "Should review the basic purposes of financial analysis and why ratios are crucial for business assessment"
-        },
-        {
-          "id": 2,
-          "question": "Which financial statement primarily shows profitability over a period?",
-          "options": ["Balance Sheet", "Income Statement", "Statement of Cash Flows", "Statement of Equity"],
-          "correctAnswer": "Income Statement",
-          "correctAnswerIndex": 1,
-          "explanation": "The Income Statement shows revenues, expenses, and profit over a specific period",
-          "points": 1,
-          "skillCategory": "factual_recall",
-          "topicArea": "financial_statements",
-          "strength": "Good knowledge of financial statement purposes and can distinguish between different statement types effectively",
-          "weakness": "Needs to study the specific functions of each financial statement, particularly income statement vs balance sheet differences"
-        },
-        {
-          "id": 3,
-          "question": "What does a current ratio below 1.0 typically suggest?",
-          "options": ["Strong financial position", "Potential liquidity problems", "High profitability", "Low debt levels"],
-          "correctAnswer": "Potential liquidity problems",
-          "correctAnswerIndex": 1,
-          "explanation": "A current ratio below 1.0 indicates current liabilities exceed current assets",
-          "points": 1,
-          "skillCategory": "analytical_thinking",
-          "topicArea": "liquidity_analysis",
-          "strength": "Excellent grasp of liquidity ratios and ability to interpret financial health indicators accurately",
-          "weakness": "Should review liquidity ratio calculations and what different ratio values indicate about company financial health"
-        },
-        {
-          "id": 4,
-          "question": "Which ratio measures a company's ability to pay short-term obligations?",
-          "options": ["Debt-to-equity ratio", "Quick ratio", "Return on assets", "Gross profit margin"],
-          "correctAnswer": "Quick ratio",
-          "correctAnswerIndex": 1,
-          "explanation": "The quick ratio measures immediate liquidity and ability to pay short-term debts",
-          "points": 1,
-          "skillCategory": "factual_recall",
-          "topicArea": "liquidity_ratios",
-          "strength": "Solid knowledge of different financial ratios and their specific purposes in financial analysis",
-          "weakness": "Needs to memorize and understand the different types of financial ratios and what each one measures specifically"
-        },
-        {
-          "id": 5,
-          "question": "What does a declining gross profit margin indicate?",
-          "options": ["Improving efficiency", "Rising costs or pricing pressure", "Increased sales volume", "Better inventory management"],
-          "correctAnswer": "Rising costs or pricing pressure",
-          "correctAnswerIndex": 1,
-          "explanation": "Declining gross margins suggest costs are rising faster than prices",
-          "points": 1,
-          "skillCategory": "analytical_thinking",
-          "topicArea": "profitability_analysis",
-          "strength": "Strong analytical skills in interpreting profitability trends and understanding cost-price relationships",
-          "weakness": "Should study how gross profit margins work and what causes them to increase or decrease over time"
-        },
-        {
-          "id": 6,
-          "question": "What is the main focus of liquidity analysis?",
-          "options": ["Long-term profitability", "Short-term payment ability", "Market share growth", "Employee productivity"],
-          "correctAnswer": "Short-term payment ability",
-          "correctAnswerIndex": 1,
-          "explanation": "Liquidity analysis focuses on a company's ability to meet short-term obligations",
-          "points": 1,
-          "skillCategory": "conceptual_understanding",
-          "topicArea": "liquidity_analysis",
-          "strength": "Clear understanding of liquidity concepts and why short-term payment ability matters for businesses",
-          "weakness": "Needs to review what liquidity means in business context and why it's important for company operations"
-        },
-        {
-          "id": 7,
-          "question": "Which type of analysis compares financial data across multiple periods?",
-          "options": ["Vertical analysis", "Horizontal analysis", "Ratio analysis", "Variance analysis"],
-          "correctAnswer": "Horizontal analysis",
-          "correctAnswerIndex": 1,
-          "explanation": "Horizontal analysis examines trends by comparing data across time periods",
-          "points": 1,
-          "skillCategory": "procedural_knowledge",
-          "topicArea": "financial_analysis_methods",
-          "strength": "Good understanding of different financial analysis techniques and when to use horizontal vs vertical analysis",
-          "weakness": "Should review the various financial analysis methods and understand when each technique is most appropriate to use"
-        },
-        {
-          "id": 8,
-          "question": "What does return on equity (ROE) measure?",
-          "options": ["Asset efficiency", "Debt management", "Profitability relative to shareholders' equity", "Liquidity position"],
-          "correctAnswer": "Profitability relative to shareholders' equity",
-          "correctAnswerIndex": 2,
-          "explanation": "ROE measures how effectively a company generates profit from shareholders' investments",
-          "points": 1,
-          "skillCategory": "conceptual_understanding",
-          "topicArea": "profitability_ratios",
-          "strength": "Excellent understanding of return on equity and how it measures management's effectiveness in using shareholder investments",
-          "weakness": "Needs to study profitability ratios, particularly how ROE relates shareholder equity to company earnings"
-        },
-        {
-          "id": 9,
-          "question": "Which factor is most important for comprehensive financial analysis?",
-          "options": ["Only quantitative ratios", "Both quantitative and qualitative factors", "Only historical data", "Only industry comparisons"],
-          "correctAnswer": "Both quantitative and qualitative factors",
-          "correctAnswerIndex": 1,
-          "explanation": "Effective analysis requires both numerical data and qualitative insights",
-          "points": 1,
-          "skillCategory": "critical_thinking",
-          "topicArea": "comprehensive_analysis",
-          "strength": "Advanced understanding that effective financial analysis requires both numbers and contextual business insights",
-          "weakness": "Should learn that financial analysis isn't just about calculations but also requires considering qualitative business factors"
-        },
-        {
-          "id": 10,
-          "question": "What is the purpose of benchmarking in financial analysis?",
-          "options": ["To reduce costs", "To compare performance against standards or competitors", "To increase revenue", "To hire employees"],
-          "correctAnswer": "To compare performance against standards or competitors",
-          "correctAnswerIndex": 1,
-          "explanation": "Benchmarking provides context by comparing performance to relevant standards",
-          "points": 1,
-          "skillCategory": "procedural_knowledge",
-          "topicArea": "benchmarking",
-          "strength": "Good grasp of benchmarking concepts and why comparative analysis is essential for meaningful financial evaluation",
-          "weakness": "Should study benchmarking techniques and understand why comparing to industry standards provides valuable business insights"
+          "strength": "Strong understanding of financial analysis fundamentals",
+          "weakness": "Should review the basic purposes of financial analysis"
         }
       ]
     },
@@ -682,133 +632,16 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
       "questions": [
         {
           "id": 1,
-          "question": "Financial analysis only considers quantitative data and ignores qualitative factors.",
-          "options": ["True", "False"],
-          "correctAnswer": "False",
+          "question": "Question here?",
+          "options": ["${settings.trueOption}", "${settings.falseOption}"],
+          "correctAnswer": "${settings.falseOption}",
           "correctAnswerIndex": 1,
-          "explanation": "Effective financial analysis incorporates both quantitative and qualitative factors",
+          "explanation": "Explanation here",
           "points": 1,
           "skillCategory": "conceptual_understanding",
-          "topicArea": "financial_analysis_principles",
-          "strength": "Clear understanding that comprehensive financial analysis requires both numerical data and qualitative business insights",
-          "weakness": "Should learn that financial analysis extends beyond just numbers and must include qualitative business factors for complete evaluation"
-        },
-        {
-          "id": 2,
-          "question": "The balance sheet provides a snapshot of financial position at a specific point in time.",
-          "options": ["True", "False"],
-          "correctAnswer": "True", 
-          "correctAnswerIndex": 0,
-          "explanation": "The balance sheet shows assets, liabilities, and equity at a specific date",
-          "points": 1,
-          "skillCategory": "factual_recall",
-          "topicArea": "balance_sheet",
-          "strength": "Solid knowledge of balance sheet timing and understands it represents financial position at a specific moment",
-          "weakness": "Needs to review balance sheet fundamentals and understand that it shows financial position at one point in time, not over a period"
-        },
-        {
-          "id": 3,
-          "question": "A high inventory turnover ratio always indicates excellent inventory management.",
-          "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Very high turnover might indicate stockouts or inadequate inventory levels",
-          "points": 1,
-          "skillCategory": "analytical_thinking",
-          "topicArea": "inventory_management",
-          "strength": "Advanced analytical thinking - understands that high ratios aren't always positive and can indicate inventory shortages",
-          "weakness": "Should study inventory management ratios more deeply and learn that extremely high turnover can signal inadequate stock levels"
-        },
-        {
-          "id": 4,
-          "question": "Liquidity ratios measure a company's ability to meet short-term obligations.",
-          "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Liquidity ratios assess the ability to pay short-term debts and obligations",
-          "points": 1,
-          "skillCategory": "factual_recall",
-          "topicArea": "liquidity_ratios",
-          "strength": "Good foundational knowledge of what liquidity ratios measure and their importance for short-term financial health",
-          "weakness": "Needs to review liquidity ratio concepts and understand how they measure a company's ability to pay immediate obligations"
-        },
-        {
-          "id": 5,
-          "question": "Profitability and cash flow always move in the same direction.",
-          "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Companies can be profitable but have cash flow problems due to timing differences",
-          "points": 1,
-          "skillCategory": "conceptual_understanding",
-          "topicArea": "profitability_vs_cashflow",
-          "strength": "Sophisticated understanding of the difference between accounting profits and actual cash movements in business operations",
-          "weakness": "Should study the relationship between profitability and cash flow and learn why they can differ due to accounting timing"
-        },
-        {
-          "id": 6,
-          "question": "Vertical analysis expresses each line item as a percentage of a base amount.",
-          "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Vertical analysis shows proportional relationships using percentages",
-          "points": 1,
-          "skillCategory": "procedural_knowledge",
-          "topicArea": "vertical_analysis",
-          "strength": "Good understanding of vertical analysis technique and how it uses percentages to show proportional financial relationships",
-          "weakness": "Needs to review vertical analysis methodology and understand how it expresses financial statement items as percentages"
-        },
-        {
-          "id": 7,
-          "question": "Industry comparison is unnecessary when analyzing financial ratios.",
-          "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Industry benchmarks provide essential context for ratio interpretation",
-          "points": 1,
-          "skillCategory": "critical_thinking",
-          "topicArea": "industry_comparison",
-          "strength": "Excellent critical thinking - recognizes that financial ratios need industry context to be meaningful and actionable",
-          "weakness": "Should learn that financial ratios must be compared to industry standards to provide meaningful insights about company performance"
-        },
-        {
-          "id": 8,
-          "question": "Working capital represents the difference between current assets and current liabilities.",
-          "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Working capital = Current Assets - Current Liabilities",
-          "points": 1,
-          "skillCategory": "factual_recall",
-          "topicArea": "working_capital",
-          "strength": "Accurate knowledge of working capital calculation and understanding of this fundamental liquidity measure",
-          "weakness": "Needs to memorize working capital formula and understand what current assets minus current liabilities represents"
-        },
-        {
-          "id": 9,
-          "question": "Financial leverage always improves return on equity.",
-          "options": ["True", "False"],
-          "correctAnswer": "False",
-          "correctAnswerIndex": 1,
-          "explanation": "Leverage can increase ROE but also increases financial risk",
-          "points": 1,
-          "skillCategory": "analytical_thinking",
-          "topicArea": "financial_leverage",
-          "strength": "Strong analytical understanding that financial leverage involves trade-offs between returns and risk",
-          "weakness": "Should study financial leverage concepts and learn that debt can amplify both gains and losses, affecting risk levels"
-        },
-        {
-          "id": 10,
-          "question": "Trend analysis helps identify patterns in financial performance over time.",
-          "options": ["True", "False"],
-          "correctAnswer": "True",
-          "correctAnswerIndex": 0,
-          "explanation": "Trend analysis reveals performance patterns across multiple periods",
-          "points": 1,
-          "skillCategory": "procedural_knowledge",
-          "topicArea": "trend_analysis",
-          "strength": "Good understanding of trend analysis purpose and how it reveals patterns in financial performance over multiple time periods",
-          "weakness": "Should review trend analysis techniques and understand how they help identify patterns in financial data over time"
+          "topicArea": "analysis_principles",
+          "strength": "Clear understanding of comprehensive analysis requirements",
+          "weakness": "Should learn that analysis extends beyond just numbers"
         }
       ]
     }
@@ -818,35 +651,58 @@ GENERATE EXACTLY THIS JSON STRUCTURE:
 CONTENT TO ANALYZE FOR CORE CONCEPTS:
 ${chunkedText}
 
-IMPORTANT REMINDERS:
-1. Make strength descriptions encouraging and specific about what knowledge the user demonstrates
-2. Make weakness descriptions helpful and specific about what the user should study or review
-3. Each strength/weakness should be unique to that specific question - no generic responses
-4. Focus descriptions on the actual concept being tested, not just the skill category
-5. Keep descriptions between 15-50 words for readability
-6. Use positive, learning-focused language that helps students improve
-
-Remember: Generate questions that test understanding of the CONCEPTS and PRINCIPLES discussed in the content, with personalized strength/weakness feedback for each question that relates directly to what that specific question tests.`;
+CRITICAL: Generate EXACTLY 10 questions for each quiz. The first quiz should be multiple_choice with 4 options each. The second quiz should be true_false with ["${settings.trueOption}", "${settings.falseOption}"] options.`;
 };
 
 /**
- * Parse comprehensive quiz collection
+ * 🆕 IMPROVED: Parse comprehensive quiz collection with better error handling
  */
-const parseComprehensiveQuizCollection = (rawResponse) => {
+const parseComprehensiveQuizCollection = (rawResponse, language = 'en') => {
   try {
     console.log(`🔍 Parsing comprehensive quiz collection...`);
     
     let cleanedResponse = rawResponse.trim();
-    const jsonStart = cleanedResponse.indexOf('{');
-    const jsonEnd = cleanedResponse.lastIndexOf('}') + 1;
     
-    if (jsonStart === -1 || jsonEnd === 0) {
-      console.error('❌ No JSON object found in AI response');
+    // Remove potential markdown formatting
+    cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // Find JSON boundaries more robustly
+    let jsonStart = cleanedResponse.indexOf('{');
+    let jsonEnd = -1;
+    
+    if (jsonStart !== -1) {
+      // Find the matching closing brace
+      let braceCount = 0;
+      for (let i = jsonStart; i < cleanedResponse.length; i++) {
+        if (cleanedResponse[i] === '{') {
+          braceCount++;
+        } else if (cleanedResponse[i] === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            jsonEnd = i + 1;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (jsonStart === -1 || jsonEnd === -1) {
+      console.error('❌ No valid JSON object found in AI response');
+      console.error('❌ Raw response preview:', rawResponse.substring(0, 1000));
       throw new Error('No JSON object found in response');
     }
     
-    cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd);
-    const quizData = JSON.parse(cleanedResponse);
+    const jsonContent = cleanedResponse.substring(jsonStart, jsonEnd);
+    console.log('🔍 Attempting to parse JSON of length:', jsonContent.length);
+    
+    let quizData;
+    try {
+      quizData = JSON.parse(jsonContent);
+    } catch (parseError) {
+      console.error('❌ JSON parsing failed:', parseError.message);
+      console.error('❌ JSON content preview:', jsonContent.substring(0, 500));
+      throw new Error(`JSON parsing failed: ${parseError.message}`);
+    }
     
     if (!quizData.quizzes) {
       console.error('❌ Invalid quiz structure: missing quizzes array');
@@ -869,7 +725,7 @@ const parseComprehensiveQuizCollection = (rawResponse) => {
         }
       }
       
-      const validatedQuiz = validateQuiz(quiz, quiz.difficulty, quiz.type);
+      const validatedQuiz = validateQuiz(quiz, quiz.difficulty, quiz.type, language);
       if (validatedQuiz) {
         allQuizzes.push(validatedQuiz);
         console.log(`✅ Quiz ${i + 1} validated successfully with ${validatedQuiz.questions.length} questions`);
@@ -891,24 +747,21 @@ const parseComprehensiveQuizCollection = (rawResponse) => {
   } catch (error) {
     console.error('❌ JSON parsing error:', error.message);
     console.error('❌ Raw response preview:', rawResponse.substring(0, 500));
-    return {
-      quizzes: [],
-      metadata: { totalQuizzes: 0, totalQuestions: 0 }
-    };
+    throw error; // Let it fail properly instead of returning empty
   }
 };
 
 /**
  * Validate individual quiz
  */
-const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
+const validateQuiz = (quiz, expectedDifficulty, expectedType, language = 'en') => {
   try {
     if (!quiz.questions || !Array.isArray(quiz.questions)) {
       throw new Error('Quiz missing questions array');
     }
     
     const validatedQuestions = quiz.questions
-      .map((q, index) => validateQuestion(q, index + 1, expectedType))
+      .map((q, index) => validateQuestion(q, index + 1, expectedType, language))
       .filter(q => q !== null);
     
     if (validatedQuestions.length === 0) {
@@ -917,7 +770,7 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
     
     // ✅ CLEAN THE TITLE - REMOVE SPECIAL CHARACTERS
     const cleanTitle = (quiz.title || `${expectedDifficulty} ${expectedType} Quiz`)
-      .replace(/[^a-zA-Z0-9\s\-_.,()[\]]/g, '') // Remove invalid chars
+      .replace(/[^a-zA-Z0-9\s\-_.,()[\]À-ÿ]/g, '') // Allow accented characters
       .trim();
     
     return {
@@ -932,7 +785,7 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
         questionType: expectedType,  // ✅ THIS IS KEY FOR SEARCH
         type: expectedType,          // ✅ BACKUP FIELD
         generationType: 'bulk_generation',
-        model: 'deepseek-chat',
+        model: 'deepseek-coder',
         originalQuestionCount: validatedQuestions.length,
         generatedAt: new Date().toISOString(),
         difficulty: expectedDifficulty
@@ -948,7 +801,7 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType) => {
 /**
  * Validate individual question
  */
-const validateQuestion = (question, questionId, questionType) => {
+const validateQuestion = (question, questionId, questionType, language = 'en') => {
   try {
     if (!question.question || typeof question.question !== 'string') {
       throw new Error(`Question ${questionId}: missing question text`);
@@ -996,7 +849,15 @@ const validateQuestion = (question, questionId, questionType) => {
       weakness: question.weakness.trim()
     };
     
-    // Rest of your existing validation logic remains the same...
+    // 🆕 LANGUAGE-SPECIFIC VALIDATION
+    const languageSettings = {
+      en: { trueOption: 'True', falseOption: 'False' },
+      fr: { trueOption: 'Vrai', falseOption: 'Faux' },
+      es: { trueOption: 'Verdadero', falseOption: 'Falso' }
+    };
+
+    const settings = languageSettings[language] || languageSettings.en;
+    
     switch (questionType) {
       case 'multiple_choice':
         if (!Array.isArray(question.options) || question.options.length !== 4) {
@@ -1014,16 +875,17 @@ const validateQuestion = (question, questionId, questionType) => {
         break;
         
       case 'true_false':
-        validatedQuestion.options = ['True', 'False'];
+        // 🆕 SET LANGUAGE-SPECIFIC OPTIONS
+        validatedQuestion.options = [settings.trueOption, settings.falseOption];
         
         const normalizedAnswer = question.correctAnswer.toString();
-        if (!['True', 'False'].includes(normalizedAnswer)) {
-          console.error(`❌ Question ${questionId}: true/false answer must be 'True' or 'False', got:`, question.correctAnswer);
-          throw new Error(`Question ${questionId}: true/false answer must be 'True' or 'False'`);
+        if (![settings.trueOption, settings.falseOption].includes(normalizedAnswer)) {
+          console.error(`❌ Question ${questionId}: true/false answer must be '${settings.trueOption}' or '${settings.falseOption}', got:`, question.correctAnswer);
+          throw new Error(`Question ${questionId}: true/false answer must be '${settings.trueOption}' or '${settings.falseOption}'`);
         }
         
         validatedQuestion.correctAnswer = normalizedAnswer;
-        validatedQuestion.correctAnswerIndex = normalizedAnswer === 'True' ? 0 : 1;
+        validatedQuestion.correctAnswerIndex = normalizedAnswer === settings.trueOption ? 0 : 1;
         console.log(`✅ Question ${questionId}: correctAnswer="${normalizedAnswer}" at index ${validatedQuestion.correctAnswerIndex}`);
         break;
         
@@ -1069,7 +931,7 @@ ${chunkedText}`;
     }];
 
     const response = await callDeepSeekAPI(messages, {
-      maxTokens: 4096, // Reduced
+      maxTokens: 8192,
       ...options
     });
     

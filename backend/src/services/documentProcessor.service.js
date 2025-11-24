@@ -7,7 +7,38 @@
 import fs from 'fs';
 import path from 'path';
 import pdfParse from 'pdf-parse';
+import { franc } from 'franc';
 import { HttpError } from '#exceptions/index.js';
+
+/**
+ * Language detection helper function
+ */
+const detectLanguage = (text) => {
+  try {
+    const detected = franc(text);
+    // Convert ISO 639-3 to ISO 639-1 (common language codes)
+    const languageMap = {
+      'eng': 'en',
+      'fra': 'fr', 
+      'spa': 'es',
+      'deu': 'de',
+      'ita': 'it',
+      'por': 'pt',
+      'rus': 'ru',
+      'ara': 'ar',
+      'cmn': 'zh', // Chinese Mandarin
+      'jpn': 'ja',
+      'kor': 'ko',
+      'hin': 'hi',
+      'und': 'en'  // undefined -> default to English
+    };
+    
+    return languageMap[detected] || 'en'; // Default to English if not found
+  } catch (error) {
+    console.warn('Language detection failed, defaulting to English:', error);
+    return 'en';
+  }
+};
 
 /**
  * Document processing configuration - UPDATED for token management
@@ -116,6 +147,10 @@ const extractTextFromPDF = async (filePath, options = {}) => {
       console.log(`✂️ Estimated tokens after truncation: ${Math.ceil(extractedText.length / 4)}`);
     }
     
+    // 🆕 NEW: Detect language from extracted text
+    const detectedLanguage = detectLanguage(extractedText);
+    console.log(`🌍 Detected language: ${detectedLanguage}`);
+    
     console.log(`✅ PDF text extracted successfully (${extractedText.length} characters, ${pdfData.numpages} pages)`);
     
     return new DocumentExtractionResult({
@@ -131,7 +166,8 @@ const extractTextFromPDF = async (filePath, options = {}) => {
         truncationRatio: wasTruncated ? (extractedText.length / pdfData.text.length) : 1,
         estimatedTokens: Math.ceil(extractedText.length / 4),
         extractionMethod: 'pdf-parse',
-        processingTime: processingTime
+        processingTime: processingTime,
+        detectedLanguage: detectedLanguage // 🆕 NEW: Language detection
       },
       processingTime
     });
@@ -146,7 +182,8 @@ const extractTextFromPDF = async (filePath, options = {}) => {
       text: '',
       metadata: {
         extractionMethod: 'pdf-parse',
-        processingTime: processingTime
+        processingTime: processingTime,
+        detectedLanguage: 'en' // 🆕 NEW: Default fallback
       },
       processingTime,
       error: error.message
@@ -173,9 +210,12 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
     
     console.log(`⚠️ DOCX processing not yet implemented - using placeholder`);
     
+    const placeholderText = `[DOCX Document - ${path.basename(filePath)}]\n\nThis DOCX document processing is not yet implemented. Please convert to PDF or TXT format for full text extraction.`;
+    const detectedLanguage = detectLanguage(placeholderText); // 🆕 NEW: Detect language even for placeholder
+    
     return new DocumentExtractionResult({
       success: true,
-      text: `[DOCX Document - ${path.basename(filePath)}]\n\nThis DOCX document processing is not yet implemented. Please convert to PDF or TXT format for full text extraction.`,
+      text: placeholderText,
       metadata: {
         pageCount: null,
         wordCount: null,
@@ -184,7 +224,8 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
         wasTruncated: false,
         estimatedTokens: 50, // Placeholder tokens
         extractionMethod: 'placeholder',
-        processingTime: processingTime
+        processingTime: processingTime,
+        detectedLanguage: detectedLanguage // 🆕 NEW: Language detection
       },
       processingTime
     });
@@ -199,7 +240,8 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
       text: '',
       metadata: {
         extractionMethod: 'placeholder',
-        processingTime: processingTime
+        processingTime: processingTime,
+        detectedLanguage: 'en' // 🆕 NEW: Default fallback
       },
       processingTime,
       error: error.message
@@ -256,6 +298,10 @@ const extractTextFromTXT = async (filePath, options = {}) => {
       console.log(`✂️ TXT text truncated: ${originalLength} → ${text.length} chars`);
     }
     
+    // 🆕 NEW: Detect language from extracted text
+    const detectedLanguage = detectLanguage(text);
+    console.log(`🌍 Detected language: ${detectedLanguage}`);
+    
     const processingTime = Date.now() - startTime;
     
     console.log(`✅ TXT file read successfully (${text.length} characters)`);
@@ -273,7 +319,8 @@ const extractTextFromTXT = async (filePath, options = {}) => {
         truncationRatio: wasTruncated ? (text.length / originalLength) : 1,
         estimatedTokens: Math.ceil(text.length / 4),
         extractionMethod: 'utf8-read',
-        processingTime: processingTime
+        processingTime: processingTime,
+        detectedLanguage: detectedLanguage // 🆕 NEW: Language detection
       },
       processingTime
     });
@@ -288,7 +335,8 @@ const extractTextFromTXT = async (filePath, options = {}) => {
       text: '',
       metadata: {
         extractionMethod: 'utf8-read',
-        processingTime: processingTime
+        processingTime: processingTime,
+        detectedLanguage: 'en' // 🆕 NEW: Default fallback
       },
       processingTime,
       error: error.message

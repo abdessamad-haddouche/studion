@@ -78,12 +78,6 @@ const quizSchema = new mongoose.Schema({
     trim: true,
     minlength: [QUIZ_VALIDATION_RULES.TITLE.MIN_LENGTH, QUIZ_VALIDATION_RULES.TITLE.ERROR_MESSAGE],
     maxlength: [QUIZ_VALIDATION_RULES.TITLE.MAX_LENGTH, QUIZ_VALIDATION_RULES.TITLE.ERROR_MESSAGE],
-    validate: {
-      validator: function(title) {
-        return QUIZ_VALIDATION_RULES.TITLE.PATTERN.test(title);
-      },
-      message: QUIZ_VALIDATION_RULES.TITLE.ERROR_MESSAGE
-    },
     index: 'text'
   },
   

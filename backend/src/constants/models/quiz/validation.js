@@ -15,7 +15,7 @@ export const QUIZ_VALIDATION_RULES = Object.freeze({
   TITLE: {
     MIN_LENGTH: 5,
     MAX_LENGTH: 150,
-    PATTERN: /^[a-zA-Z0-9\s\-_.,()[\]!?]+$/,
+    PATTERN: /^[\p{L}\p{N}\p{P}\p{S}\p{Z}]+$/u,
     ERROR_MESSAGE: 'Title can only contain letters, numbers, spaces, and common punctuation'
   },
 
