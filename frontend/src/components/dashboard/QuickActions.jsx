@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/dashboard/QuickActions.jsx
- * Centered content layout
  */
 
 import React from 'react'
@@ -88,14 +87,17 @@ const QuickActions = ({ onUploadClick, className = '' }) => {
       {/* Centered title */}
       <h3 className="font-semibold text-slate-900 mb-6 text-sm text-center">Quick Actions</h3>
       
-      {/* Centered grid with justify-center */}
       <div className="flex justify-center">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl">
+        <div className={`grid gap-4 ${
+          actions.length === 3 
+            ? 'grid-cols-1 md:grid-cols-3' 
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+        }`}>
           {actions.map((action, index) => (
             <button
               key={index}
               onClick={action.action}
-              className={`p-4 rounded-lg border transition-all text-left hover:shadow-md ${
+              className={`p-4 rounded-lg border transition-all text-left hover:shadow-md w-full ${
                 action.primary 
                   ? 'border-blue-200 bg-blue-50 hover:bg-blue-100' 
                   : 'border-slate-200 bg-slate-50 hover:bg-slate-100'

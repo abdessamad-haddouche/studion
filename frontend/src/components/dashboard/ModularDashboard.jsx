@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
 import { selectPlanFeatures } from '../../store/slices/subscriptionSlice'
+import PointsDiscount from './PointsDiscount'
 
 // Configuration
 import { DASHBOARD_COMPONENTS, getEnabledComponents } from './DashboardConfig'
@@ -319,7 +320,15 @@ const ModularDashboard = () => {
         onUploadClick={handleUploadClick}
         className="mb-6" 
       />
-    )
+    ),
+    [DASHBOARD_COMPONENTS.QUICK_ACTIONS]: (
+    <div key="actions-section" className="space-y-6">
+      <QuickActions 
+        onUploadClick={handleUploadClick}
+      />
+      <PointsDiscount />
+    </div>
+  )
   }
 
   return (
