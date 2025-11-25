@@ -259,7 +259,10 @@ const CoursesPage = () => {
     loadEnrollmentStatuses()
     
     // Refresh user points in Redux
-    await dispatch(fetchUserPoints())
+    await Promise.all([
+      dispatch(fetchUserPoints()),
+      dispatch(fetchUserStats())
+    ])
     
     // Close modal
     setShowEnrollmentModal(false)

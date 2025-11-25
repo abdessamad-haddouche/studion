@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings, GraduationCap, Plus } from 'lucide-react'
 import { logoutUser, fetchUserStats, getCurrentUser } from '../../store/slices/authSlice'
-import { addUserPoints } from '../../store/slices/pointsSlice'
+import { addUserPoints, fetchUserPoints } from '../../store/slices/pointsSlice'
 import { selectStats } from '../../store/slices/userStatsSlice'
 import { selectCurrentPlan } from '../../store/slices/subscriptionSlice'
 import toast from 'react-hot-toast'
@@ -108,50 +108,53 @@ const Header = () => {
   const planDisplayName = formatPlanName(currentPlan)
   const planColor = getPlanStyling(currentPlan)
   
-  // Get real-time stats from Redux (consistent across all pages)
   const authStats = useSelector(state => state.auth.userStats)
   const userStatsSliceStats = useSelector(selectStats)
+  const pointsSliceBalance = useSelector(state => state.points?.balance || 0)
+  const coursesSlicePoints = useSelector(state => state.courses?.userPoints || 0)
+
+  const calculateCurrentPoints = () => {
+    // Priority order: pointsSlice (real-time) -> authSlice -> userStatsSlice -> coursesSlice
+    if (pointsSliceBalance > 0) return pointsSliceBalance
+    if (authStats?.totalPoints > 0) return authStats.totalPoints
+    if (userStatsSliceStats?.totalPoints > 0) return userStatsSliceStats.totalPoints
+    if (coursesSlicePoints > 0) return coursesSlicePoints
+    return 0
+  }
+
+  const currentPoints = calculateCurrentPoints()
   
-  // Merge stats from both sources (most recent wins)
+  // Merge stats from all sources (most recent wins)
   const liveStats = {
-    totalPoints: 0,
     quizzesCompleted: 0,
     bestScore: 0,
     ...authStats,
-    ...userStatsSliceStats
+    ...userStatsSliceStats,
+    totalPoints: currentPoints
   }
 
   const handleAddTestPoints = async () => {
     const pointsToAdd = prompt('How many points to add?', '100')
     if (pointsToAdd && !isNaN(pointsToAdd)) {
       try {
-        // Add points to backend
         await dispatch(addUserPoints({ 
           amount: parseInt(pointsToAdd), 
           reason: 'Manual testing points' 
         })).unwrap()
         
-        dispatch({
-          type: 'auth/updateStatsOptimistically',
-          payload: {
-            totalPoints: (liveStats.totalPoints || 0) + parseInt(pointsToAdd)
-          }
-        })
+        await Promise.all([
+          dispatch(fetchUserPoints()),  // Refresh pointsSlice
+          dispatch(fetchUserStats())    // Refresh authSlice
+        ])
         
-        // Refresh stats from backend (for accuracy)
-        setTimeout(() => {
-          dispatch(fetchUserStats())
-        }, 500)
-        
+        console.log('✅ Points updated in all Redux slices')
         toast.success(`Added ${pointsToAdd} points!`)
       } catch (error) {
         toast.error('Failed to add points')
-        // Revert optimistic update on error
-        dispatch(fetchUserStats())
+        console.error('Points addition error:', error)
       }
     }
   }
-
 
   const [coursesDropdownTimeout, setCoursesDropdownTimeout] = useState(null)
 
@@ -180,6 +183,17 @@ const Header = () => {
       dispatch(fetchUserStats())
     }
   }, [dispatch, isAuthenticated, location.pathname])
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isAuthenticated) {
+        dispatch(fetchUserStats())
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [dispatch, isAuthenticated])
 
   useEffect(() => {
     return () => {
@@ -333,9 +347,9 @@ const Header = () => {
         <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-1.5 rounded-lg border border-amber-200">
           <Trophy className="w-4 h-4 text-amber-600" />
           <span className="text-sm font-medium text-amber-700">
-            {liveStats.totalPoints || 0} pts
+            {currentPoints.toLocaleString()} pts {/* 🆕 Use currentPoints instead of liveStats.totalPoints */}
           </span>
-          {/* 🆕 Testing Button - Only show in development */}
+          {/* Testing Button - Only show in development */}
           {import.meta.env.MODE === 'development' && (
             <button
               onClick={handleAddTestPoints}
@@ -379,7 +393,7 @@ const Header = () => {
                 <p className="text-xs text-slate-500">{user?.email}</p>
                 
                 <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Points: {liveStats.totalPoints}</span>
+                  <span className="text-slate-500">Points: {currentPoints.toLocaleString()}</span> {/* 🆕 Use currentPoints */}
                   <span className={`font-medium ${planColor}`}>
                     {planDisplayName}
                   </span>
@@ -472,7 +486,7 @@ const Header = () => {
                     <div className="flex items-center space-x-2">
                       <Trophy className="w-4 h-4 text-amber-600" />
                       <span className="text-sm font-medium text-slate-700">
-                        {liveStats.totalPoints} pts
+                        {currentPoints.toLocaleString()} pts {/* 🆕 Use currentPoints */}
                       </span>
                     </div>
                   </div>

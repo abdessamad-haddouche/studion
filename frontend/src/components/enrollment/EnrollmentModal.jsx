@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/enrollment/EnrollmentModal.jsx
- * Enrollment modal
  */
 
 import React, { useState, useEffect } from 'react'
@@ -14,6 +13,7 @@ import LoadingSpinner from '../ui/LoadingSpinner'
 import pointsService from '../../services/points.service'
 import enrollmentService from '../../services/enrollment.service'
 import { fetchUserPoints } from '../../store/slices/coursesSlice'
+import { fetchUserStats } from '../../store/slices/authSlice'
 
 const EnrollmentModal = ({ 
   isOpen, 
@@ -130,8 +130,13 @@ const EnrollmentModal = ({
           return
         }
 
-        // Update Redux with new points balance
-        dispatch(fetchUserPoints())
+        // 🆕 FIX: Update BOTH Redux slices to ensure Header sees the change
+        await Promise.all([
+          dispatch(fetchUserPoints()),  // Updates coursesSlice.userPoints
+          dispatch(fetchUserStats())    // Updates authSlice.userStats.totalPoints (used by Header)
+        ])
+        
+        console.log('✅ Points updated in both Redux slices')
       }
 
       // Save enrollment to localStorage
