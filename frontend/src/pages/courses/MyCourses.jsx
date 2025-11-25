@@ -230,7 +230,7 @@ const MyCourses = () => {
                       <div className="flex justify-between">
                         <span className="text-slate-600">Price Paid:</span>
                         <span className="text-slate-900 font-semibold">
-                          {finalPrice === 0 ? 'FREE' : `$${finalPrice.toFixed(2)}`}
+                          {finalPrice === 0 ? 'FREE' : `${finalPrice.toFixed(2)} MAD`}
                         </span>
                       </div>
                     </div>
