@@ -23,6 +23,23 @@ export const fetchUserPoints = createAsyncThunk(
   }
 )
 
+// Add async thunk for adding points (for testing)
+export const addUserPoints = createAsyncThunk(
+  'points/addUserPoints',
+  async ({ amount, reason = 'Testing points' }, { rejectWithValue }) => {
+    try {
+      const response = await pointsService.addPoints(amount, reason)
+      if (response.success) {
+        return response.data
+      } else {
+        return rejectWithValue(response.error)
+      }
+    } catch (error) {
+      return rejectWithValue(error.message)
+    }
+  }
+)
+
 // Async thunk for deducting points
 export const deductUserPoints = createAsyncThunk(
   'points/deductUserPoints',
@@ -93,6 +110,14 @@ const pointsSlice = createSlice({
       .addCase(deductUserPoints.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
+      })
+      // Add to extraReducers:
+      .addCase(addUserPoints.fulfilled, (state, action) => {
+        state.loading = false
+        state.balance = action.payload?.newTotal || state.balance
+        state.totalEarned = (state.totalEarned || 0) + (action.payload?.pointsAdded || 0)
+        state.lastUpdated = new Date().toISOString()
+        state.error = null
       })
   }
 })

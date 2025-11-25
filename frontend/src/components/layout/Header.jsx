@@ -6,8 +6,9 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings, GraduationCap } from 'lucide-react'
+import { Menu, X, ChevronDown, BookOpen, Brain, Trophy, Sparkles, User, LogOut, Settings, GraduationCap, Plus } from 'lucide-react'
 import { logoutUser, fetchUserStats, getCurrentUser } from '../../store/slices/authSlice'
+import { addUserPoints } from '../../store/slices/pointsSlice'
 import { selectStats } from '../../store/slices/userStatsSlice'
 import { selectCurrentPlan } from '../../store/slices/subscriptionSlice'
 import toast from 'react-hot-toast'
@@ -121,6 +122,39 @@ const Header = () => {
     ...authStats,
     ...userStatsSliceStats
   }
+
+  const handleAddTestPoints = async () => {
+    const pointsToAdd = prompt('How many points to add?', '100')
+    if (pointsToAdd && !isNaN(pointsToAdd)) {
+      try {
+        // Add points to backend
+        await dispatch(addUserPoints({ 
+          amount: parseInt(pointsToAdd), 
+          reason: 'Manual testing points' 
+        })).unwrap()
+        
+        // ✅ IMMEDIATELY update the authSlice stats (optimistic update)
+        dispatch({
+          type: 'auth/updateStatsOptimistically',
+          payload: {
+            totalPoints: (liveStats.totalPoints || 0) + parseInt(pointsToAdd)
+          }
+        })
+        
+        // Refresh stats from backend (for accuracy)
+        setTimeout(() => {
+          dispatch(fetchUserStats())
+        }, 500)
+        
+        toast.success(`Added ${pointsToAdd} points!`)
+      } catch (error) {
+        toast.error('Failed to add points')
+        // Revert optimistic update on error
+        dispatch(fetchUserStats())
+      }
+    }
+  }
+
 
   // ✅ FIX: Add timeout to prevent dropdown from closing immediately
   const [coursesDropdownTimeout, setCoursesDropdownTimeout] = useState(null)
@@ -307,6 +341,16 @@ const Header = () => {
           <span className="text-sm font-medium text-amber-700">
             {liveStats.totalPoints || 0} pts
           </span>
+          {/* 🆕 Testing Button - Only show in development */}
+          {import.meta.env.MODE === 'development' && (
+            <button
+              onClick={handleAddTestPoints}
+              className="ml-2 w-6 h-6 bg-amber-200 hover:bg-amber-300 rounded-full flex items-center justify-center text-amber-700 hover:text-amber-800 transition-colors"
+              title="Add test points"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
         <div className="relative">
