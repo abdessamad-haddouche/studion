@@ -16,11 +16,20 @@ export const EMAIL_VALIDATION = Object.freeze({
 /**
  * Password validation configuration
  */
+/*
 export const PASSWORD_VALIDATION = Object.freeze({
   MIN_LENGTH: 8,
   MAX_LENGTH: 128,
   PATTERN: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
   ERROR_MESSAGE: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+});
+*/
+
+export const PASSWORD_VALIDATION = Object.freeze({
+  MIN_LENGTH: 6,
+  MAX_LENGTH: 128,
+  PATTERN: /^.{8,128}$/,
+  ERROR_MESSAGE: 'Password must be between 8 and 128 characters'
 });
 
 /**
