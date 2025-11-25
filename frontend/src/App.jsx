@@ -1,12 +1,6 @@
 /**
  * PATH: src/App.jsx
- * UPDATED App Component with Courses Routes
- * 
- * ✅ ADDED:
- * - Courses marketplace routes
- * - Course details routes
- * - My courses page
- * - Public courses browsing
+ * App Component
  */
 
 import React, { useEffect } from 'react'

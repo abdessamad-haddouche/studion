@@ -5,10 +5,6 @@
 
 import axios from 'axios'
 
-// ===========================================
-// BULLETPROOF URL DETECTION
-// ===========================================
-
 const detectBackendURL = () => {
   // Try environment variables first
   if (import.meta.env?.VITE_API_URL) {
@@ -28,7 +24,6 @@ const detectBackendURL = () => {
   console.log(`🔍 No env vars found. Current host: ${currentHost}`);
   console.log('🎯 Using fallback URL: http://localhost:5000/api');
   
-  // Always fallback to port 5000 since that's what your backend uses
   return 'http://localhost:5000/api';
 };
 
@@ -36,10 +31,6 @@ const detectBackendURL = () => {
 const API_BASE_URL = detectBackendURL();
 
 console.log('🚀 FINAL API BASE URL:', API_BASE_URL);
-
-// ===========================================
-// AXIOS INSTANCE WITH BULLETPROOF CONFIG
-// ===========================================
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -49,10 +40,6 @@ const api = axios.create({
     'Accept': 'application/json',
   }
 })
-
-// ===========================================
-// REQUEST INTERCEPTOR WITH DETAILED LOGGING
-// ===========================================
 
 api.interceptors.request.use(
   (config) => {

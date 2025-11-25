@@ -1,9 +1,5 @@
 /**
  * PATH: src/store/slices/authSlice.js
- * FIXED Auth Slice with Proper Backend Response Parsing - FULL CODE
- * 
- * ✅ PROBLEM: Backend returns nested structure but authSlice wasn't parsing it correctly
- * ✅ SOLUTION: Parse the { data: { progress: {...}, overall: {...} } } structure properly
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
@@ -16,7 +12,6 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await authAPI.login(credentials)
       
-      // ✅ FIXED: Store token from correct path
       if (response.data.data.accessToken) {
         localStorage.setItem('accessToken', response.data.data.accessToken)
         console.log('🔥 TOKEN SAVED TO LOCALSTORAGE:', response.data.data.accessToken.substring(0, 20) + '...')
@@ -68,11 +63,7 @@ export const checkAuthState = createAsyncThunk(
         return rejectWithValue('No token found')
       }
       
-      // Verify token with backend (you'll need this endpoint)
-      // const response = await authAPI.verifyToken()
-      // return response.data
       
-      // For now, just return that we have a token
       return { token, user: null }
     } catch (error) {
       localStorage.removeItem('accessToken')
@@ -85,11 +76,11 @@ export const getCurrentUser = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await userAPI.getCurrentUser() // You need this API method
+      const response = await userAPI.getCurrentUser()
       console.log('👤 Current User Response:', response.data)
       
       return {
-        user: response.data.data // Since your controller returns data.profile
+        user: response.data.data
       }
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to get user')
@@ -97,7 +88,6 @@ export const getCurrentUser = createAsyncThunk(
   }
 )
 
-// ✅ FIXED: Fetch user stats with proper parsing
 export const fetchUserStats = createAsyncThunk(
   'auth/fetchUserStats',
   async (_, { rejectWithValue }) => {
@@ -106,17 +96,14 @@ export const fetchUserStats = createAsyncThunk(
       const response = await userAPI.getStats()
       console.log('📊 AuthSlice: RAW Backend Response:', response.data)
       
-      // ✅ FIXED: Parse the correct structure from your backend
       const backendData = response.data
       
-      // Your backend returns: { success: true, message: "...", data: { progress: {...}, overall: {...} } }
       const progressData = backendData.data?.progress || {}
       const overallData = backendData.data?.overall || {}
       
       console.log('📊 AuthSlice: Progress Data:', progressData)
       console.log('📊 AuthSlice: Overall Data:', overallData)
       
-      // ✅ FIXED: Map backend fields to frontend structure
       const mappedStats = {
         quizzesCompleted: progressData.quizzesCompleted || 0,
         totalPoints: overallData.totalPoints || progressData.totalPoints || 0,
@@ -147,8 +134,8 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user: null,
-    userStats: null, // ✅ Store parsed user stats here
-    rawStatsData: null, // ✅ Store raw backend data for debugging
+    userStats: null,
+    rawStatsData: null,
     token: localStorage.getItem('accessToken'),
     isAuthenticated: !!localStorage.getItem('accessToken'),
     isLoading: false,
@@ -192,19 +179,18 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(loginUser.fulfilled, (state, action) => {
-        console.log('🔥 LOGIN RESPONSE:', action.payload) // Debug
+        console.log('🔥 LOGIN RESPONSE:', action.payload)
         
         state.isLoading = false
         state.isAuthenticated = true
         
-        // ✅ FIXED: Access token from correct path
-        state.token = action.payload.data.accessToken  // ← Changed this line
-        state.user = action.payload.data.user           // ← Changed this line
+        state.token = action.payload.data.accessToken 
+        state.user = action.payload.data.user
         
         state.loginSuccess = true
         state.error = null
         
-        console.log('🔥 TOKEN STORED:', state.token) // Debug
+        console.log('🔥 TOKEN STORED:', state.token)
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false
@@ -258,20 +244,17 @@ const authSlice = createSlice({
         state.isAuthenticated = false
       })
 
-      // ✅ FIXED: User stats cases with proper parsing
       .addCase(fetchUserStats.pending, (state) => {
         state.isLoadingStats = true
       })
       .addCase(fetchUserStats.fulfilled, (state, action) => {
         state.isLoadingStats = false
         
-        // ✅ FIXED: Use the properly mapped stats
         const { data: mappedStats, rawBackendData } = action.payload
         
         state.userStats = mappedStats
         state.rawStatsData = rawBackendData
         
-        // Merge stats into user object for Welcome Header compatibility
         if (state.user && mappedStats) {
           state.user.progress = mappedStats
           state.user.analytics = mappedStats
@@ -295,9 +278,8 @@ export const selectUser = (state) => state.auth.user
 export const selectAuthLoading = (state) => state.auth.isLoading
 export const selectAuthError = (state) => state.auth.error
 
-// ✅ FIXED: User stats selectors
 export const selectUserStats = (state) => state.auth.userStats
 export const selectStatsLoading = (state) => state.auth.isLoadingStats
-export const selectRawStatsData = (state) => state.auth.rawStatsData // ✅ NEW: Debug selector
+export const selectRawStatsData = (state) => state.auth.rawStatsData
 
 export default authSlice.reducer

@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/DocumentsGrid.jsx
- * Enhanced DocumentsGrid with Premium Processing Indicators
+ * DocumentsGrid with Processing Indicators
  */
 
 import React, { useState, useEffect } from 'react'
@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { FileText, CheckCircle, Clock, AlertCircle, BookOpen, Brain, RefreshCw, Sparkles, Zap } from 'lucide-react'
 import Button from '../ui/Button'
 import DocumentReviseModal from '../documents/DocumentReviseModal'
-import QuizSelectionModal from '../quiz/modals/QuizSelectionModal' // ✅ NEW IMPORT
+import QuizSelectionModal from '../quiz/modals/QuizSelectionModal'
 import { fetchUserDocuments } from '../../store/slices/documentsSlice'
 import toast from 'react-hot-toast'
 
@@ -19,14 +19,12 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
 
   // Modal states
   const [reviseModal, setReviseModal] = useState({ isOpen: false, document: null })
-  const [quizModal, setQuizModal] = useState({ isOpen: false, document: null }) // ✅ UPDATED
+  const [quizModal, setQuizModal] = useState({ isOpen: false, document: null })
 
   const [refreshing, setRefreshing] = useState(false)
   
-  // ✅ NEW: Processing time tracking
   const [processingStartTimes, setProcessingStartTimes] = useState({})
 
-  // ✅ NEW: Track when documents start processing
   useEffect(() => {
     if (documents) {
       const newStartTimes = { ...processingStartTimes }
@@ -66,7 +64,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     setReviseModal({ isOpen: true, document })
   }
 
-  // ✅ UPDATED: Enhanced quiz handler
+  // Quiz handler
   const handleQuiz = (document) => {
     console.log('🎯 Quiz button clicked for document:', document.title)
     
@@ -80,7 +78,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     setQuizModal({ isOpen: true, document })
   }
 
-  // ✅ NEW: Handle quiz start from selection modal
+  // Handle quiz start from selection modal
   const handleStartQuiz = (quizData) => {
     console.log('🚀 Starting quiz:', quizData)
     setQuizModal({ isOpen: false, document: null })
@@ -89,7 +87,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     window.location.href = `/quiz/${quizData.quizId}`
   }
 
-  // ✅ NEW: Get processing time elapsed
+  // Get processing time elapsed
   const getProcessingTimeElapsed = (document) => {
     const docId = document.id || document._id
     const startTime = processingStartTimes[docId]
@@ -97,7 +95,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     return Math.floor((Date.now() - startTime) / 1000)
   }
 
-  // ✅ NEW: Get processing estimate
+  // Get processing estimate
   const getProcessingEstimate = (document) => {
     const size = document?.file?.size || 0
     if (size < 1024 * 1024) return 120      // 2 minutes for small PDFs
@@ -105,7 +103,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     return 240                              // 4 minutes for large PDFs
   }
 
-  // ✅ NEW: Format time
+  // Format time
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -115,7 +113,6 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
     return `${secs}s`
   }
 
-  // Keep all your existing utility functions...
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
@@ -305,7 +302,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
                   </>
                 ) : document.status === 'processing' ? (
                   <div className="space-y-3">
-                    {/* ✅ ENHANCED: Premium processing indicator */}
+                    {/* Processing indicator */}
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-200">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
@@ -418,7 +415,7 @@ const DocumentsGrid = ({ onUploadClick, className = '' }) => {
         onClose={() => setReviseModal({ isOpen: false, document: null })}
       />
 
-      {/* ✅ UPDATED: Quiz Selection Modal */}
+      {/* Quiz Selection Modal */}
       <QuizSelectionModal
         isOpen={quizModal.isOpen}
         document={quizModal.document}

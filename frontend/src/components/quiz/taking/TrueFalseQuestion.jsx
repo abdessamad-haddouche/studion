@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/quiz/taking/TrueFalseQuestion.jsx
- * Fixed to use actual question options for multilingual support (Vrai/Faux, Verdadero/Falso, etc.)
  */
 
 import React from 'react'
@@ -20,7 +19,6 @@ const TrueFalseQuestion = ({
     }
   }
 
-  // ✅ FIXED: USE ACTUAL QUESTION OPTIONS (supports any language)
   const questionOptions = question.options || ['True', 'False']
   const options = [
     { value: 0, label: questionOptions[0], icon: CheckCircle },
@@ -39,17 +37,14 @@ const TrueFalseQuestion = ({
         
         if (showResult) {
           if (isUserAnswer && isCorrectAnswer) {
-            // ✅ User selected correct answer - GREEN
             buttonClass += 'border-green-500 bg-green-100 text-green-800'
             labelText = 'Your Answer (Correct)'
             showIndicator = true
           } else if (isUserAnswer && !isCorrectAnswer) {
-            // ❌ User selected wrong answer - RED
             buttonClass += 'border-red-500 bg-red-100 text-red-800'
             labelText = 'Your Answer (Incorrect)'
             showIndicator = true
           } else if (!isUserAnswer && isCorrectAnswer) {
-            // ✅ This is correct answer but user didn't select it - GREEN (lighter)
             buttonClass += 'border-green-400 bg-green-50 text-green-700'
             labelText = 'Correct Answer'
             showIndicator = true
@@ -58,7 +53,6 @@ const TrueFalseQuestion = ({
             buttonClass += 'border-slate-200 bg-slate-50 text-slate-600'
           }
         } else {
-          // ✅ Quiz taking mode - NEUTRAL COLORS ONLY
           if (isUserAnswer) {
             buttonClass += 'border-blue-400 bg-blue-50 text-blue-800' // Selected = blue
           } else {
@@ -84,7 +78,7 @@ const TrueFalseQuestion = ({
                       ? 'border-red-500 bg-red-500'
                       : 'border-slate-300'
                     : isUserAnswer 
-                      ? 'border-blue-400 bg-blue-400' // ✅ Blue instead of color-based
+                      ? 'border-blue-400 bg-blue-400'
                       : 'border-slate-300'
                 }`}>
                   {((showResult && (isUserAnswer || isCorrectAnswer)) || (!showResult && isUserAnswer)) && (

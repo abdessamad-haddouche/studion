@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/subscription/PricingHeader.jsx
- * Pricing Page Header Component
  */
 
 import React from 'react'

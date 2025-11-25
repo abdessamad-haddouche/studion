@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/courses/PurchaseModal.jsx
- * Course Purchase Modal - Premium design with points discount
+ * Course Purchase Modal
  */
 
 import React, { useState, useEffect } from 'react'

@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/quiz/results/BasicResults.jsx
- * Basic results for free plan - only correct/incorrect
  */
 
 import React from 'react'

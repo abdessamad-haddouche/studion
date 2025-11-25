@@ -1,14 +1,5 @@
 /**
  * PATH: src/components/quiz/taking/QuizInterface.jsx
- * COMPLETE Enhanced Quiz Interface with Completion Tracking - FULL CODE
- * 
- * ✅ ADDED:
- * - Proper completion handling and navigation
- * - Set completion flags for dashboard refresh
- * - Better error handling and loading states
- * - Auto-navigation to results
- * 
- * ✅ PRESERVED: All original functionality, subscription logic, timer, progress tracking, question navigation
  */
 
 import React, { useState, useEffect } from 'react'
@@ -134,7 +125,6 @@ const QuizInterface = () => {
     try {
       setSubmitting(true)
 
-      // ✅ ADD DEBUGGING
       console.log('🏁 COMPLETING QUIZ:', {
         quizId: quiz.id,
         attemptId: attempt.id,
@@ -163,7 +153,6 @@ const QuizInterface = () => {
         console.log('✅ Quiz completed successfully:', result)
         toast.success('Quiz completed! 🎉')
 
-        // ✅ ADDED: Set completion flag for dashboard
         localStorage.setItem('quiz_completed', JSON.stringify({
           quizId: quiz.id,
           attemptId: attempt.id,
@@ -171,7 +160,6 @@ const QuizInterface = () => {
           answersCount: Object.keys(answers).length
         }))
 
-        // ✅ ADDED: Update stats immediately (optimistic update)
         const estimatedScore = (Object.keys(answers).length / quiz.questions.length) * 100
         dispatch(updateStatsAfterQuiz({
           percentage: estimatedScore,
@@ -179,14 +167,12 @@ const QuizInterface = () => {
           isCompleted: true
         }))
 
-        // ✅ ADD: Refresh user stats
         try {
           await dispatch(refreshStatsAfterQuiz(result))
         } catch (error) {
           console.error('⚠️ Could not refresh stats:', error)
         }
         
-        // ✅ ADD MORE DEBUGGING
         console.log('🔄 Navigating to results:', `/quiz/${quiz.id}/results/${attempt.id}`)
         
         // Navigate to results

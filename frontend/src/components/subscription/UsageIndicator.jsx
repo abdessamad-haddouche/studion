@@ -1,10 +1,5 @@
 /**
  * PATH: src/components/subscription/UsageIndicator.jsx
- * ✅ FIXED: Correct Features Display - Uses PLAN_FEATURES instead of hardcoded values
- * 
- * FREE: Multiple Choice ✅, Explanations ✅, Analytics ✅, 5 Documents
- * PLUS: All Quiz Types ✅, Explanations ✅, Analytics ✅, UNLIMITED Documents ✅  
- * PRO: All Features ✅, Team Features ✅, UNLIMITED Documents ✅
  */
 
 import React from 'react'
@@ -31,7 +26,6 @@ import {
   selectUploadProgress 
 } from '../../store/slices/subscriptionSlice'
 
-// ✅ FIXED: Import PLAN_FEATURES to get correct features dynamically
 import { PLAN_FEATURES } from './SubscriptionConfig'
 
 const UsageIndicator = ({ className = '' }) => {
@@ -39,11 +33,9 @@ const UsageIndicator = ({ className = '' }) => {
   const planFeatures = useSelector(selectPlanFeatures)
   const uploadProgress = useSelector(selectUploadProgress)
 
-  // ✅ FIXED: Get features dynamically from PLAN_FEATURES instead of hardcoding
   const getPlanFeatures = (planKey) => {
     const plan = PLAN_FEATURES[planKey] || PLAN_FEATURES.free
     
-    // ✅ FIXED: Build features array based on actual plan configuration
     const features = []
     
     // Document limit
@@ -133,7 +125,6 @@ const UsageIndicator = ({ className = '' }) => {
 
   const planColor = getPlanColor(currentPlan)
 
-  // ✅ FIXED: Format price in MAD instead of dollars
   const formatPrice = (price, billing) => {
     if (price === 0) return 'Free'
     
@@ -242,7 +233,6 @@ const UsageIndicator = ({ className = '' }) => {
         </div>
       )}
 
-      {/* ✅ FIXED: Feature Grid - Shows CORRECT features from PLAN_FEATURES */}
       <div className="space-y-3">
         <h4 className="text-xs font-medium text-slate-700">Features</h4>
         

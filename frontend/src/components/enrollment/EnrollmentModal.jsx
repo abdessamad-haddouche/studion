@@ -1,7 +1,6 @@
 /**
  * PATH: src/components/enrollment/EnrollmentModal.jsx
- * FIXED: Compact modal that keeps ALL original content but optimizes for viewport fit
- * ✅ PRESERVED: All 464 lines of functionality, just better spaced
+ * Enrollment modal
  */
 
 import React, { useState, useEffect } from 'react'
@@ -54,7 +53,6 @@ const EnrollmentModal = ({
       }
       
       if (usePointsDiscount && actualUserPoints >= 1000) {
-        // ✅ FIXED: Calculate percentage discount based on points
         let discountPercentage = 5 // Base 5% for 1000+ points
         
         if (actualUserPoints >= 3000) {
@@ -218,10 +216,8 @@ const EnrollmentModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      {/* ✅ OPTIMIZATION: Slightly wider but with max-height constraint */}
       <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         
-        {/* Header - Slightly more compact */}
         <div className="p-4 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -244,10 +240,8 @@ const EnrollmentModal = ({
           </div>
         </div>
 
-        {/* ✅ OPTIMIZATION: Reduced padding but kept all content */}
         <div className="p-4 space-y-4">
           
-          {/* Course Summary - Kept original but more compact */}
           <div className="flex space-x-3 p-3 bg-slate-50 rounded-lg">
             <img
               src={course.media?.thumbnail || `https://picsum.photos/100/75?random=${course.id}`}
@@ -274,7 +268,6 @@ const EnrollmentModal = ({
             </div>
           </div>
 
-          {/* ✅ PRESERVED: Quick Stats - Compact but kept */}
           <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-lg">
             <div className="text-center">
               <Clock className="w-4 h-4 text-slate-500 mx-auto mb-1" />
@@ -293,7 +286,6 @@ const EnrollmentModal = ({
             </div>
           </div>
 
-          {/* ✅ PRESERVED: What You'll Learn - Compact but kept */}
           {course.content?.learningOutcomes && course.content.learningOutcomes.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-slate-700">What you'll learn:</h4>
@@ -313,7 +305,6 @@ const EnrollmentModal = ({
             </div>
           )}
 
-          {/* Points Section - Enhanced with toggle and percentage-based discounts */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold text-slate-900 flex items-center space-x-2">
@@ -331,7 +322,6 @@ const EnrollmentModal = ({
             {actualUserPoints >= 1000 ? (
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 space-y-3">
                 
-                {/* Toggle to Enable Points Discount */}
                 <div className="flex items-center justify-between bg-white border border-purple-200 rounded-lg p-2">
                   <div>
                     <div className="flex items-center space-x-2 mb-1">
@@ -371,7 +361,6 @@ const EnrollmentModal = ({
                       </div>
                     </div>
 
-                    {/* ✅ PRESERVED: Discount Breakdown - Made more compact */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
                       <div className="text-xs space-y-1">
                         <div className="flex justify-between">
@@ -410,7 +399,6 @@ const EnrollmentModal = ({
             )}
           </div>
 
-          {/* ✅ PRESERVED: Price Breakdown */}
           {costBreakdown && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <h4 className="text-sm font-semibold text-slate-900 mb-2 flex items-center space-x-2">
@@ -452,7 +440,6 @@ const EnrollmentModal = ({
             </div>
           )}
 
-          {/* ✅ PRESERVED: Course Features - Made more compact */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex items-center space-x-2 text-slate-600">
               <Check className="w-3 h-3 text-green-500" />

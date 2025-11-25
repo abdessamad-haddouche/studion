@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/QuickActions.jsx
- * Quick Actions Component - FIXED: Centered content layout
+ * Centered content layout
  */
 
 import React from 'react'
@@ -85,10 +85,10 @@ const QuickActions = ({ onUploadClick, className = '' }) => {
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>
-      {/* ✅ FIXED: Centered title */}
+      {/* Centered title */}
       <h3 className="font-semibold text-slate-900 mb-6 text-sm text-center">Quick Actions</h3>
       
-      {/* ✅ FIXED: Centered grid with justify-center */}
+      {/* Centered grid with justify-center */}
       <div className="flex justify-center">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl">
           {actions.map((action, index) => (
@@ -123,7 +123,7 @@ const QuickActions = ({ onUploadClick, className = '' }) => {
         </div>
       </div>
       
-      {/* ✅ FIXED: Centered settings link */}
+      {/* Centered settings link */}
       <div className="mt-6 pt-4 border-t border-slate-100 flex justify-center">
         <button 
           onClick={() => window.location.href = '/settings'}

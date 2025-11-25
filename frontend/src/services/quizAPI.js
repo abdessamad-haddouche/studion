@@ -6,11 +6,6 @@
 import api from './api'
 
 export const quizAPI = {
-  
-  // ==========================================
-  // QUIZ DISCOVERY & SELECTION
-  // ==========================================
-  
   /**
    * Get available quizzes for a document
    */
@@ -46,10 +41,6 @@ export const quizAPI = {
     const response = await api.post(`/quizzes/document/${documentId}/select`, preferences)
     return response.data
   },
-  
-  // ==========================================
-  // QUIZ GENERATION (For custom quizzes)
-  // ==========================================
   
   /**
    * Generate custom quiz
@@ -99,7 +90,6 @@ export const quizAPI = {
     
     const response = await api.get(`/quizzes/${quizId}/attempt/${attemptId}/results`)
     
-    // ✅ ADD DETAILED DEBUGGING
     console.log(`📊 RAW BACKEND RESPONSE:`, response.data)
     console.log(`📊 DETAILED RESULTS:`, response.data?.results?.detailedResults)
     console.log(`📊 FIRST QUESTION RAW:`, response.data?.results?.detailedResults?.[0])

@@ -1,7 +1,5 @@
 /**
  * PATH: src/services/courses.service.js
- * Courses Service - API integration for course marketplace
- * Follows existing studion API patterns
  */
 
 import { coursesAPI } from './api'

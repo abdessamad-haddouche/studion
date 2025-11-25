@@ -1,9 +1,5 @@
 /**
  * PATH: src/store/slices/userStatsSlice.js
- * FIXED User Statistics Redux Slice - PROPERLY PARSE BACKEND RESPONSE
- * 
- * ✅ PROBLEM: Backend returns { data: { progress: { quizzesCompleted: 4, bestScore: 90, totalPoints: 76 } } }
- * ✅ SOLUTION: Parse the nested structure correctly
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
@@ -18,17 +14,14 @@ export const fetchUserStats = createAsyncThunk(
       const response = await userAPI.getStats()
       console.log('📊 RAW Backend Response:', response.data)
       
-      // ✅ FIXED: Parse the correct structure from your backend
       const backendData = response.data
       
-      // Your backend returns: { success: true, message: "...", data: { progress: {...}, overall: {...} } }
       const progressData = backendData.data?.progress || {}
       const overallData = backendData.data?.overall || {}
       
       console.log('📊 Progress Data:', progressData)
       console.log('📊 Overall Data:', overallData)
       
-      // ✅ FIXED: Map backend fields to frontend structure
       const mappedStats = {
         quizzesCompleted: progressData.quizzesCompleted || 0,
         totalPoints: overallData.totalPoints || progressData.totalPoints || 0,
@@ -44,7 +37,7 @@ export const fetchUserStats = createAsyncThunk(
       
       return {
         stats: mappedStats,
-        rawBackendData: backendData // Keep original for debugging
+        rawBackendData: backendData
       }
       
     } catch (error) {
@@ -69,13 +62,11 @@ export const fetchUserQuizStats = createAsyncThunk(
   }
 )
 
-// ✅ FIXED: Update stats after quiz completion with better mapping
 export const updateStatsAfterQuiz = createAsyncThunk(
   'userStats/updateStatsAfterQuiz',
   async (quizResult, { getState, dispatch }) => {
     console.log('🎯 Updating stats after quiz:', quizResult)
     
-    // Calculate new stats based on quiz result
     const currentStats = getState().userStats.stats
     const newStats = {
       quizzesCompleted: currentStats.quizzesCompleted + 1,
@@ -126,7 +117,7 @@ const userStatsSlice = createSlice({
       achievements: []
     },
     quizStats: null,
-    rawBackendData: null, // ✅ ADDED: Store raw backend response for debugging
+    rawBackendData: null,
     isLoading: false,
     error: null,
     lastUpdated: null
@@ -168,7 +159,6 @@ const userStatsSlice = createSlice({
       .addCase(fetchUserStats.fulfilled, (state, action) => {
         state.isLoading = false
         
-        // ✅ FIXED: Use the properly mapped stats
         const { stats, rawBackendData } = action.payload
         
         state.stats = { ...state.stats, ...stats }
@@ -215,6 +205,6 @@ export const { updateStatsLocally, clearStatsError, resetStats } = userStatsSlic
 export const selectUserStats = (state) => state.userStats
 export const selectStats = (state) => state.userStats.stats
 export const selectStatsLoading = (state) => state.userStats.isLoading
-export const selectRawBackendData = (state) => state.userStats.rawBackendData // ✅ NEW: Debug selector
+export const selectRawBackendData = (state) => state.userStats.rawBackendData
 
 export default userStatsSlice.reducer

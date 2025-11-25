@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsTable.jsx
- * ENHANCED - Added ProcessingNotification + Auto-refresh polling + localStorage persistence
+ * ProcessingNotification + Auto-refresh polling + localStorage persistence
  */
 
 import React, { useState, useEffect } from 'react'
@@ -31,7 +31,7 @@ import DocumentReviseModal from './DocumentReviseModal'
 import QuizSelectionModal from '../quiz/modals/QuizSelectionModal'
 import { documentsAPI } from '../../services/api'
 import { fetchUserDocuments } from '../../store/slices/documentsSlice'
-import ProcessingNotification from '../dashboard/ProcessingNotification' // ✅ IMPORT FROM DASHBOARD
+import ProcessingNotification from '../dashboard/ProcessingNotification'
 import toast from 'react-hot-toast'
 
 const DocumentsTable = ({
@@ -62,17 +62,14 @@ const DocumentsTable = ({
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // ✅ ENHANCED: Processing tracking with localStorage persistence
   const [processingStartTimes, setProcessingStartTimes] = useState(() => {
     const saved = localStorage.getItem('documents_processing_times')
     return saved ? JSON.parse(saved) : {}
   })
 
-  // ✅ NEW: Processing notification state (SAME AS DASHBOARD)
   const [processingDocuments, setProcessingDocuments] = useState([])
   const [showProcessingNotification, setShowProcessingNotification] = useState(false)
 
-  // ✅ ENHANCED: Auto-refresh polling for processing documents
   useEffect(() => {
     const hasProcessingDocs = documents && documents.some(doc => 
       doc.status === 'processing' || doc.status === 'pending'
@@ -97,7 +94,6 @@ const DocumentsTable = ({
     }
   }, [documents, dispatch])
 
-  // ✅ ENHANCED: Track processing documents + save to localStorage
   useEffect(() => {
     if (documents) {
       const newStartTimes = { ...processingStartTimes }
@@ -144,7 +140,6 @@ const DocumentsTable = ({
     }
   }, [documents])
 
-  // ✅ ENHANCED: Get processing time elapsed with localStorage persistence
   const getProcessingTimeElapsed = (document) => {
     const docId = document.id || document._id
     const startTime = processingStartTimes[docId]
@@ -152,7 +147,6 @@ const DocumentsTable = ({
     return Math.floor((Date.now() - startTime) / 1000)
   }
 
-  // ✅ Get processing estimate
   const getProcessingEstimate = (document) => {
     const size = document?.file?.size || 0
     if (size < 1024 * 1024) return 120      // 2 minutes for small PDFs
@@ -160,7 +154,6 @@ const DocumentsTable = ({
     return 240                              // 4 minutes for large PDFs
   }
 
-  // ✅ Format time
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -170,7 +163,6 @@ const DocumentsTable = ({
     return `${secs}s`
   }
 
-  // ✅ Handle processing notification refresh
   const handleProcessingRefresh = async () => {
     try {
       console.log('🔄 Manual refresh triggered from processing notification (Table)')
@@ -226,7 +218,6 @@ const DocumentsTable = ({
     )
   }
 
-  // ✅ ENHANCED: Status badge with processing indicators
   const getStatusBadge = (status, document) => {
     const configs = {
       completed: { 
@@ -299,7 +290,6 @@ const DocumentsTable = ({
     })
   }
 
-  // ✅ ALL EXISTING EDIT/DELETE/MODAL FUNCTIONS REMAIN THE SAME
   const startEditing = (document) => {
     setEditingDocument(document.id)
     setEditTitle(document.title || '')
@@ -402,7 +392,6 @@ const DocumentsTable = ({
 
   const isSelected = (documentId) => selectedDocuments.includes(documentId)
 
-  // ✅ EMPTY STATE LOGIC (SAME AS BEFORE)
   if (!documents || documents.length === 0) {
     const hasSearch = currentSearchTerm && currentSearchTerm.trim()
     const hasFilters = filters && Object.keys(filters).some(key => 
@@ -516,7 +505,6 @@ const DocumentsTable = ({
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
       
-      {/* ✅ NEW: Processing Notification (SAME AS DASHBOARD) */}
       {showProcessingNotification && processingDocuments.length > 0 && (
         <div className="p-4 border-b border-slate-200">
           <ProcessingNotification
@@ -685,7 +673,6 @@ const DocumentsTable = ({
                       </div>
                     </td>
                     
-                    {/* ✅ ENHANCED: Status column with processing progress */}
                     <td className="px-4 py-4">
                       {getStatusBadge(document.status, document)}
                       
@@ -835,7 +822,6 @@ const DocumentsTable = ({
         </div>
       </div>
 
-      {/* Mobile Cards View - SAME AS BEFORE but with enhanced processing */}
       <div className="lg:hidden divide-y divide-slate-200">
         {sortedDocuments.map((document) => {
           const isEditing = editingDocument === document.id
@@ -914,7 +900,6 @@ const DocumentsTable = ({
                     {getStatusBadge(document.status, document)}
                   </div>
                   
-                  {/* ✅ ENHANCED: Mobile processing indicator */}
                   {document.status === 'processing' && (
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-200 mb-3">
                       <div className="flex items-center justify-between mb-2">

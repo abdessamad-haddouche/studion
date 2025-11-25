@@ -1,8 +1,5 @@
 /**
  * PATH: src/services/documents.service.js
- * Documents API Service - Complete backend integration
- * 
- * ✅ MINIMAL FIX: Just added getTotalDocumentsCount method, everything else UNCHANGED
  */
 
 import { documentsAPI } from './api'
@@ -235,7 +232,6 @@ export const documentsService = {
   },
 
   /**
-   * ✅ NEW: Get total documents count (for subscription tracking)
    * @returns {Promise<Object>} Total documents count
    */
   async getTotalDocumentsCount() {

@@ -1,15 +1,6 @@
 /**
  * PATH: src/components/quiz/results/QuizResults.jsx
- * COMPLETE Enhanced Quiz Results with Dashboard Refresh Trigger - FULL CODE
- * 
- * ✅ UPDATED: Show all features for ALL users (free, basic, premium, pro)
- * ✅ ADDED:
- * - Trigger stats refresh when quiz is completed
- * - Set localStorage flag for dashboard to detect completion
- * - Update Redux stats immediately for instant feedback
- * - Better navigation back to dashboard
- * 
- * ✅ PRESERVED: All original functionality, subscription logic, detailed results display
+ * Quiz Results with Dashboard Refresh Trigger
  */
 
 import React, { useState, useEffect } from 'react'
@@ -47,7 +38,6 @@ const QuizResults = () => {
       setLoading(true)
       setError(null)
       
-      // ✅ ADD DEBUGGING
       console.log(`📊 LOADING RESULTS:`, {
         quizId,
         attemptId,
@@ -56,7 +46,6 @@ const QuizResults = () => {
       
       const response = await quizAPI.getResults(quizId, attemptId)
       
-      // ✅ MORE DEBUGGING
       console.log('🔍 RAW API RESPONSE:', response)
       
       if (response.success && response.results) {
@@ -106,7 +95,6 @@ const QuizResults = () => {
         setResults(validatedResults)
         console.log('✅ FINAL VALIDATED RESULTS:', validatedResults)
 
-        // ✅ ADDED: Update stats immediately after getting results
         if (!statsUpdated) {
           await updateUserStats(validatedResults)
           setStatsUpdated(true)
@@ -124,7 +112,6 @@ const QuizResults = () => {
     }
   }
 
-  // ✅ ADDED: Update user stats after quiz completion
   const updateUserStats = async (quizResults) => {
     try {
       console.log('📊 QuizResults: Updating user stats after quiz completion...')
@@ -141,7 +128,6 @@ const QuizResults = () => {
       // Update stats in Redux
       await dispatch(updateStatsAfterQuiz(quizResult))
       
-      // ✅ ADDED: Set localStorage flag for dashboard to detect
       localStorage.setItem('quiz_completed', JSON.stringify({
         quizId,
         attemptId,
@@ -150,7 +136,6 @@ const QuizResults = () => {
         timestamp: Date.now()
       }))
       
-      // ✅ ADDED: Also trigger a full stats refresh
       setTimeout(() => {
         dispatch(fetchUserStats())
       }, 1000)
@@ -209,7 +194,6 @@ const QuizResults = () => {
   const renderResults = () => {
     if (!results) return null
     
-    // ✅ UPDATED: Show AdvancedResults for ALL users (free, basic, premium, pro)
     return <AdvancedResults results={results} />
   }
 
@@ -228,7 +212,6 @@ const QuizResults = () => {
     return 'Keep practicing! 📚'
   }
 
-  // ✅ LOADING STATE
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -240,7 +223,6 @@ const QuizResults = () => {
     )
   }
 
-  // ✅ ERROR STATE
   if (error) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -255,7 +237,6 @@ const QuizResults = () => {
     )
   }
 
-  // ✅ NO RESULTS STATE
   if (!results) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -409,7 +390,6 @@ const QuizResults = () => {
               </div>
             </div>
 
-            {/* ✅ Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <Button
                 onClick={handleBackToDashboard}

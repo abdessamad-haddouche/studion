@@ -1,6 +1,5 @@
 /**
  * PATH: src/pages/courses/CoursesPage.jsx
- * ✅ FINAL FIXES: 1) MAD pricing instead of $  2) Enrollment modal working
  */
 
 import React, { useEffect, useState } from 'react'
@@ -73,7 +72,6 @@ const CoursesPage = () => {
   const endIndex = startIndex + coursesPerPage
   const currentCourses = filteredCourses.slice(startIndex, endIndex)
 
-  // ✅ FIX 1: Mock data generator with MAD pricing (NOT dollars)
   const generateMockCourses = (count) => {
     const categories = ['Programming', 'Design', 'Business', 'Marketing', 'Photography', 'Music']
     const instructors = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Lisa Chen', 'David Wilson', 'Emma Brown']
@@ -83,7 +81,6 @@ const CoursesPage = () => {
     for (let i = 1; i <= count; i++) {
       const category = categories[i % categories.length]
       const courseType = courseTypes[i % courseTypes.length]
-      // ✅ GENERATE PRICES IN MAD (200-600 MAD range)
       const priceInMAD = i % 4 === 0 ? 0 : Math.floor(Math.random() * 400) + 200
       
       mockCourses.push({
@@ -226,7 +223,6 @@ const CoursesPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // ✅ FIX 2: Handle course enrollment with working modal
   const handleCourseAction = async (course, action) => {
     switch (action) {
       case 'enroll_free':
@@ -243,7 +239,6 @@ const CoursesPage = () => {
         break
         
       case 'enroll_paid':
-        // ✅ OPEN ENROLLMENT MODAL FOR PAID COURSES
         console.log('🎓 Opening enrollment modal for:', course.title)
         setSelectedCourse(course)
         setShowEnrollmentModal(true)
@@ -454,7 +449,6 @@ const CoursesPage = () => {
                           <BookOpen className="w-12 h-12 text-white/80" />
                         </div>
                         
-                        {/* ✅ FIX 1: Price Badge shows MAD instead of dollars */}
                         <div className="absolute top-2 right-2">
                           {course.pricing?.isFree || course.price === 0 || !course.price ? (
                             <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-bold">

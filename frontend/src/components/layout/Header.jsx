@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/layout/Header.jsx
- * FIXED Header - Courses Dropdown Hover Issue Resolved
+ * Header
  */
 
 import React, { useState, useEffect } from 'react'
@@ -13,7 +13,6 @@ import { selectStats } from '../../store/slices/userStatsSlice'
 import { selectCurrentPlan } from '../../store/slices/subscriptionSlice'
 import toast from 'react-hot-toast'
 
-// Helper function to handle different user object formats with proper capitalization
 const getUserDisplayInfo = (user) => {
   if (!user) return { name: 'User', initials: 'U', fullName: 'User' }
   
@@ -27,7 +26,6 @@ const getUserDisplayInfo = (user) => {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
   }
   
-  // Handle different user object structures
   if (user.fullName) {
     fullName = user.fullName
     const names = fullName.split(' ')
@@ -133,7 +131,6 @@ const Header = () => {
           reason: 'Manual testing points' 
         })).unwrap()
         
-        // ✅ IMMEDIATELY update the authSlice stats (optimistic update)
         dispatch({
           type: 'auth/updateStatsOptimistically',
           payload: {
@@ -156,7 +153,6 @@ const Header = () => {
   }
 
 
-  // ✅ FIX: Add timeout to prevent dropdown from closing immediately
   const [coursesDropdownTimeout, setCoursesDropdownTimeout] = useState(null)
 
   const handleCoursesMouseEnter = () => {
@@ -185,7 +181,6 @@ const Header = () => {
     }
   }, [dispatch, isAuthenticated, location.pathname])
 
-  // ✅ Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (coursesDropdownTimeout) {
@@ -274,7 +269,6 @@ const Header = () => {
           Documents
         </a>
 
-        {/* ✅ FIXED: Courses Dropdown with proper hover handling */}
         <div 
           className="relative"
           onMouseEnter={handleCoursesMouseEnter}

@@ -1,14 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsStats.jsx
- * Documents Statistics Component - FULL CODE
- * 
- * ✅ FEATURES:
- * - Document usage statistics
- * - Subscription limits display
- * - Processing status overview
- * - Upgrade prompts for limits
- * - Visual progress indicators
- * - Plan comparison hints
+ * Documents Statistics Component
  */
 
 import React from 'react'

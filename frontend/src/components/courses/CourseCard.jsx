@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/courses/CourseCard.jsx
- * FIXED Course Card - MAD pricing and proper enrollment modal integration
+ * FIXED Course Card - MAD pricing and enrollment modal integration
  */
 
 import React, { useState } from 'react'
@@ -21,7 +21,6 @@ const CourseCard = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false)
 
-  // ✅ FIXED: Format price in MAD currency
   const formatPrice = (price) => {
     if (!price || price === 0) return 'Free'
     
@@ -134,7 +133,7 @@ const CourseCard = ({
             </div>
           </div>
           
-          {/* Price Badge - FIXED MAD pricing */}
+          {/* Price Badge */}
           <div className="absolute bottom-3 right-3">
             <div className={`px-3 py-1 rounded-full text-sm font-bold ${
               isFree 
@@ -236,7 +235,7 @@ const CourseCard = ({
             </div>
           )}
 
-          {/* Points Discount Preview - FIXED MAD pricing */}
+          {/* Points Discount Preview */}
           {!isFree && !isEnrolled && userPoints >= 1000 && discount && (
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-2">

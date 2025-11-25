@@ -1,12 +1,6 @@
 /**
  * PATH: src/components/dashboard/WelcomeHeader.jsx
- * FIXED Welcome Header with PROPER Stats Integration - GETS STATS FROM BOTH SLICES
- * 
- * ✅ PROBLEM IDENTIFIED: You have stats in TWO Redux slices:
- *    - authSlice.userStats (updated by authSlice.fetchUserStats)
- *    - userStatsSlice.stats (updated by userStatsSlice.fetchUserStats)
- * 
- * ✅ SOLUTION: Check BOTH slices and use the most recent data
+ * Welcome Header with Stats Integration
  */
 
 import React, { useEffect } from 'react'
@@ -19,7 +13,6 @@ const WelcomeHeader = ({ className = '' }) => {
   const dispatch = useDispatch()
   const { user } = useSelector(state => state.auth)
   
-  // ✅ GET STATS FROM BOTH SLICES
   const authStats = useSelector(state => state.auth.userStats) // From authSlice
   const userStatsSliceData = useSelector(state => state.userStats) // From userStatsSlice
   const { stats: userStatsSliceStats, isLoading: userStatsLoading, error: userStatsError } = userStatsSliceData
@@ -28,7 +21,6 @@ const WelcomeHeader = ({ className = '' }) => {
   const documents = useSelector(state => state.documents?.documents) || []
   const documentsUploaded = documents.length
   
-  // ✅ MERGE STATS FROM BOTH SOURCES (most recent wins)
   const mergedStats = {
     // Default values
     quizzesCompleted: 0,
@@ -50,7 +42,6 @@ const WelcomeHeader = ({ className = '' }) => {
     documentsCount: documentsUploaded
   })
 
-  // ✅ FETCH FROM BOTH SLICES ON MOUNT
   useEffect(() => {
     console.log('🔄 WelcomeHeader: Fetching stats from BOTH slices...')
     
@@ -61,7 +52,6 @@ const WelcomeHeader = ({ className = '' }) => {
     dispatch(fetchUserStatsFromUserStats())
   }, [dispatch])
 
-  // ✅ MANUAL REFRESH FUNCTION
   const handleRefreshStats = async () => {
     console.log('🔄 Manual refresh triggered...')
     try {
@@ -85,21 +75,21 @@ const WelcomeHeader = ({ className = '' }) => {
     },
     {
       label: 'Quizzes', 
-      value: mergedStats.quizzesCompleted || 0, // ✅ FROM MERGED STATS
+      value: mergedStats.quizzesCompleted || 0, // FROM MERGED STATS
       icon: Brain,
       color: 'bg-green-50 text-green-600',
       description: 'Completed'
     },
     {
       label: 'Points',
-      value: mergedStats.totalPoints || 0, // ✅ FROM MERGED STATS
+      value: mergedStats.totalPoints || 0, // FROM MERGED STATS
       icon: Trophy,
       color: 'bg-purple-50 text-purple-600',
       description: 'Earned'
     },
     {
       label: 'Best Score',
-      value: mergedStats.bestScore ? `${mergedStats.bestScore}%` : '0%', // ✅ FROM MERGED STATS
+      value: mergedStats.bestScore ? `${mergedStats.bestScore}%` : '0%',
       icon: TrendingUp,
       color: 'bg-orange-50 text-orange-600',
       description: 'Personal Best'
@@ -118,7 +108,6 @@ const WelcomeHeader = ({ className = '' }) => {
           </p>
         </div>
         
-        {/* ✅ ADD REFRESH BUTTON */}
         <div className="flex items-center space-x-4">
           <button
             onClick={handleRefreshStats}

@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/auth/RegisterPage.jsx
- * Enhanced Register Page with Redux integration
+ * Register Page with Redux integration
  */
 
 import React, { useState, useEffect } from 'react'
@@ -19,7 +19,6 @@ import Input from '../../components/ui/Input'
 // Redux
 import { registerUser, clearError, clearSuccess } from '../../store/slices/authSlice'
 
-// Validation schema matching your backend
 const registerSchema = yup.object().shape({
   firstName: yup
     .string()
@@ -146,7 +145,6 @@ const RegisterPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      // Prepare data for backend (matching your controller expectations)
       const userData = {
         email: data.email,
         password: data.password,
@@ -159,7 +157,6 @@ const RegisterPage = () => {
       }
 
       await dispatch(registerUser(userData)).unwrap()
-      // Success handling is done in useEffect above
     } catch (error) {
       toast.error(error || 'Registration failed. Please try again.')
     }

@@ -1,7 +1,6 @@
 /**
  * PATH: src/components/quiz/results/AdvancedResults.jsx
- * ✅ UPDATED: Reordered tabs - Question Analysis FIRST, then Overview, then Performance
- * ✅ FIXED: Performance tab now shows "Coming Soon" instead of blank page
+ * Quiz Results
  */
 
 import React, { useState } from 'react'
@@ -20,11 +19,10 @@ import Button from '../../ui/Button'
 import QuestionCard from '../taking/QuestionCard'
 
 const AdvancedResults = ({ results }) => {
-  const [activeTab, setActiveTab] = useState('questions') // ✅ CHANGED: Default to 'questions' instead of 'overview'
+  const [activeTab, setActiveTab] = useState('questions')
 
   if (!results) return null
 
-  // ✅ UPDATED: Reordered tabs - Question Analysis FIRST
   const tabs = [
     { id: 'questions', label: 'Question Analysis', icon: BookOpen },
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -57,7 +55,6 @@ const AdvancedResults = ({ results }) => {
 
         {/* Tab Content */}
         <div className="p-6">
-          {/* ✅ REORDERED: Questions tab first */}
           {activeTab === 'questions' && (
             <QuestionsTab results={results} />
           )}
@@ -86,7 +83,6 @@ const AdvancedResults = ({ results }) => {
   )
 }
 
-// ✅ MOVED: Questions Tab Component - NOW FIRST
 const QuestionsTab = ({ results }) => (
   <div className="space-y-6">
     {results.detailedResults.map((result, index) => (
@@ -260,11 +256,9 @@ const OverviewTab = ({ results }) => (
   </div>
 )
 
-// ✅ FIXED: Performance Tab Component with Coming Soon message - NOW THIRD
 const PerformanceTab = ({ results }) => (
   <div className="space-y-6">
     
-    {/* ✅ Coming Soon Banner */}
     <div className="text-center py-12">
       <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl mx-auto mb-6 flex items-center justify-center">
         <Brain className="w-10 h-10 text-purple-600" />

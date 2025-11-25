@@ -1,12 +1,6 @@
 /**
  * PATH: src/components/dashboard/UserStats.jsx
- * Enhanced User Stats with Auto-Refresh - FULL CODE
- * 
- * ✅ ADDED:
- * - Auto-refresh when component mounts
- * - Real-time stats updates after quiz completion
- * - Proper error handling and loading states
- * - Manual refresh button for users
+ * User Stats with Auto-Refresh
  */
 
 import React, { useEffect, useState } from 'react'
@@ -31,17 +25,14 @@ const UserStats = () => {
   const documents = useSelector(selectDocuments)
   const documentStats = useSelector(selectDocumentStats)
   
-  // ✅ ADDED: Local refresh state
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState(null)
 
-  // ✅ ADDED: Auto-refresh on component mount
   useEffect(() => {
     console.log('📊 UserStats: Component mounted, fetching stats...')
     handleRefreshStats()
   }, [])
 
-  // ✅ ADDED: Listen for route changes (when user returns from quiz)
   useEffect(() => {
     const handleFocus = () => {
       console.log('📊 UserStats: Window focused, refreshing stats...')
@@ -66,7 +57,6 @@ const UserStats = () => {
     }
   }, [])
 
-  // ✅ ADDED: Manual refresh function
   const handleRefreshStats = async () => {
     try {
       setIsRefreshing(true)
@@ -83,10 +73,8 @@ const UserStats = () => {
     }
   }
 
-  // ✅ ADDED: Calculate document count from Redux store
   const documentCount = documents?.length || documentStats?.total || 0
 
-  // ✅ ADDED: Format stats with fallbacks
   const formattedStats = {
     documentsUploaded: documentCount,
     quizzesCompleted: stats?.quizzesCompleted || 0,
@@ -95,7 +83,6 @@ const UserStats = () => {
     averageScore: stats?.averageScore || 0
   }
 
-  // ✅ ADDED: Loading state
   if (isLoading && !stats) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -116,7 +103,7 @@ const UserStats = () => {
 
   return (
     <div className="space-y-6">
-      {/* ✅ ADDED: Header with refresh button */}
+      {/* Header with refresh button */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Your Progress</h2>
@@ -135,7 +122,6 @@ const UserStats = () => {
         </button>
       </div>
 
-      {/* ✅ ADDED: Error state */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center gap-2">
@@ -152,7 +138,6 @@ const UserStats = () => {
         </div>
       )}
 
-      {/* ✅ ENHANCED: Stats cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Documents Uploaded */}
         <Card className="p-6 hover:shadow-lg transition-shadow">
@@ -219,7 +204,6 @@ const UserStats = () => {
         </Card>
       </div>
 
-      {/* ✅ ADDED: Last refresh indicator */}
       {lastRefresh && (
         <div className="text-center">
           <p className="text-xs text-slate-400">

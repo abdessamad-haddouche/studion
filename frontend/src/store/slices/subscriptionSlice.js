@@ -1,6 +1,6 @@
 /**
  * PATH: src/store/slices/subscriptionSlice.js
- * Subscription Redux Slice - Frontend-only with localStorage persistence
+ * Subscription Redux Slice
  */
 
 import { createSlice } from '@reduxjs/toolkit'

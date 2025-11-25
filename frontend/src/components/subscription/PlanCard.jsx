@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/subscription/PlanCard.jsx
- * Updated Plan Card with MAD Currency - NO MORE DOLLARS!
  */
 
 import React from 'react'
@@ -71,7 +70,6 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
   
   const colors = colorMap[plan.color] || colorMap.slate
   
-  // ✅ FIXED: Format price in MAD currency
   const formatPlanPrice = (planData) => {
     if (planData.price === 0) return 'Free'
     
@@ -197,7 +195,6 @@ const PlanCard = ({ planKey, highlighted = false, className = '' }) => {
         <p className="text-slate-600 text-sm">{plan.description}</p>
       </div>
       
-      {/* ✅ FIXED: Price in MAD */}
       <div className="text-center mb-6">
         <div className="flex items-baseline justify-center">
           {plan.price === 0 ? (

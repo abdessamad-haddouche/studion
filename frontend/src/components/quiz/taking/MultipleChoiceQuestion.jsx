@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/quiz/taking/MultipleChoiceQuestion.jsx
- * Properly show user vs correct answers
  */
 
 import React from 'react'
@@ -36,17 +35,14 @@ const MultipleChoiceQuestion = ({
         
         if (showResult) {
           if (isUserAnswer && isCorrectAnswer) {
-            // ✅ User selected correct answer - GREEN
             buttonClass += 'border-green-500 bg-green-100 text-green-800'
             labelText = 'Your Answer (Correct)'
             showIndicator = true
           } else if (isUserAnswer && !isCorrectAnswer) {
-            // ❌ User selected wrong answer - RED
             buttonClass += 'border-red-500 bg-red-100 text-red-800'
             labelText = 'Your Answer (Incorrect)'
             showIndicator = true
           } else if (!isUserAnswer && isCorrectAnswer) {
-            // ✅ This is correct answer but user didn't select it - GREEN (lighter)
             buttonClass += 'border-green-400 bg-green-50 text-green-700'
             labelText = 'Correct Answer'
             showIndicator = true

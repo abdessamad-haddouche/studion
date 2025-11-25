@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/DocumentsGridWithActions.jsx
- * Updated Documents Grid - Uses new DocumentActionCard with Revise/Quiz actions
+ * Uses new DocumentActionCard with Revise/Quiz actions
  */
 
 import React, { useState } from 'react'
@@ -40,7 +40,6 @@ const DocumentsGridWithActions = ({ onUploadClick, className = '' }) => {
 
   const handleDelete = async (document) => {
     if (window.confirm(`Are you sure you want to delete "${document.title}"?`)) {
-      // Implement delete functionality
       console.log('Delete document:', document.id)
     }
   }
@@ -49,9 +48,7 @@ const DocumentsGridWithActions = ({ onUploadClick, className = '' }) => {
     // Close the quiz modal and navigate to quiz page
     setQuizModal({ isOpen: false, document: null })
     
-    // In real implementation, navigate to quiz taking interface
     console.log('Starting quiz with data:', quizData)
-    // Example: navigate('/quiz/take', { state: { quizData } })
   }
 
   if (isLoading) {

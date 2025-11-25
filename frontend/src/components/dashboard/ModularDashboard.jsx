@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/ModularDashboard.jsx
- * FIXED - Enhanced processing tracking with localStorage persistence and auto-refresh
+ * Processing tracking with localStorage persistence and auto-refresh
  */
 
 import React, { useEffect, useState } from 'react'
@@ -32,7 +32,6 @@ import {
 
 import { updateDocumentUsage } from '../../store/slices/subscriptionSlice'
 
-// ✅ Import user stats action
 import { fetchUserStats } from '../../store/slices/authSlice'
 
 const ModularDashboard = () => {
@@ -52,7 +51,7 @@ const ModularDashboard = () => {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
   
-  // ✅ ENHANCED: Processing notification state with localStorage sync
+  // Processing notification state with localStorage sync
   const [processingDocuments, setProcessingDocuments] = useState([])
   const [showProcessingNotification, setShowProcessingNotification] = useState(false)
 
@@ -66,7 +65,7 @@ const ModularDashboard = () => {
 
   const documentsLimit = getDocumentsToShow()
 
-  // ✅ ENHANCED: Track processing documents with localStorage persistence
+  // Track processing documents with localStorage persistence
   useEffect(() => {
     if (documents) {
       const processing = documents.filter(doc => 
@@ -78,7 +77,7 @@ const ModularDashboard = () => {
       
       console.log('📊 Dashboard: Processing documents updated:', processing.length)
       
-      // ✅ FIXED: Sync with localStorage processing times
+      // Sync with localStorage processing times
       const saved = localStorage.getItem('dashboard_processing_times')
       if (saved) {
         const savedTimes = JSON.parse(saved)
@@ -97,7 +96,7 @@ const ModularDashboard = () => {
     }
   }, [documents])
 
-  // ✅ ADDED: Check for quiz completion and refresh on mount
+  // Check for quiz completion and refresh on mount
   useEffect(() => {
     if (isAuthenticated) {
       console.log('📊 ModularDashboard: Component mounted, checking for updates...')
@@ -172,19 +171,19 @@ const ModularDashboard = () => {
   }
 
   /**
-   * ✅ ENHANCED: Upload success with processing notification
+   * Upload success with processing notification
    */
   const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     toast.success('Document uploaded successfully! 🎉')
     
-    // ✅ ENHANCED: Show processing notification immediately with localStorage
+    // Show processing notification immediately with localStorage
     if (document) {
       const newDoc = document.document || document
       setProcessingDocuments(prev => [...prev, newDoc])
       setShowProcessingNotification(true)
       
-      // ✅ FIXED: Initialize localStorage tracking for new document
+      // Initialize localStorage tracking for new document
       const saved = localStorage.getItem('dashboard_processing_times')
       const savedTimes = saved ? JSON.parse(saved) : {}
       const docId = newDoc.id || newDoc._id
@@ -217,7 +216,7 @@ const ModularDashboard = () => {
     }
   }
 
-  // ✅ ENHANCED: Manual refresh function for processing notification
+  // Manual refresh function for processing notification
   const handleProcessingRefresh = async () => {
     try {
       console.log('🔄 Manual refresh triggered from processing notification (Dashboard)')
@@ -325,7 +324,7 @@ const ModularDashboard = () => {
 
   return (
     <div className="space-y-0">
-      {/* ✅ ENHANCED: Processing Notification - Shows at top when documents are processing */}
+      {/* Processing Notification - Shows at top when documents are processing */}
       {showProcessingNotification && processingDocuments.length > 0 && (
         <ProcessingNotification
           processingDocuments={processingDocuments}

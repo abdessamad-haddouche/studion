@@ -1,6 +1,6 @@
 /**
  * PATH: src/utils/currency.js
- * Currency utilities for Morocco (MAD) - Ensures consistent pricing display
+ * Currency utilities for Morocco (MAD)
  */
 
 /**

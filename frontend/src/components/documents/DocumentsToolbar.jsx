@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsToolbar.jsx
- * FIXED - Search input NEVER disappears under any circumstances
+ * Search input
  */
 
 import React, { useState, useRef, useEffect } from 'react'
@@ -36,7 +36,6 @@ const DocumentsToolbar = ({
   onBulkAction,
   className = ''
 }) => {
-  // ✅ CRITICAL FIX: Search input state that NEVER gets reset automatically
   const [searchInput, setSearchInput] = useState('')
   const [activeFilters, setActiveFilters] = useState({
     status: null,
@@ -49,10 +48,8 @@ const DocumentsToolbar = ({
   const [showSortMenu, setShowSortMenu] = useState(false)
   const [searchTimeoutId, setSearchTimeoutId] = useState(null)
   
-  // ✅ NEW: Ref to track if component is mounted
   const isMountedRef = useRef(true)
   
-  // ✅ NEW: Track mount/unmount
   useEffect(() => {
     isMountedRef.current = true
     return () => {
@@ -66,7 +63,6 @@ const DocumentsToolbar = ({
   const hasAdvancedSearch = canAccessFeature('advanced_search', currentPlan)
   const canBulkActions = canAccessFeature('bulk_actions', currentPlan)
 
-  // ✅ FIXED: Direct filter building function
   const buildFilters = (searchValue, filters) => {
     const finalFilters = { ...filters }
     
@@ -87,12 +83,10 @@ const DocumentsToolbar = ({
     return finalFilters
   }
 
-  // ✅ CRITICAL FIX: Search handling that NEVER loses input
   const handleSearchInputChange = (e) => {
     const value = e.target.value
     console.log('🔍 Search input changed to:', value)
     
-    // ✅ ALWAYS preserve the input value immediately
     setSearchInput(value)
     
     // Clear any existing timeout
@@ -101,9 +95,7 @@ const DocumentsToolbar = ({
       setSearchTimeoutId(null)
     }
     
-    // ✅ Only trigger search after user stops typing
     const newTimeoutId = setTimeout(() => {
-      // ✅ Only proceed if component is still mounted
       if (isMountedRef.current) {
         const finalFilters = buildFilters(value, activeFilters)
         console.log('🔍 Search triggered:', value, finalFilters)
@@ -114,9 +106,6 @@ const DocumentsToolbar = ({
     setSearchTimeoutId(newTimeoutId)
   }
 
-  // ✅ REMOVED the useEffect that was interfering with input state
-
-  // ✅ FIXED: ONLY clear search when user explicitly clicks X
   const handleClearSearch = () => {
     console.log('🧹 User clicked clear search')
     setSearchInput('')
@@ -130,7 +119,6 @@ const DocumentsToolbar = ({
     onFilterChange(finalFilters)
   }
 
-  // ✅ FIXED: Filter change preserves search input
   const handleFilterChange = (filterType, value) => {
     const newActiveFilters = {
       ...activeFilters,
@@ -143,7 +131,6 @@ const DocumentsToolbar = ({
     onFilterChange(finalFilters)
   }
 
-  // ✅ FIXED: Sort change
   const handleSortSelect = (option) => {
     setSortBy(option.field)
     setSortOrder(option.order)
@@ -151,7 +138,6 @@ const DocumentsToolbar = ({
     onSortChange(option.field, option.order)
   }
 
-  // ✅ FIXED: Clear all filters but preserve search
   const handleClearAllFilters = () => {
     console.log('🧹 Clearing all filters except search')
     
@@ -175,7 +161,6 @@ const DocumentsToolbar = ({
     onFilterChange(finalFilters)
   }
 
-  // ✅ FIXED: Clear everything including search
   const handleClearEverything = () => {
     console.log('🧹 Clearing everything including search')
     
@@ -203,7 +188,6 @@ const DocumentsToolbar = ({
       {/* Main Toolbar */}
       <div className="flex flex-col lg:flex-row gap-4">
         
-        {/* Left: Search - ✅ CRITICAL: This div NEVER disappears */}
         <div className="flex-1" style={{ minWidth: '250px' }}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />

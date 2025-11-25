@@ -1,6 +1,6 @@
 /**
  * PATH: src/pages/auth/LoginPage.jsx
- * Clean Login Page without demo account
+ * Login Page
  */
 
 import React, { useState, useEffect } from 'react'

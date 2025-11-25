@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/layout/Footer.jsx
- * Premium Footer Component for StudyEasy
+ * Footer Component
  */
 
 import React from 'react'

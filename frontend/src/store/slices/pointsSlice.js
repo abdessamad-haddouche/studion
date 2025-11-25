@@ -23,7 +23,6 @@ export const fetchUserPoints = createAsyncThunk(
   }
 )
 
-// Add async thunk for adding points (for testing)
 export const addUserPoints = createAsyncThunk(
   'points/addUserPoints',
   async ({ amount, reason = 'Testing points' }, { rejectWithValue }) => {

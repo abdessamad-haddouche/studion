@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/UploadCTA.jsx
- * Upload Call-to-Action Component - Adapts based on user state
+ * Upload Call-to-Action Component
  */
 
 import React from 'react'
@@ -12,16 +12,13 @@ const UploadCTA = ({ onUploadClick, className = '' }) => {
   const hasDocuments = useSelector(state => state.documents?.hasDocuments)
   const documents = useSelector(state => state.documents?.documents)
   
-  // ✅ FIX: Better condition to check for empty state
   const actuallyHasDocuments = documents && documents.length > 0
   
   console.log('🎯 UploadCTA Debug:', { hasDocuments, documentsLength: documents?.length, actuallyHasDocuments })
 
-  // ✅ CHANGE: Only show big upload CTA when NO documents exist
   if (!actuallyHasDocuments) {
     return (
       <div className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6 ${className}`}>
-        {/* Your existing big upload CTA code */}
         <div className="text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
             <Upload className="w-8 h-8 text-blue-600" />
@@ -72,7 +69,6 @@ const UploadCTA = ({ onUploadClick, className = '' }) => {
     )
   }
 
-  // ✅ CHANGE: Show compact version when user HAS documents
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-4 ${className}`}>
       <div className="flex items-center justify-between">

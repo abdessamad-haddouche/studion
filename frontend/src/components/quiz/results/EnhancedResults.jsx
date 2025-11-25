@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/quiz/results/EnhancedResults.jsx
- * Fix object rendering and ensure Basic plan results work
  */
 
 import React from 'react'
@@ -20,12 +19,10 @@ const EnhancedResults = ({ results }) => {
         
         <div className="space-y-6">
           {results.detailedResults && results.detailedResults.map((result, index) => {
-            // ✅ PROPER QUESTION TYPE DETECTION
             const hasOptions = result.options && Array.isArray(result.options)
             const isMultipleChoice = hasOptions && result.options.length > 2
             const questionType = isMultipleChoice ? 'multiple_choice' : 'true_false'
             
-            // ✅ SET PROPER OPTIONS
             const questionOptions = hasOptions ? result.options : ['True', 'False']
             
             console.log(`🔍 Question ${index + 1} Detection:`, {
@@ -41,13 +38,13 @@ const EnhancedResults = ({ results }) => {
                   question={{
                     id: result.questionId,
                     question: result.question,
-                    options: questionOptions, // ✅ USE DETECTED OPTIONS
+                    options: questionOptions,
                     explanation: result.explanation,
                     correctAnswer: result.correctAnswer,
                     correctAnswerIndex: result.correctAnswerIndex
                   }}
                   questionNumber={index + 1}
-                  questionType={questionType} // ✅ USE DETECTED TYPE
+                  questionType={questionType}
                   answer={result.userAnswer}
                   showExplanations={true}
                   showResult={true}
@@ -109,7 +106,6 @@ const EnhancedResults = ({ results }) => {
         <h3 className="text-lg font-semibold text-slate-900 mb-4">Study Recommendations</h3>
         
         <div className="space-y-3">
-          {/* ✅ FIX: Handle feedback object properly */}
           {results.feedback && (
             <div className="p-4 bg-blue-50 rounded-lg">
               <div className="flex items-start space-x-3">
@@ -117,7 +113,6 @@ const EnhancedResults = ({ results }) => {
                 <div>
                   <h4 className="font-medium text-blue-900 mb-1">Overall Feedback</h4>
                   <p className="text-blue-800 text-sm">
-                    {/* ✅ SAFE RENDERING: Check if feedback is string or object */}
                     {typeof results.feedback === 'string' 
                       ? results.feedback 
                       : results.feedback.overall || 'Great job completing the quiz!'}

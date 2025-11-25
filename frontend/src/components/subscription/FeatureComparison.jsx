@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/subscription/FeatureComparison.jsx
- * Feature Comparison Table Component - FIXED with MAD pricing instead of dollars
+ * Feature Comparison Table Component
  */
 
 import React from 'react'
@@ -9,7 +9,6 @@ import { PLAN_FEATURES, SUBSCRIPTION_PLANS } from './SubscriptionConfig'
 
 const FeatureComparison = ({ className = '' }) => {
   
-  // Complete features to compare based on actual plan config
   const comparisonFeatures = [
     {
       category: 'Core Features',
@@ -83,7 +82,6 @@ const FeatureComparison = ({ className = '' }) => {
     }
   }
   
-  // ✅ FIXED: Format price in MAD instead of dollars
   const formatPrice = (plan) => {
     if (plan.price === 0) return 'Free'
     

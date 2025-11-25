@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/dashboard/ProcessingNotification.jsx
- * FIXED - Added localStorage persistence for processing times
+ * Added localStorage persistence for processing times
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -16,7 +16,7 @@ const ProcessingNotification = ({
 }) => {
   const dispatch = useDispatch()
   
-  // ✅ FIXED: Load processing times from localStorage
+  // Load processing times from localStorage
   const [timeElapsed, setTimeElapsed] = useState(() => {
     const saved = localStorage.getItem('dashboard_processing_times')
     if (!saved) return {}
@@ -82,7 +82,7 @@ const ProcessingNotification = ({
     }
   }, [dispatch, processingDocuments.length])
 
-  // ✅ FIXED: Timer effect for elapsed time tracking with localStorage sync
+  // Timer effect for elapsed time tracking with localStorage sync
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeElapsed(prev => {
@@ -125,7 +125,6 @@ const ProcessingNotification = ({
   // Show completion notifications
   useEffect(() => {
     // This effect would be triggered from parent when documents complete
-    // For now, we'll just log when processing list changes
     if (processingDocuments.length === 0 && Object.keys(timeElapsed).length > 0) {
       toast.success('🎉 Document processing completed!')
       setTimeElapsed({})

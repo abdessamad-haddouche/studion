@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsGrid.jsx
- * ENHANCED - Added ProcessingNotification + Auto-refresh polling + localStorage persistence
+ * ProcessingNotification + Auto-refresh polling + localStorage persistence
  */
 
 import React, { useState, useEffect } from 'react'
@@ -30,7 +30,7 @@ import QuizSelectionModal from '../quiz/modals/QuizSelectionModal'
 import { canAccessFeature } from './DocumentsPageConfig'
 import { documentsAPI } from '../../services/api'
 import { fetchUserDocuments } from '../../store/slices/documentsSlice'
-import ProcessingNotification from '../dashboard/ProcessingNotification' // ✅ IMPORT FROM DASHBOARD
+import ProcessingNotification from '../dashboard/ProcessingNotification'
 import toast from 'react-hot-toast'
 
 const DocumentsGrid = ({
@@ -61,18 +61,15 @@ const DocumentsGrid = ({
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // ✅ ENHANCED: Processing tracking with localStorage persistence
   const [processingStartTimes, setProcessingStartTimes] = useState(() => {
     // Load from localStorage on mount
     const saved = localStorage.getItem('documents_processing_times')
     return saved ? JSON.parse(saved) : {}
   })
 
-  // ✅ NEW: Processing notification state (SAME AS DASHBOARD)
   const [processingDocuments, setProcessingDocuments] = useState([])
   const [showProcessingNotification, setShowProcessingNotification] = useState(false)
 
-  // ✅ ENHANCED: Auto-refresh polling for processing documents
   useEffect(() => {
     const hasProcessingDocs = documents && documents.some(doc => 
       doc.status === 'processing' || doc.status === 'pending'
@@ -97,7 +94,6 @@ const DocumentsGrid = ({
     }
   }, [documents, dispatch])
 
-  // ✅ ENHANCED: Track processing documents + save to localStorage
   useEffect(() => {
     if (documents) {
       const newStartTimes = { ...processingStartTimes }
@@ -135,11 +131,9 @@ const DocumentsGrid = ({
       if (hasNewProcessing || Object.keys(newStartTimes).length !== Object.keys(processingStartTimes).length) {
         setProcessingStartTimes(newStartTimes)
         
-        // ✅ Save to localStorage
         localStorage.setItem('documents_processing_times', JSON.stringify(newStartTimes))
       }
 
-      // ✅ Update processing notification state (SAME AS DASHBOARD)
       const processing = documents.filter(doc => 
         doc.status === 'processing' || doc.status === 'pending'
       )
@@ -149,7 +143,6 @@ const DocumentsGrid = ({
     }
   }, [documents])
 
-  // ✅ ENHANCED: Get processing time elapsed with localStorage persistence
   const getProcessingTimeElapsed = (document) => {
     const docId = document.id || document._id
     const startTime = processingStartTimes[docId]
@@ -157,7 +150,6 @@ const DocumentsGrid = ({
     return Math.floor((Date.now() - startTime) / 1000)
   }
 
-  // ✅ Get processing estimate (SAME AS DASHBOARD)
   const getProcessingEstimate = (document) => {
     const size = document?.file?.size || 0
     if (size < 1024 * 1024) return 120      // 2 minutes for small PDFs
@@ -165,7 +157,6 @@ const DocumentsGrid = ({
     return 240                              // 4 minutes for large PDFs
   }
 
-  // ✅ Format time (SAME AS DASHBOARD)
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -175,7 +166,6 @@ const DocumentsGrid = ({
     return `${secs}s`
   }
 
-  // ✅ NEW: Handle processing notification refresh (SAME AS DASHBOARD)
   const handleProcessingRefresh = async () => {
     try {
       console.log('🔄 Manual refresh triggered from processing notification')
@@ -251,7 +241,6 @@ const DocumentsGrid = ({
     return date.toLocaleDateString()
   }
 
-  // ✅ ALL YOUR EXISTING FUNCTIONS REMAIN THE SAME
   const startEditing = (document) => {
     setEditingDocument(document.id)
     setEditTitle(document.title || '')
@@ -361,7 +350,6 @@ const DocumentsGrid = ({
     return selectedDocuments.includes(documentId)
   }
 
-  // ✅ EMPTY STATE LOGIC (SAME AS BEFORE)
   if (!documents || documents.length === 0) {
     const hasSearch = currentSearchTerm && currentSearchTerm.trim()
     const hasFilters = filters && Object.keys(filters).some(key => 
@@ -470,7 +458,6 @@ const DocumentsGrid = ({
 
   return (
     <div className={className}>
-      {/* ✅ NEW: Processing Notification (SAME AS DASHBOARD) */}
       {showProcessingNotification && processingDocuments.length > 0 && (
         <ProcessingNotification
           processingDocuments={processingDocuments}
@@ -488,7 +475,6 @@ const DocumentsGrid = ({
           const isEditing = editingDocument === document.id
           const isShowingDeleteConfirm = deleteConfirm === document.id
           
-          // ✅ ENHANCED: Processing calculations with localStorage persistence
           const elapsed = getProcessingTimeElapsed(document)
           const estimate = getProcessingEstimate(document)
           const progress = document.status === 'processing' ? Math.min((elapsed / estimate) * 100, 95) : 0
@@ -675,7 +661,6 @@ const DocumentsGrid = ({
                       </div>
                     )}
 
-                    {/* ✅ ENHANCED: Processing state with auto-refresh */}
                     {document.status === 'processing' && (
                       <div className="space-y-3">
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-200">

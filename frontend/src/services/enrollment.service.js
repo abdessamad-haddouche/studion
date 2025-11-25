@@ -1,13 +1,5 @@
 /**
  * PATH: src/services/enrollment.service.js
- * FIXED - User-specific enrollment tracking
- * ✅ UPDATED: New points discount system (1000pts = 5%, 2000pts = 10%, 3000pts = 15% max)
- * 
- * ✅ CHANGES:
- * - Enrollments are now stored per user ID
- * - Uses Redux auth state to get current user
- * - Fallback to 'guest' if no user logged in
- * - Updated points discount calculation
  */
 
 class EnrollmentService {
@@ -17,9 +9,6 @@ class EnrollmentService {
     this.POINTS_KEY_PREFIX = 'user_points_'
   }
 
-  /**
-   * ✅ NEW: Get current user ID from Redux store
-   */
   getCurrentUserId() {
     try {
       // Get user from Redux store in localStorage
@@ -56,9 +45,6 @@ class EnrollmentService {
     }
   }
 
-  /**
-   * ✅ NEW: Get user-specific storage key
-   */
   getStorageKey() {
     const userId = this.getCurrentUserId()
     return `${this.STORAGE_KEY_PREFIX}${userId}`
@@ -81,9 +67,6 @@ class EnrollmentService {
     }
   }
 
-  /**
-   * ✅ FIXED: Save courses to user-specific key
-   */
   saveEnrolledCourses(courses) {
     try {
       const storageKey = this.getStorageKey()
@@ -134,11 +117,11 @@ class EnrollmentService {
         enrolledAt: new Date().toISOString(),
         progress: 0,
         completed: false,
-        userId: this.getCurrentUserId() // ✅ Track which user enrolled
+        userId: this.getCurrentUserId()
       }
 
       enrolledCourses.push(enrollment)
-      this.saveEnrolledCourses(enrolledCourses) // ✅ Use new save method
+      this.saveEnrolledCourses(enrolledCourses)
 
       console.log('✅ User enrolled in free course:', course.title)
       return { 
@@ -174,7 +157,7 @@ class EnrollmentService {
         enrolledAt: new Date().toISOString(),
         progress: 0,
         completed: false,
-        userId: this.getCurrentUserId(), // ✅ Track which user enrolled
+        userId: this.getCurrentUserId(),
         payment: {
           originalPrice: paymentDetails.originalPrice,
           pointsUsed: paymentDetails.pointsUsed,
@@ -185,7 +168,7 @@ class EnrollmentService {
       }
 
       enrolledCourses.push(enrollment)
-      this.saveEnrolledCourses(enrolledCourses) // ✅ Use new save method
+      this.saveEnrolledCourses(enrolledCourses)
 
       console.log('✅ User enrolled in paid course:', course.title)
       return { 
@@ -224,12 +207,7 @@ class EnrollmentService {
     }
   }
 
-  /**
-   * ✅ UPDATED: Calculate points discount using NEW system
-   * 1000 pts = 5%, 2000 pts = 10%, 3000 pts = 15% (max)
-   */
   calculatePointsDiscount(userPoints, originalPrice) {
-    // ✅ NEW LOGIC: Max 3000 points usable
     const MAX_USABLE_POINTS = 3000
     const actualPoints = Math.min(userPoints, MAX_USABLE_POINTS)
     
@@ -259,9 +237,6 @@ class EnrollmentService {
     }
   }
 
-  /**
-   * ✅ UPDATED: Calculate final price with NEW points discount system
-   */
   calculateFinalPrice(originalPrice, userPoints) {
     if (userPoints < 1000) {
       return {
@@ -293,16 +268,10 @@ class EnrollmentService {
     }
   }
 
-  /**
-   * ✅ UPDATED: Get maximum points that can be used for a course
-   */
   getMaxUsablePoints(coursePrice, userPoints) {
     return Math.min(3000, userPoints) // Max 3000 points can be used
   }
 
-  /**
-   * ✅ NEW: Get points discount tiers for display
-   */
   getPointsDiscountTiers() {
     return [
       { points: 1000, discount: 5, label: '5% Off' },
@@ -311,9 +280,6 @@ class EnrollmentService {
     ]
   }
 
-  /**
-   * Clear all enrollments for current user (for testing)
-   */
   clearEnrollments() {
     const storageKey = this.getStorageKey()
     localStorage.removeItem(storageKey)
@@ -321,9 +287,6 @@ class EnrollmentService {
     return { success: true, message: 'All enrollments cleared' }
   }
 
-  /**
-   * ✅ NEW: Clear ALL enrollments across all users (admin/testing)
-   */
   clearAllEnrollments() {
     // Find all enrollment keys in localStorage
     const keysToRemove = []
@@ -370,9 +333,6 @@ class EnrollmentService {
     }
   }
 
-  /**
-   * ✅ NEW: Migrate old global enrollments to user-specific (run once)
-   */
   migrateOldEnrollments() {
     try {
       const oldKey = 'enrolled_courses'

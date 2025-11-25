@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/courses/CourseSearch.jsx
- * Course Search Component - Premium search with suggestions
+ * Course Search Component - Search with suggestions
  */
 
 import React, { useState, useRef, useEffect } from 'react'

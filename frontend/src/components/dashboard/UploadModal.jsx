@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/dashboard/UploadModal.jsx
- * FIXED: Remove Generate Quiz button from upload success
  */
 
 import React, { useState, useRef, useEffect } from 'react'
@@ -10,7 +9,6 @@ import toast from 'react-hot-toast'
 import Button from '../ui/Button'
 import { uploadDocument } from '../../store/slices/documentsSlice'
 
-// ✅ ADD THESE IMPORTS
 import { 
   selectCurrentPlan, 
   selectPlanFeatures 
@@ -21,7 +19,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
   
-  // ✅ ADD THESE - Plan limits check
   const currentPlan = useSelector(selectCurrentPlan)
   const planFeatures = useSelector(selectPlanFeatures)
   const documents = useSelector(state => state.documents?.documents)
@@ -46,7 +43,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
   const supportedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
   const maxFileSize = 10 * 1024 * 1024 // 10MB
 
-  // ✅ ADD THIS: Check limits when modal opens
   useEffect(() => {
     if (isOpen) {
       if (hasReachedLimit) {
@@ -81,8 +77,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
     if (uploadStep === 'processing' && uploadedDocument) {
       const pollInterval = setInterval(async () => {
         try {
-          // In real app, you'd poll the backend for document status
-          // For now, simulate completion after 10 seconds
           setTimeout(() => {
             setProcessingProgress(100)
             setUploadStep('complete')
@@ -229,7 +223,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
 
         {/* Content */}
         <div className="p-4">
-          {/* ✅ ADD THIS: Limit Reached Step */}
           {uploadStep === 'limit_reached' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-red-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -256,7 +249,7 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
                 <Button
                   onClick={() => {
                     onClose() // Close the upload modal first
-                    window.location.href = '/subscription' // ✅ FIX: Navigate to subscription page
+                    window.location.href = '/subscription'
                   }}
                   variant="premium"
                   className="w-full flex items-center justify-center space-x-2"
@@ -304,7 +297,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
                     Supports PDF, Word documents, and text files up to 10MB
                   </p>
                   
-                  {/* ✅ ADD THIS: Usage indicator */}
                   <div className="bg-slate-100 rounded-lg p-3 mb-4">
                     <p className="text-sm text-slate-600 mb-2">
                       <span className="font-semibold">{currentDocumentCount}</span> of{' '}
@@ -426,7 +418,6 @@ const UploadModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* ✅ FIXED: Upload Success - Only "View in Dashboard" */}
           {uploadStep === 'complete' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-green-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">

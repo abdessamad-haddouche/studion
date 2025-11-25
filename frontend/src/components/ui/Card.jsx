@@ -1,6 +1,6 @@
 /**
  * Premium Card Component
- * @description Beautiful card with glass effect and animations
+ * @description card with glass effect and animations
  */
 
 import React from 'react'

@@ -1,6 +1,5 @@
 /**
  * PATH: src/components/ui/Button.jsx
- * Enhanced Button Component with loading and variants
  */
 
 import React from 'react'

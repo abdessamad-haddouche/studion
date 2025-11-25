@@ -1,6 +1,5 @@
 /**
  * PATH: src/pages/documents/DocumentsPage.jsx
- * ENHANCED with Client-Side Search Filtering + Processing Indicators from Dashboard
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -69,7 +68,6 @@ const DocumentsPage = () => {
   const totalDocumentsCount = useSelector(selectTotalDocumentsCount)
   const searchState = useSelector(selectSearchState)
   
-  // ✅ Client-side filtering state
   const [allDocuments, setAllDocuments] = useState([])
   const [filteredDocuments, setFilteredDocuments] = useState([])
   const [isLocalFiltering, setIsLocalFiltering] = useState(false)
@@ -86,7 +84,6 @@ const DocumentsPage = () => {
   const documentLimits = getDocumentLimits(currentPlan)
   const paginationSettings = getPaginationSettings(currentPlan)
 
-  // ✅ Client-side search filtering function
   const filterDocumentsLocally = useCallback((allDocs, searchTerm, filterParams) => {
     let filteredDocs = [...allDocs]
     
@@ -133,10 +130,8 @@ const DocumentsPage = () => {
   // Check if user has documents
   const hasDocuments = (isLocalFiltering ? filteredDocuments : documents) && (isLocalFiltering ? filteredDocuments : documents).length > 0
 
-  // ✅ Get enabled components
   const enabledComponents = getEnabledDocumentsComponents(hasDocuments, currentPlan, viewMode)
 
-  // ✅ ENHANCED: Fetch documents with client-side filtering support
   const fetchDocuments = useCallback(async (searchParams = {}) => {
     try {
       console.log('📄 Fetching documents with params:', searchParams)
@@ -255,7 +250,6 @@ const DocumentsPage = () => {
   const handleUploadSuccess = async (document) => {
     setShowUploadModal(false)
     
-    // ✅ Add new document to allDocuments for client-side filtering
     setAllDocuments(prev => [document.document, ...prev])
     
     await Promise.all([
@@ -267,7 +261,6 @@ const DocumentsPage = () => {
   const handleDocumentUpdate = (updatedDocument) => {
     console.log('📝 Document updated:', updatedDocument)
     
-    // ✅ Update in allDocuments for client-side filtering
     setAllDocuments(prev => 
       prev.map(doc => doc.id === updatedDocument.id ? updatedDocument : doc)
     )
@@ -297,7 +290,6 @@ const DocumentsPage = () => {
     await dispatch(fetchTotalDocumentsCount())
   }
 
-  // ✅ ENHANCED: Filter change handler with client-side support
   const handleFilterChange = useCallback((newFilters) => {
     console.log('🔄 FILTER CHANGE EVENT:', {
       newFilters: newFilters,
@@ -440,10 +432,8 @@ const DocumentsPage = () => {
     }
   }
 
-  // ✅ Get the documents to display (filtered or regular)
   const displayedDocuments = isLocalFiltering ? filteredDocuments : documents
 
-  // ✅ COMPONENT MAPPING with enhanced processing indicators
   const componentMap = {
     [DOCUMENTS_COMPONENTS.HEADER]: (
       <DocumentsHeader
@@ -472,7 +462,7 @@ const DocumentsPage = () => {
     [DOCUMENTS_COMPONENTS.GRID]: (
       <DocumentsGrid
         key="grid"
-        documents={displayedDocuments} // ✅ Use filtered documents with processing indicators
+        documents={displayedDocuments}
         selectedDocuments={selectedDocuments}
         onDocumentSelect={handleDocumentSelect}
         onDocumentUpdate={handleDocumentUpdate}
@@ -494,7 +484,7 @@ const DocumentsPage = () => {
     [DOCUMENTS_COMPONENTS.TABLE]: (
       <DocumentsTable
         key="table"
-        documents={displayedDocuments} // ✅ Use filtered documents with processing indicators
+        documents={displayedDocuments}
         selectedDocuments={selectedDocuments}
         onDocumentSelect={handleDocumentSelect}
         onDocumentUpdate={handleDocumentUpdate}
@@ -593,13 +583,11 @@ const DocumentsPage = () => {
     )
   }
 
-  // ✅ MAIN RENDER with enhanced processing indicators
   return (
     <Layout>
       <div className="min-h-screen bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
-          {/* ✅ Render enabled components with enhanced processing indicators */}
           {enabledComponents.map(componentKey => componentMap[componentKey])}
           
         </div>

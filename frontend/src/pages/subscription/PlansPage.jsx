@@ -1,6 +1,5 @@
 /**
  * PATH: src/pages/subscription/PlansPage.jsx
- * ENHANCED Plans Page with MAD Currency - FIXED current subscription banner
  */
 
 import React, { useEffect } from 'react'
@@ -27,7 +26,6 @@ const PlansPage = () => {
   // Get enabled components based on configuration
   const enabledComponents = getEnabledSubscriptionComponents(currentPlan)
   
-  // ✅ FIXED: Format price in MAD currency
   const formatCurrentPlanPrice = (plan) => {
     if (!plan || plan.price === 0) return 'Free'
     
@@ -263,7 +261,6 @@ const PlansPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           
-          {/* ✅ FIXED: CURRENT PLAN BANNER with MAD currency - THIS IS WHERE "$0/month" WAS SHOWING */}
           {currentPlan && (
             <div className="mb-8 bg-white rounded-xl shadow-lg border border-slate-200 p-6">
               <div className="flex items-center justify-between">
@@ -278,7 +275,6 @@ const PlansPage = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-blue-600 mb-1">
-                    {/* ✅ FIXED: This was showing "$0/month" - now shows "Free" or "150 MAD/month" */}
                     {formatCurrentPlanPrice(PLAN_FEATURES[currentPlan])}
                   </div>
                   <div className="text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">

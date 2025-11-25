@@ -45,12 +45,10 @@ const DocumentQuizModal = ({ isOpen, document, onClose, onStartQuiz }) => {
       // Simulate API call to generate quiz
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // In real implementation, call your quiz generation API
       const quizData = {
         documentId: document.id,
         difficulty: selectedDifficulty,
         questionsCount: quizConfig[selectedDifficulty].questionsCount,
-        // Mock quiz data - replace with actual API response
         questions: generateMockQuestions(selectedDifficulty)
       }
       
@@ -59,13 +57,11 @@ const DocumentQuizModal = ({ isOpen, document, onClose, onStartQuiz }) => {
       
     } catch (error) {
       console.error('Quiz generation failed:', error)
-      // Handle error appropriately
     } finally {
       setIsGenerating(false)
     }
   }
 
-  // Mock quiz questions generator (replace with actual API call)
   const generateMockQuestions = (difficulty) => {
     const questionCount = quizConfig[difficulty].questionsCount
     const questions = []

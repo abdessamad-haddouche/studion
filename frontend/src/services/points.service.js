@@ -1,7 +1,6 @@
 /**
  * PATH: src/services/points.service.js
- * Points Service - Handle backend communication for points transactions
- * ✅ UPDATED: New points discount system (1000pts = 5%, 2000pts = 10%, 3000pts = 15% max)
+ * Points discount system (1000pts = 5%, 2000pts = 10%, 3000pts = 15% max)
  */
 
 import api from './api'
@@ -28,23 +27,18 @@ class PointsService {
     }
   }
 
-  /**
-   * Deduct points from user's account (for course enrollment)
-   * FIXED: Uses correct backend API format
-   */
   async deductPoints(pointsToDeduct, courseId, transactionDetails = {}) {
     try {
-      // Fixed payload format to match your backend controller
       const payload = {
-        amount: pointsToDeduct,  // Backend expects 'amount', not 'points'
+        amount: pointsToDeduct,
         reason: `Course enrollment: ${courseId} - ${transactionDetails.originalPrice ? `$${transactionDetails.originalPrice} course` : 'course purchase'}`
       }
 
-      const response = await api.post('/users/me/points/deduct', payload)  // Fixed endpoint
+      const response = await api.post('/users/me/points/deduct', payload)
       
       return {
         success: true,
-        newBalance: response.data.data.newTotal,  // Fixed data path
+        newBalance: response.data.data.newTotal,
         pointsDeducted: response.data.data.pointsDeducted,
         transactionId: response.data.data.timestamp,
         data: response.data.data
@@ -59,18 +53,14 @@ class PointsService {
     }
   }
 
-  /**
-   * Add points to user's account (for bonuses, rewards, etc.)
-   * FIXED: Uses correct backend API format
-   */
   async addPoints(pointsToAdd, reason = 'Manual credit', metadata = {}) {
     try {
       const payload = {
-        amount: pointsToAdd,  // Backend expects 'amount', not 'points'
+        amount: pointsToAdd,
         reason: reason
       }
 
-      const response = await api.post('/users/me/points/add', payload)  // Fixed endpoint
+      const response = await api.post('/users/me/points/add', payload)
       
       return {
         success: true,
@@ -93,7 +83,7 @@ class PointsService {
    */
   async getPointsHistory(page = 1, limit = 20) {
     try {
-      const response = await api.get(`/users/me/points/history?page=${page}&limit=${limit}`)  // Fixed endpoint
+      const response = await api.get(`/users/me/points/history?page=${page}&limit=${limit}`)
       
       return {
         success: true,
@@ -111,10 +101,6 @@ class PointsService {
     }
   }
 
-  /**
-   * Get detailed points summary
-   * NEW: Uses your backend's detailed summary endpoint
-   */
   async getPointsSummary() {
     try {
       const response = await api.get('/users/me/points/summary')
@@ -165,10 +151,6 @@ class PointsService {
     }
   }
 
-  /**
-   * ✅ UPDATED: Calculate enrollment cost with NEW points discount system
-   * 1000 pts = 5%, 2000 pts = 10%, 3000 pts = 15% (max)
-   */
   calculateEnrollmentCost(coursePrice, userPoints, usePointsDiscount = false) {
     if (!usePointsDiscount || userPoints < 1000) {
       return {
@@ -183,7 +165,6 @@ class PointsService {
       }
     }
 
-    // ✅ NEW LOGIC: Calculate discount based on available points
     const MAX_USABLE_POINTS = 3000
     const actualPoints = Math.min(userPoints, MAX_USABLE_POINTS)
     
@@ -218,9 +199,6 @@ class PointsService {
     }
   }
 
-  /**
-   * ✅ NEW: Get points discount tiers for UI display
-   */
   getPointsDiscountTiers() {
     return [
       { points: 1000, discount: 5, label: '5% Off', description: 'Basic discount' },
@@ -229,9 +207,6 @@ class PointsService {
     ]
   }
 
-  /**
-   * ✅ NEW: Check which discount tier user qualifies for
-   */
   getQualifiedDiscountTier(userPoints) {
     const tiers = this.getPointsDiscountTiers()
     
@@ -252,10 +227,6 @@ class PointsService {
     }
   }
 
-  /**
-   * Process course enrollment with points
-   * ✅ UPDATED: Uses new discount calculation logic
-   */
   async processCourseEnrollment(courseId, coursePrice, pointsToUse = 0) {
     try {
       // Validate points balance if using points

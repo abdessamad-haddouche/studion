@@ -1,7 +1,5 @@
 /**
  * PATH: src/store/slices/coursesSlice.js
- * Courses Redux Slice - Complete marketplace state management
- * Follows studion architecture patterns with localStorage integration
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'

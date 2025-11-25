@@ -57,7 +57,7 @@ export const documentActionsConfig = {
   },
   
   [DOCUMENT_ACTIONS.SHARE]: {
-    enabled: false, // Disable for now
+    enabled: false,
     label: 'Share',
     description: 'Share with others',
     icon: 'Share2',
@@ -104,7 +104,7 @@ export const revisionConfig = {
   },
   
   [REVISION_MODES.FULL_CONTENT]: {
-    enabled: false, // Disable for now - might be too much text
+    enabled: false,
     label: 'Full Text',
     description: 'Complete extracted content',
     icon: 'Scroll',

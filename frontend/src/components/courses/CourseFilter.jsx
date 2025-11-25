@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/courses/CourseFilter.jsx
- * Course Filter Component - Premium filtering interface
+ * Course Filter Component - Filtering interface
  */
 
 import React, { useState } from 'react'

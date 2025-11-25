@@ -11,8 +11,6 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation()
   const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated)
   
-  // For now, let's allow access (you'll implement real auth later)
-  // Replace this with real authentication check
   const isLoggedIn = isAuthenticated || localStorage.getItem('token')
 
   if (!isLoggedIn) {

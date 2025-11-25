@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/courses/CourseList.jsx
- * SIMPLIFIED Course List Component - Working version without complex dependencies
+ * Course List Component
  */
 
 import React from 'react'
@@ -10,7 +10,6 @@ import Button from '../ui/Button'
 import LoadingSpinner from '../ui/LoadingSpinner'
 
 const CourseList = ({ className = '', featuredFirst = false }) => {
-  // Simple selectors - only use what exists
   const courses = useSelector(state => state.courses?.courses || [])
   const isLoading = useSelector(state => state.courses?.isLoading || false)
   const error = useSelector(state => state.courses?.error || null)

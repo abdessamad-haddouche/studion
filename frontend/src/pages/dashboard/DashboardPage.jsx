@@ -1,12 +1,5 @@
 /**
  * PATH: src/pages/dashboard/DashboardPage.jsx
- * Enhanced Dashboard Page with Auto-Refresh - FULL CODE
- * 
- * ✅ ADDED:
- * - Auto-refresh stats when user returns to dashboard
- * - Listen for URL changes to detect quiz completion
- * - Refresh documents and stats on focus
- * - Better loading states
  */
 
 import React, { useEffect } from 'react'
@@ -22,7 +15,6 @@ const DashboardPage = () => {
   const location = useLocation()
   const { isAuthenticated } = useSelector(state => state.auth)
 
-  // ✅ ADDED: Auto-refresh when user navigates to dashboard
   useEffect(() => {
     if (isAuthenticated) {
       console.log('📊 DashboardPage: User navigated to dashboard, refreshing data...')
@@ -35,7 +27,6 @@ const DashboardPage = () => {
     }
   }, [dispatch, isAuthenticated, location.pathname])
 
-  // ✅ ADDED: Listen for window focus (when user returns from another tab/window)
   useEffect(() => {
     const handleWindowFocus = () => {
       if (isAuthenticated && document.location.pathname === '/dashboard') {
@@ -69,7 +60,6 @@ const DashboardPage = () => {
     }
   }, [dispatch, isAuthenticated])
 
-  // ✅ ADDED: Listen for quiz completion via localStorage changes
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'quiz_completed' && e.newValue) {
@@ -92,7 +82,6 @@ const DashboardPage = () => {
     }
   }, [dispatch])
 
-  // ✅ ENHANCED: Better loading state
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">

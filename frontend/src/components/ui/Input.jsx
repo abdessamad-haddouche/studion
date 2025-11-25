@@ -1,6 +1,6 @@
 /**
  * PATH: src/components/ui/Input.jsx
- * Enhanced Input Component with validation states
+ * Input Component with validation states
  */
 
 import React, { forwardRef } from 'react'

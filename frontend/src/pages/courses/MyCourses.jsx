@@ -1,6 +1,5 @@
 /**
  * PATH: src/pages/courses/MyCourses.jsx
- * FIXED - Properly loads user stats so header shows correct points balance
  */
 
 import React, { useEffect, useState } from 'react'
@@ -18,16 +17,13 @@ const MyCourses = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([])
 
   useEffect(() => {
-    // ✅ FIXED: Load all required data including user stats for header
     const initializePage = async () => {
       try {
         // Load purchased courses from Redux
         await dispatch(loadPurchasedCourses())
         
-        // ✅ FIXED: Fetch user points for header
         await dispatch(fetchUserPoints())
         
-        // ✅ FIXED: Fetch user stats for header display
         await dispatch(fetchUserStats())
         
         // Load enrolled courses from localStorage

@@ -12,7 +12,6 @@ export default function ForgotPassword() {
   const submitPassword = (e) => {
     e.preventDefault();
 
-    //Here use axios and backend point to send the email
     console.log("The password sent to Gmail");
   };
 

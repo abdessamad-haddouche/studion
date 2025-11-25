@@ -1,6 +1,5 @@
 /**
  * PATH: src/store/slices/documentsSlice.js
- * ENHANCED with Local Filtering Support
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
@@ -398,7 +397,7 @@ export const {
   updateDocumentInList,
   removeDocumentFromList,
   updateTotalDocumentsCount,
-  setLocalFilterResults, // ✅ NEW ACTION
+  setLocalFilterResults,
   resetDocuments
 } = documentsSlice.actions
 

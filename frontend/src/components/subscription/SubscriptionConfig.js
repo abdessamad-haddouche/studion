@@ -1,13 +1,7 @@
 /**
  * PATH: src/components/subscription/SubscriptionConfig.js
- * ✅ FIXED: Correct Features for All Plans
- * 
- * FREE: Multiple Choice ✅, Explanations ✅, Analytics ✅, 5 Documents
- * PLUS: All Quiz Types ✅, Explanations ✅, Analytics ✅, UNLIMITED Documents ✅
- * PRO: All Plus Features ✅, Team Features ✅, Priority Support ✅, UNLIMITED Documents ✅
  */
 
-// ✅ UPDATED: Only 3 subscription plans
 export const SUBSCRIPTION_PLANS = ['free', 'plus', 'pro']
 
 export const SUBSCRIPTION_COMPONENTS = {
@@ -30,10 +24,9 @@ export const PLAN_FEATURES = {
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: true,
-    basicAnalytics: true, // ✅ ADDED: Analytics for free plan
-    // ✅ FIXED: Quiz Features - ALL UNLOCKED FOR FREE
-    quizTypes: ['true_false', 'multiple_choice'], // ✅ FIXED: Multiple choice included
-    showExplanations: true, // ✅ FIXED: Explanations included  
+    basicAnalytics: true,
+    quizTypes: ['true_false', 'multiple_choice'],
+    showExplanations: true, 
     showStrengthsWeaknesses: true,
     quizHistoryLimit: -1,
     advancedQuizAnalytics: true,
@@ -46,21 +39,20 @@ export const PLAN_FEATURES = {
     price: 150,
     currency: 'MAD',
     description: 'Enhanced learning with unlimited documents and premium features',
-    documentsLimit: -1, // ✅ ALREADY FIXED: Unlimited documents
+    documentsLimit: -1,
     strengthsWeaknesses: true,
     areasOfImprovement: true,
     prioritySupport: false,
     teamFeatures: false,
     advancedAnalytics: true,
     basicAnalytics: true,
-    // ✅ Quiz Features
-    quizTypes: ['true_false', 'multiple_choice', 'fill_blank', 'short_answer'], // ✅ Enhanced quiz types
+    quizTypes: ['true_false', 'multiple_choice', 'fill_blank', 'short_answer'],
     showExplanations: true,
     showStrengthsWeaknesses: true,
     quizHistoryLimit: -1, // Unlimited
     advancedQuizAnalytics: true,
     personalizedFeedback: true,
-    enhancedAI: true, // ✅ ADDED: Enhanced AI feature
+    enhancedAI: true,
     color: 'purple',
     popular: true
   },
@@ -71,14 +63,13 @@ export const PLAN_FEATURES = {
     currency: 'MAD',
     billing: 'year',
     description: 'Professional solution with unlimited documents and team features',
-    documentsLimit: -1, // ✅ ALREADY FIXED: Unlimited
+    documentsLimit: -1,
     strengthsWeaknesses: true,
     areasOfImprovement: true,
     prioritySupport: true,
     teamFeatures: true,
     advancedAnalytics: true,
     basicAnalytics: true,
-    // ✅ Quiz Features
     quizTypes: ['true_false', 'multiple_choice', 'fill_blank', 'short_answer', 'custom'],
     showExplanations: true,
     showStrengthsWeaknesses: true,
@@ -140,7 +131,6 @@ export const subscriptionConfig = {
   }
 }
 
-// ✅ QUIZ-SPECIFIC HELPER FUNCTIONS
 export const getAvailableQuizTypes = (planKey) => {
   return PLAN_FEATURES[planKey]?.quizTypes || ['true_false']
 }
@@ -153,7 +143,6 @@ export const canShowStrengthsWeaknesses = (planKey) => {
   return PLAN_FEATURES[planKey]?.showStrengthsWeaknesses || false
 }
 
-// ✅ Areas of Improvement helper
 export const canShowAreasOfImprovement = (planKey) => {
   return PLAN_FEATURES[planKey]?.areasOfImprovement || false
 }
@@ -214,10 +203,6 @@ export const getNextPlanSuggestion = (currentPlan) => {
   return SUBSCRIPTION_PLANS[planIndex + 1]
 }
 
-/**
- * ✅ UPDATED POINTS DISCOUNT SYSTEM
- * New logic: 1000pts = 5%, 2000pts = 10%, 3000pts = 15% (max)
- */
 
 /**
  * Calculate points discount percentage
@@ -225,7 +210,6 @@ export const getNextPlanSuggestion = (currentPlan) => {
  * @returns {Object} Discount information
  */
 export const calculatePointsDiscount = (userPoints) => {
-  // ✅ NEW LOGIC: 1000pts = 5%, 2000pts = 10%, 3000pts = 15% (max)
   const MAX_USABLE_POINTS = 3000
   const actualPoints = Math.min(userPoints, MAX_USABLE_POINTS)
   
@@ -290,7 +274,7 @@ export const calculateCoursePrice = (originalPrice, userPoints) => {
 }
 
 /**
- * Format price for premium display - Default to MAD for Morocco
+ * Format price for premium display
  */
 export const formatPlanPrice = (plan) => {
   if (plan.price === 0) return 'Free'

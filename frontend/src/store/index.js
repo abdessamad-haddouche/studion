@@ -1,6 +1,5 @@
 /**
  * PATH: src/store/index.js
- * Updated Redux store with subscription slice
  */
 
 import { configureStore } from '@reduxjs/toolkit'

@@ -1,14 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsEmptyState.jsx
- * Documents Empty State Component - FULL CODE
- * 
- * ✅ FEATURES:
- * - Engaging empty state with upload CTA
- * - Sample documents suggestions
- * - Tutorial and help links
- * - Plan-specific features preview
- * - Getting started guidance
- * - Subscription upgrade prompts
+ * Documents Empty State Component
  */
 
 import React from 'react'

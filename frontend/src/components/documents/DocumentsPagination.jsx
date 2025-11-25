@@ -1,14 +1,6 @@
 /**
  * PATH: src/components/documents/DocumentsPagination.jsx
- * Documents Pagination Component - FULL CODE
- * 
- * ✅ FEATURES:
- * - Page navigation with first, previous, next, last
- * - Page size selection based on subscription
- * - Jump to page functionality
- * - Responsive design
- * - Total items and current range display
- * - Keyboard navigation support
+ * Documents Pagination Component
  */
 
 import React, { useState } from 'react'
