@@ -1,7 +1,7 @@
 /**
- * Student User Model - FULLY COMPATIBLE VERSION
+ * Student User Model
  * @module models/users/Student
- * @description Student model with complete compatibility for Transaction, Quiz, Document, Course, and Subscription models
+ * @description Student model with compatibility for Transaction, Quiz, Document, Course, and Subscription models
  */
 
 import mongoose from 'mongoose';
@@ -43,7 +43,6 @@ const studentSchema = new baseUserSchema.constructor({
     }
   },
 
-  // Core Subscription (Basic - works with Subscription model)
   subscription: {
     tier: {
       type: String,
@@ -72,7 +71,6 @@ const studentSchema = new baseUserSchema.constructor({
     }
   },
 
-  // 🔥 ENHANCED PROGRESS TRACKING - COMPATIBLE WITH ALL MODELS
   progress: {
     // Document Model compatibility
     documentsUploaded: {
@@ -110,7 +108,6 @@ const studentSchema = new baseUserSchema.constructor({
       max: 100
     },
     
-    // 🎯 POINTS SYSTEM - TRANSACTION MODEL COMPATIBILITY
     totalPoints: {
       type: Number,
       default: 0,
@@ -147,7 +144,6 @@ const studentSchema = new baseUserSchema.constructor({
     }
   },
 
-  // 🎓 LEARNING PREFERENCES - QUIZ & DOCUMENT COMPATIBILITY
   learningPreferences: {
     preferredDifficulty: {
       type: String,
@@ -177,9 +173,7 @@ const studentSchema = new baseUserSchema.constructor({
     }
   },
 
-  // 📊 PERFORMANCE ANALYTICS - COMPATIBLE WITH QUIZATTEMPT MODEL
   analytics: {
-    // Subject performance (matches QuizAttempt strengths/weaknesses)
     subjectPerformance: [{
       subject: String,
       averageScore: {
@@ -291,10 +285,6 @@ studentSchema.virtual('pointsRank').get(function() {
   // This would be calculated via aggregation in practice
   return 'TBD'; // Placeholder for rank calculation
 });
-
-// ==========================================
-// ENHANCED METHODS - FULL MODEL COMPATIBILITY
-// ==========================================
 
 /**
  * Record document upload - Document Model compatibility

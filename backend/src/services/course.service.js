@@ -1,5 +1,5 @@
 /**
- * Course Service - COMPLETE IMPLEMENTATION
+ * Course Service
  * @module services/course
  * @description Course management with admin CRUD operations and user purchasing with points system
  */
@@ -587,9 +587,6 @@ export const purchaseCourse = async (courseId, pointsToUse = 0, userId) => {
     if (!course) {
       throw HttpError.notFound('Course not found');
     }
-    
-    // For MVP: Just simulate purchase (no real payment processing)
-    // In production: integrate with payment gateway here
     
     // Use points if any
     if (pricing.pointsUsed > 0) {

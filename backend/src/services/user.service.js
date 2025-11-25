@@ -248,7 +248,7 @@ export const getUserStatistics = async (userId) => {
     const overallStats = {
       totalStudyTime: user.analytics.totalStudyTime,
       currentStreak: user.progress.studyStreak,
-      longestStreak: user.progress.studyStreak, // You can track this separately
+      longestStreak: user.progress.studyStreak,
       totalPoints: user.progress.totalPoints,
       availablePoints: user.progress.totalPoints - user.progress.pointsUsed,
       memberSince: user.createdAt,
@@ -858,7 +858,6 @@ export default {
   getDocumentStatistics,
   getQuizStatistics,
   manageFocusTimer,
-  // NEW POINTS MANAGEMENT FUNCTIONS:
   addUserPoints,
   deductUserPoints,
   transferUserPoints,

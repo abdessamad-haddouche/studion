@@ -77,7 +77,6 @@ export const updateQuizProgress = async (userId, quizResults) => {
       newStudyStreak = 1;
     }
 
-    // 🔧 FIX: Update user using the correct model type
     let updatedUser;
     const updateData = {
       $set: {

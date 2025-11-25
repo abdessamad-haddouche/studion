@@ -1,5 +1,5 @@
 /**
- * Server Configuration - FIXED FOR NETWORK ACCESS
+ * Server Configuration
  * @module config/server
  */
 

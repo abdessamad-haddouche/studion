@@ -150,7 +150,6 @@ export const login = async (req, res, next) => {
       sameSite: 'strict'
     });
     
-    // ✅ FIXED: Correct response structure
     res.status(HTTP_STATUS_CODES.OK).json({
       success: true,
       message: 'Login successful',

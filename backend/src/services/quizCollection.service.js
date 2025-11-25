@@ -9,7 +9,6 @@ import { HttpError } from '#exceptions/index.js';
 import { QUIZ_GENERATION_CONFIG } from './ai.service.js';
 
 /**
- * 🔥 STORE COMPREHENSIVE QUIZ COLLECTION
  * Parse AI-generated quiz collection and store as individual Quiz documents
  * @param {Object} quizCollection - Parsed quiz collection from AI
  * @param {string} documentId - Document ID the quizzes belong to
@@ -36,10 +35,9 @@ export const storeQuizCollection = async (quizCollection, documentId, userId, la
       try {
         console.log(`💾 Storing quiz ${i + 1}/${quizCollection.quizzes.length}: ${quizData.title}`);
         
-        // 🔥 CRITICAL FIX: Use the exact userId parameter, don't generate new ones
         const quiz = new Quiz({
           documentId: new mongoose.Types.ObjectId(documentId),
-          userId: new mongoose.Types.ObjectId(userId), // ✅ USE PASSED userId
+          userId: new mongoose.Types.ObjectId(userId),
           
           // Basic info
           title: quizData.title || `Generated Quiz ${i + 1}`,

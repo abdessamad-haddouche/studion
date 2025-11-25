@@ -1,7 +1,6 @@
 /**
  * Document Model Validation Constants - FIXED VERSION
  * @module constants/models/document/validation
- * @description EXACT FIXES for validation errors
  */
 
 // ==========================================
@@ -33,15 +32,15 @@ export const DOCUMENT_VALIDATION_RULES = Object.freeze({
   },
 
   EXTRACTED_TEXT: {
-    MIN_LENGTH: 0,        // ✅ CHANGED FROM 10 TO 0 - Allow empty during processing
+    MIN_LENGTH: 0,
     MAX_LENGTH: 2000000,  // 2MB text limit
     ERROR_MESSAGE: 'Extracted text cannot exceed 2MB'
   },
 
   SUMMARY: {
-    MIN_LENGTH: 0,        // ✅ CHANGED FROM 50 TO 0 - Allow empty during processing
+    MIN_LENGTH: 0,
     MAX_LENGTH: 10000,
-    ERROR_MESSAGE: 'Summary cannot exceed 10,000 characters'  // ✅ UPDATED MESSAGE
+    ERROR_MESSAGE: 'Summary cannot exceed 10,000 characters'
   },
 
   DESCRIPTION: {
@@ -67,19 +66,19 @@ export const DOCUMENT_VALIDATION_RULES = Object.freeze({
  * Supported file types and validation - FIXED
  */
 export const FILE_VALIDATION = Object.freeze({
-  ALLOWED_EXTENSIONS: ['.pdf', '.docx', '.txt'],  // ✅ ADDED DOCX AND TXT
+  ALLOWED_EXTENSIONS: ['.pdf', '.docx', '.txt'],
   ALLOWED_MIME_TYPES: [
     'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // ✅ ADDED DOCX
-    'text/plain'  // ✅ ADDED TXT
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain'
   ],
   
   // File validation patterns - UPDATED
-  EXTENSION_PATTERN: /\.(pdf|docx|txt)$/i,  // ✅ UPDATED PATTERN
+  EXTENSION_PATTERN: /\.(pdf|docx|txt)$/i,
   
   // Error messages - UPDATED
-  INVALID_EXTENSION_ERROR: 'Only PDF, DOCX, and TXT files are supported',  // ✅ UPDATED
-  INVALID_MIME_TYPE_ERROR: 'Invalid file type. Only PDF, DOCX, and TXT files are allowed',  // ✅ UPDATED
+  INVALID_EXTENSION_ERROR: 'Only PDF, DOCX, and TXT files are supported',
+  INVALID_MIME_TYPE_ERROR: 'Invalid file type. Only PDF, DOCX, and TXT files are allowed',
   FILE_CORRUPTED_ERROR: 'File appears to be corrupted or invalid'
 });
 
@@ -87,16 +86,16 @@ export const FILE_VALIDATION = Object.freeze({
  * Processing-related validation rules - RELAXED FOR AI PROCESSING
  */
 export const PROCESSING_VALIDATION = Object.freeze({
-  PROCESSING_TIMEOUT: 10 * 60 * 1000, // ✅ INCREASED TO 10 minutes (AI takes time)
+  PROCESSING_TIMEOUT: 10 * 60 * 1000,
   RETRY_ATTEMPTS: 3,
   MIN_PROCESSING_TIME: 1000, // 1 second minimum
   
   // Text extraction limits - RELAXED
-  MIN_EXTRACTABLE_CHARS: 0,     // ✅ CHANGED FROM 10 TO 0 - Allow empty during processing
+  MIN_EXTRACTABLE_CHARS: 0,
   MAX_EXTRACTABLE_CHARS: 1000000, // 1MB text
   
   // Summary generation limits - RELAXED
-  MIN_TEXT_FOR_SUMMARY: 0,      // ✅ CHANGED FROM 100 TO 0 - Allow empty
+  MIN_TEXT_FOR_SUMMARY: 0,
   SUMMARY_RATIO: 0.2, // Summary should be ~20% of original
   
   // Error messages
@@ -114,7 +113,7 @@ export const PROCESSING_VALIDATION = Object.freeze({
  */
 export const METADATA_VALIDATION = Object.freeze({
   PAGE_COUNT: {
-    MIN: 0,    // ✅ CHANGED FROM 1 TO 0 - Allow unknown during processing
+    MIN: 0,
     MAX: 1000,
     ERROR_MESSAGE: 'Document must have between 1 and 1,000 pages'
   },
@@ -126,7 +125,7 @@ export const METADATA_VALIDATION = Object.freeze({
   },
 
   WORD_COUNT: {
-    MIN: 0,       // ✅ CHANGED FROM 10 TO 0 - Allow unknown during processing
+    MIN: 0,
     MAX: 1000000,
     ERROR_MESSAGE: 'Document can contain up to 1,000,000 words'
   },

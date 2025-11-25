@@ -1,5 +1,5 @@
 /**
- * Updated Course Routes - WITH VALIDATION AND COMPLETE FUNCTIONALITY
+ * Updated Course Routes
  * @module routes/course
  * @description Course listing, recommendation, and purchasing with validation
  */

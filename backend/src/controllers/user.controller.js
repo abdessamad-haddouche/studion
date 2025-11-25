@@ -150,9 +150,6 @@ export const getUserPointsHistory = async (req, res, next) => {
     const userId = req.user.userId;
     const { page = 1, limit = 20, type } = req.query;
     
-    // TODO: Implement when Transaction service is created
-    // For now, return placeholder response
-    
     res.status(HTTP_STATUS_CODES.OK).json({
       success: true,
       message: 'Points history retrieved successfully',

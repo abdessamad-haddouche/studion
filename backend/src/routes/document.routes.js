@@ -1,5 +1,5 @@
 /**
- * Document Routes - UPDATED with AI Integration
+ * Document Routes
  * @module routes/document
  * @description Document management routes with AI processing capabilities
  */

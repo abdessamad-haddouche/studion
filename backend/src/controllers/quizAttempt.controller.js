@@ -1,5 +1,5 @@
 /**
- * Quiz Attempt Controller - PROPERLY USING SERVICE LAYER
+ * Quiz Attempt Controller
  * @module controllers/quizAttempt
  * @description Handles quiz attempt operations - start, submit answers, complete attempts
  */
@@ -25,7 +25,6 @@ export const startQuizAttempt = async (req, res, next) => {
       deviceType: detectDeviceType(req.get('User-Agent'))
     };
 
-    // 🎯 CALL SERVICE LAYER
     const result = await quizAttemptService.startQuizAttempt(quizId, userId, sessionInfo);
 
     if (result.isExisting) {
@@ -65,7 +64,6 @@ export const submitQuizAnswer = async (req, res, next) => {
       throw HttpError.badRequest('Question ID and answer are required');
     }
 
-    // 🎯 CALL SERVICE LAYER
     const result = await quizAttemptService.submitQuizAnswer(attemptId, userId, {
       questionId,
       answer,
@@ -94,7 +92,6 @@ export const completeQuizAttempt = async (req, res, next) => {
     const { id: quizId, attemptId } = req.params;
     const userId = req.user.userId;
 
-    // 🎯 CALL SERVICE LAYER WITH METADATA
     const result = await quizAttemptService.completeQuizAttempt(attemptId, userId, {
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
@@ -123,7 +120,6 @@ export const getQuizAttemptResults = async (req, res, next) => {
     const { id: quizId, attemptId } = req.params;
     const userId = req.user.userId;
 
-    // 🎯 CALL SERVICE LAYER
     const result = await quizAttemptService.getQuizAttemptResults(attemptId, userId);
 
     res.status(200).json(result);

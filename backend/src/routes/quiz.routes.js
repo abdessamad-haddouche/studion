@@ -1,5 +1,5 @@
 /**
- * Quiz Routes - ENHANCED WITH BULK QUIZ COLLECTION
+ * Quiz Routes
  * @module routes/quiz
  * @description Quiz generation, attempt, and results management with bulk quiz support
  */

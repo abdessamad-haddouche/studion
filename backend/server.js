@@ -1,7 +1,7 @@
 /**
  * Studion Server
  * @module server
- * @description Clean, modular server entry point
+ * @description Server entry point
  */
 
 import 'dotenv/config';
@@ -15,7 +15,7 @@ import {
     setupServerManagement
 } from '#lib/server/index.js';
 
-import app from '#app'; // Import your Express app directly
+import app from '#app';
 
 // ==========================================
 // STARTUP SEQUENCE

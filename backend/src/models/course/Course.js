@@ -99,7 +99,6 @@ const instructorSchema = new mongoose.Schema({
     }
   },
   
-  // For internal courses: reference to BaseUser
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'BaseUser',

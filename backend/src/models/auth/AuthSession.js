@@ -1,7 +1,6 @@
 /**
- * AuthSession Model - FIXED VERSION
+ * AuthSession Model
  * @module models/AuthSession
- * @description Professional authentication session management for JWT tokens - MVP focused
  */
 
 import mongoose from 'mongoose';

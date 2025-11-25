@@ -1,5 +1,5 @@
 /**
- * Quiz Attempt Service - COMPLETE IMPLEMENTATION
+ * Quiz Attempt Service
  * @module services/quizAttempt
  * @description Business logic for quiz attempts, answers, and scoring
  */
@@ -156,7 +156,6 @@ export const submitQuizAnswer = async (attemptId, userId, answerData) => {
       throw HttpError.notFound('Question not found');
     }
 
-    // 🎯 CRITICAL: Submit the answer using MODEL METHOD
     await attempt.submitAnswer(parseInt(questionId), answer, question.correctAnswer, parseInt(timeSpent));
 
     console.log(`✅ Answer submitted for question ${questionId} - Answers count: ${attempt.answers.length}`);
@@ -202,10 +201,8 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
       throw HttpError.notFound('Active quiz attempt not found');
     }
 
-    // 🎯 CRITICAL: Complete the attempt using MODEL METHOD
     await attempt.complete();
 
-    // 🆕 ADD PERFORMANCE ANALYSIS RIGHT AFTER COMPLETION
     const quiz = await Quiz.findById(attempt.quizId);
     if (quiz && quiz.questions && quiz.questions.length > 0) {
       console.log(`📊 Running performance analysis for ${quiz.questions.length} questions...`);
@@ -257,7 +254,6 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
     // Get detailed results
     const results = attempt.getResults();
 
-    // 🎯 AWARD POINTS AUTOMATICALLY
     let pointsEarned = 0;
     let pointsTransaction = null;
     
@@ -272,7 +268,7 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
         timeSpent: attempt.timeSpent || 0,
         metadata: {
           attemptId: attempt._id,
-          source: 'web', // 🔧 FIXED: Use 'web' instead of 'quiz_completion'
+          source: 'web',
           originalSource: 'quiz_completion',
           ...metadata
         }
@@ -286,7 +282,6 @@ export const completeQuizAttempt = async (attemptId, userId, metadata = {}) => {
       // Don't fail the quiz completion if points fail
     }
 
-    // 🎯 UPDATE USER PROGRESS
     try {
       console.log(`📊 Updating user progress...`);
       

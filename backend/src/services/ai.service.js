@@ -1,7 +1,7 @@
 /**
- * AI Service - Complete Enhanced Version
+ * AI Service
  * @module services/ai
- * @description AI service with comprehensive quiz generation capabilities and token management
+ * @description AI service with quiz generation capabilities and token management
  */
 
 import fs from 'fs';
@@ -26,7 +26,6 @@ const DEEPSEEK_CONFIG = {
   timeout: 300000 // 5 minutes timeout for big requests
 };
 
-// 🔥 TOKEN MANAGEMENT FUNCTIONS
 /**
  * Estimate token count (rough approximation: 1 token ≈ 4 characters)
  */
@@ -46,7 +45,7 @@ const chunkTextForAI = (text, maxTokens = 80000) => {
   
   console.log(`⚠️ Text too long (${text.length} chars, ~${estimateTokenCount(text)} tokens). Chunking to ${maxTokens} tokens...`);
   
-  // Try to find a good breaking point (end of paragraph or sentence)
+  // Try to find a breaking point (end of paragraph or sentence)
   let breakPoint = maxChars;
   
   // Look for paragraph break first (double newline)
@@ -67,7 +66,6 @@ const chunkTextForAI = (text, maxTokens = 80000) => {
   return chunkedText;
 };
 
-// 🔥 COMPREHENSIVE QUIZ GENERATION CONFIGURATION
 const QUIZ_GENERATION_CONFIG = {
   difficultiesCount: {
     easy: 1,    
@@ -170,7 +168,6 @@ const callDeepSeekAPI = async (messages, options = {}) => {
       stream: false
     };
 
-    // 🔥 ADD SHORTER TIMEOUT AND BETTER ERROR HANDLING
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
 
@@ -209,9 +206,7 @@ const callDeepSeekAPI = async (messages, options = {}) => {
   }
 };
 
-/**
- * 🔥 UPDATED FUNCTION: Process document with AI with token management
- */
+
 export const processDocumentWithAI = async (filePath, options = {}) => {
   try {
     console.log(`🤖 Processing document with AI: ${filePath}`);
@@ -234,7 +229,6 @@ export const processDocumentWithAI = async (filePath, options = {}) => {
     const detectedLanguage = detectLanguage(extractionResult.text);
     console.log(`🌍 Detected language: ${detectedLanguage}`);
 
-    // 🔥 CHUNK TEXT TO STAY WITHIN TOKEN LIMITS
     const chunkedText = chunkTextForAI(extractionResult.text, 100000); // Leave room for prompt + response
 
     const prompt = `
@@ -260,7 +254,6 @@ Please respond in JSON format:
       content: prompt
     }];
 
-    // 🔥 RESTORE ORIGINAL MAX_TOKENS
     const response = await callDeepSeekAPI(messages, {
       maxTokens: 8192,
       temperature: 0.7
@@ -315,8 +308,8 @@ Please respond in JSON format:
       summary: parsedResult.summary,
       keyPoints: parsedResult.keyPoints || [],
       topics: parsedResult.topics || [],
-      extractedText: extractionResult.text, // Return full text
-      detectedLanguage: detectedLanguage, // 🆕 ADD LANGUAGE INFO
+      extractedText: extractionResult.text,
+      detectedLanguage: detectedLanguage,
       metadata: {
         model: DEEPSEEK_CONFIG.model,
         tokensUsed: response.usage?.total_tokens || 0,
@@ -325,7 +318,7 @@ Please respond in JSON format:
         originalTextLength: extractionResult.text.length,
         processedTextLength: chunkedText.length,
         wasChunked: chunkedText.length < extractionResult.text.length,
-        detectedLanguage: detectedLanguage, // 🆕 ADD TO METADATA
+        detectedLanguage: detectedLanguage,
         processingTime: Date.now()
       }
     };
@@ -342,9 +335,7 @@ Please respond in JSON format:
   }
 };
 
-/**
- * 🔥 ORIGINAL FUNCTION: Generate quiz from document (with token management)
- */
+
 export const generateQuizFromDocument = async (filePath, options = {}) => {
   try {
     const {
@@ -369,7 +360,6 @@ export const generateQuizFromDocument = async (filePath, options = {}) => {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
     }
 
-    // 🔥 CHUNK TEXT FOR QUIZ GENERATION
     const chunkedText = chunkTextForAI(extractionResult.text, 70000);
 
     const prompt = `Create a ${difficulty} difficulty quiz with ${questionCount} ${questionType.replace('_', ' ')} questions based on this document.
@@ -445,9 +435,7 @@ Respond ONLY with this JSON format:
   }
 };
 
-/**
- * 🔥 NEW FUNCTION: Generate comprehensive quiz collection with token management
- */
+
 export const generateComprehensiveQuizCollection = async (filePath, options = {}) => {
   const startTime = Date.now();
   
@@ -480,7 +468,6 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
     
     console.log(`✅ Text extracted successfully (${extractionResult.text.length} characters)`);
 
-    // 🆕 DETECT LANGUAGE
     const detectedLanguage = detectLanguage(extractionResult.text);
     console.log(`🌍 Detected language for quizzes: ${detectedLanguage}`);
 
@@ -513,7 +500,6 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
       throw HttpError.internalServerError('DeepSeek returned empty quiz response');
     }
 
-    // 🆕 IMPROVED JSON PARSING WITH RECOVERY
     const quizCollection = parseComprehensiveQuizCollection(rawResponse, detectedLanguage);
 
     if (!quizCollection.quizzes || quizCollection.quizzes.length === 0) {
@@ -548,7 +534,7 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
         documentStats: fileStats,
         expectedQuizzes: QUIZ_GENERATION_CONFIG.totalQuizzes,
         actualQuizzes: quizCollection.quizzes.length,
-        detectedLanguage: detectedLanguage, // 🆕 ADD LANGUAGE INFO
+        detectedLanguage: detectedLanguage,
         timingBreakdown: {
           totalTime: totalDuration,
           fileResolutionTime: fileResolutionTime,
@@ -575,14 +561,10 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
   }
 };
 
-/**
- * 🆕 Build OPTIMIZED quiz prompt with language support
- */
+
 const buildComprehensiveQuizPrompt = (documentText, language = 'en') => {
-  // 🔥 CHUNK TEXT FOR QUIZ GENERATION
-  const chunkedText = chunkTextForAI(documentText, 60000); // Smaller chunk for quiz generation
+  const chunkedText = chunkTextForAI(documentText, 60000);
   
-  // 🆕 LANGUAGE-SPECIFIC SETTINGS
   const languageSettings = {
     en: {
       instruction: 'Please respond in English.',
@@ -685,24 +667,19 @@ ${chunkedText}
 CRITICAL: Generate EXACTLY 10 questions for each quiz. The first quiz should be multiple_choice with 4 options each. The second quiz should be true_false with ["${settings.trueOption}", "${settings.falseOption}"] options.`;
 };
 
-/**
- * 🆕 IMPROVED: Parse comprehensive quiz collection with better error handling
- */
+
 const parseComprehensiveQuizCollection = (rawResponse, language = 'en') => {
   try {
     console.log(`🔍 Parsing comprehensive quiz collection...`);
     
     let cleanedResponse = rawResponse.trim();
     
-    // Remove potential markdown formatting
     cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     
-    // Find JSON boundaries more robustly
     let jsonStart = cleanedResponse.indexOf('{');
     let jsonEnd = -1;
     
     if (jsonStart !== -1) {
-      // Find the matching closing brace
       let braceCount = 0;
       for (let i = jsonStart; i < cleanedResponse.length; i++) {
         if (cleanedResponse[i] === '{') {
@@ -746,7 +723,6 @@ const parseComprehensiveQuizCollection = (rawResponse, language = 'en') => {
       const quiz = quizData.quizzes[i];
       console.log(`🔍 Processing quiz ${i + 1}: ${quiz.title} (${quiz.type})`);
       
-      // Check if quiz has questions with correct answers
       if (quiz.questions && quiz.questions.length > 0) {
         const questionsWithCorrectAnswers = quiz.questions.filter(q => q.correctAnswer);
         console.log(`📊 Quiz ${i + 1}: ${questionsWithCorrectAnswers.length}/${quiz.questions.length} questions have correctAnswer fields`);
@@ -799,7 +775,6 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType, language = 'en') =
       throw new Error('No valid questions found in quiz');
     }
     
-    // ✅ CLEAN THE TITLE - REMOVE SPECIAL CHARACTERS
     const cleanTitle = (quiz.title || `${expectedDifficulty} ${expectedType} Quiz`)
       .replace(/[^a-zA-Z0-9\s\-_.,()[\]À-ÿ]/g, '') // Allow accented characters
       .trim();
@@ -811,7 +786,6 @@ const validateQuiz = (quiz, expectedDifficulty, expectedType, language = 'en') =
       type: quiz.type || expectedType,
       estimatedTime: quiz.estimatedTime || Math.ceil(validatedQuestions.length * 1.5),
       questions: validatedQuestions,
-      // ✅ ENSURE AI METADATA IS PROPERLY SET
       aiMetadata: {
         questionType: expectedType, 
         type: expectedType, 
@@ -838,13 +812,11 @@ const validateQuestion = (question, questionId, questionType, language = 'en') =
       throw new Error(`Question ${questionId}: missing question text`);
     }
     
-    // 🔧 CRITICAL FIX: Ensure correctAnswer exists and is valid
     if (!question.correctAnswer) {
       console.error(`❌ Question ${questionId}: missing correctAnswer field`);
       throw new Error(`Question ${questionId}: missing correct answer`);
     }
 
-    // 🆕 VALIDATE SKILL CATEGORY AND TOPIC AREA
     if (!question.skillCategory) {
       console.warn(`⚠️ Question ${questionId}: missing skillCategory, using default`);
       question.skillCategory = 'factual_recall';
@@ -855,7 +827,6 @@ const validateQuestion = (question, questionId, questionType, language = 'en') =
       question.topicArea = 'general_knowledge';
     }
 
-    // 🆕 VALIDATE PERSONALIZED STRENGTH/WEAKNESS
     if (!question.strength || question.strength.length < 10) {
       console.warn(`⚠️ Question ${questionId}: missing or too short strength description`);
       question.strength = `Good understanding of ${question.topicArea || 'the concept being tested'}`;
@@ -880,7 +851,6 @@ const validateQuestion = (question, questionId, questionType, language = 'en') =
       weakness: question.weakness.trim()
     };
     
-    // 🆕 LANGUAGE-SPECIFIC VALIDATION
     const languageSettings = {
       en: { trueOption: 'True', falseOption: 'False' },
       fr: { trueOption: 'Vrai', falseOption: 'Faux' },
@@ -934,9 +904,7 @@ const validateQuestion = (question, questionId, questionType, language = 'en') =
   }
 };
 
-/**
- * 🔥 ORIGINAL FUNCTION: Generate custom text
- */
+
 export const generateCustomText = async (filePath, prompt, options = {}) => {
   try {
     console.log(`🎯 Generating custom text for document: ${filePath}`);
@@ -948,7 +916,6 @@ export const generateCustomText = async (filePath, prompt, options = {}) => {
       throw HttpError.internalServerError(`Text extraction failed: ${extractionResult.error}`);
     }
 
-    // 🔥 CHUNK TEXT FOR CUSTOM GENERATION
     const chunkedText = chunkTextForAI(extractionResult.text, 70000);
 
     const fullPrompt = `${prompt}
@@ -989,9 +956,7 @@ ${chunkedText}`;
   }
 };
 
-/**
- * 🔥 ORIGINAL FUNCTION: Check AI service status
- */
+
 export const checkAIServiceStatus = async () => {
   try {
     console.log('🔍 Checking AI service status...');

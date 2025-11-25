@@ -346,7 +346,7 @@ baseUserSchema.pre('save', async function(next) {
     // Hash password if modified
     if (this.isModified('password')) {
       this.password = await bcrypt.hash(this.password, USER_CONFIG.BCRYPT_ROUNDS);
-      this.passwordChangedAt = new Date(); // ✅ Fixed - removed security.
+      this.passwordChangedAt = new Date();
     }
 
     // Update lastActiveAt on login

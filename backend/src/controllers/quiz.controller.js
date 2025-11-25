@@ -523,13 +523,11 @@ export const submitQuizAnswer = async (req, res, next) => {
       questionType: quiz.aiMetadata?.questionType
     });
     
-    // 4. ✅ FIXED ANSWER VALIDATION (handles both formats)
     const isCorrect = validateAnswerCorrectly(question, answer, quiz.aiMetadata?.questionType);
     const pointsEarned = isCorrect ? (question.points || 1) : 0;
     
     console.log(`✅ Answer validation result: isCorrect=${isCorrect}, pointsEarned=${pointsEarned}`);
     
-    // 5. Create answer data
     const answerData = {
       questionId: questionId,
       userAnswer: answer,
@@ -539,7 +537,6 @@ export const submitQuizAnswer = async (req, res, next) => {
       submittedAt: new Date()
     };
     
-    // 6. Update or add answer
     const existingAnswerIndex = attempt.answers.findIndex(
       existingAnswer => existingAnswer.questionId.toString() === questionId.toString()
     );
@@ -552,7 +549,6 @@ export const submitQuizAnswer = async (req, res, next) => {
       console.log(`➕ Added new answer for question ${questionId}`);
     }
     
-    // 7. 🔧 FIX: Properly calculate and save points
     const totalQuestions = quiz.questions.length;
     const answeredQuestions = attempt.answers.length;
     const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
@@ -572,14 +568,11 @@ export const submitQuizAnswer = async (req, res, next) => {
       totalPointsEarned
     });
     
-    // 8. 🚫 REMOVED AUTO-COMPLETION - Just check if ready
     const isComplete = answeredQuestions >= totalQuestions;
     
     if (isComplete) {
       console.log(`🎯 Quiz ready for completion! All ${totalQuestions} questions answered.`);
       console.log(`📊 Final stats: ${correctAnswers}/${totalQuestions} correct (${currentPercentage}%)`);
-      // DON'T change status or call completion service here
-      // Let the client call the completion endpoint explicitly
     }
     
     // 9. Save the updated attempt (keep status as 'in_progress')
@@ -587,14 +580,12 @@ export const submitQuizAnswer = async (req, res, next) => {
     
     console.log(`💾 Attempt saved with pointsEarned: ${attempt.pointsEarned}`);
     
-    // 🆕 GET PERSONALIZED FEEDBACK
     const feedback = {
       questionId,
       isCorrect,
       pointsEarned,
       correctAnswer: question.correctAnswer,
       explanation: question.explanation,
-      // 🆕 PERSONALIZED STRENGTH/WEAKNESS
       personalizedFeedback: isCorrect ? {
         type: 'strength',
         message: question.strength,
@@ -614,7 +605,6 @@ export const submitQuizAnswer = async (req, res, next) => {
       percentage: attempt.percentage
     };
     
-    // 10. Send enhanced response with personalized feedback
     res.status(200).json({
       success: true,
       message: 'Answer submitted successfully',
@@ -627,10 +617,6 @@ export const submitQuizAnswer = async (req, res, next) => {
   }
 };
 
-/**
- * 🔧 ADD THIS NEW HELPER FUNCTION TO YOUR CONTROLLER:
- * Properly validate if the user's answer is correct
- */
 const validateAnswerCorrectly = (question, userAnswer, questionType = 'multiple_choice') => {
   try {
     console.log(`\n🔍 ===== VALIDATION DEBUG START =====`);
@@ -638,7 +624,6 @@ const validateAnswerCorrectly = (question, userAnswer, questionType = 'multiple_
     console.log(`🔍 Question Type: ${questionType}`);
     console.log(`🔍 User Answer: "${userAnswer}" (type: ${typeof userAnswer})`);
     
-    // 🔍 DEBUG: Check what correctAnswerIndex actually contains
     console.log(`🔍 question.correctAnswerIndex: ${question.correctAnswerIndex}`);
     console.log(`🔍 typeof question.correctAnswerIndex: ${typeof question.correctAnswerIndex}`);
     console.log(`🔍 question.correctAnswerIndex === undefined: ${question.correctAnswerIndex === undefined}`);
@@ -656,7 +641,6 @@ const validateAnswerCorrectly = (question, userAnswer, questionType = 'multiple_
       return false;
     }
     
-    // Convert user answer to integer
     let userIndex;
     
     if (questionType === 'true_false') {
@@ -701,14 +685,12 @@ const validateAnswerCorrectly = (question, userAnswer, questionType = 'multiple_
       }
     }
     
-    // 🔍 DEBUG: Show the comparison values
     console.log(`🔍 Final comparison:`);
     console.log(`🔍   userIndex: ${userIndex} (type: ${typeof userIndex})`);
     console.log(`🔍   correctIndex: ${correctIndex} (type: ${typeof correctIndex})`);
     console.log(`🔍   userIndex === correctIndex: ${userIndex === correctIndex}`);
     console.log(`🔍   userIndex == correctIndex: ${userIndex == correctIndex}`);
     
-    // THE ACTUAL COMPARISON
     const isCorrect = userIndex === correctIndex;
     
     console.log(`🎯 VALIDATION RESULT: ${isCorrect}`);
@@ -853,7 +835,6 @@ export const completeQuizAttempt = async (req, res, next) => {
       return next(HttpError.notFound('Quiz not found'));
     }
     
-    // 🎯 ADD THIS TRY/CATCH BLOCK:
     try {
       // Complete the attempt
       const result = await quizAttemptService.completeQuizAttempt(attemptId, userId, {
@@ -861,10 +842,10 @@ export const completeQuizAttempt = async (req, res, next) => {
         ip: req.ip
       });
       
-      console.log(`🎯 DEBUG: SERVICE RESULT:`, result); // ADD THIS
+      console.log(`🎯 DEBUG: SERVICE RESULT:`, result);
       
     } catch (serviceError) {
-      console.error(`🚨 DEBUG: SERVICE ERROR:`, serviceError); // ADD THIS
+      console.error(`🚨 DEBUG: SERVICE ERROR:`, serviceError);
       throw serviceError;
     }
     
@@ -933,7 +914,6 @@ export const getQuizAttemptResults = async (req, res, next) => {
         pointsEarned: answer.pointsEarned,
         explanation: question?.explanation || 'No explanation available',
         timeSpent: answer.timeSpent,
-        // 🆕 PERSONALIZED FEEDBACK
         personalizedFeedback: {
           type: answer.isCorrect ? 'strength' : 'weakness',
           message: answer.isCorrect ? question?.strength : question?.weakness,
@@ -961,7 +941,7 @@ export const getQuizAttemptResults = async (req, res, next) => {
         feedback: attempt.feedback,
         strengths: attempt.strengths,
         weaknesses: attempt.weaknesses,
-        detailedResults, // Now includes personalized feedback
+        detailedResults,
         summary: {
           totalQuestions: quiz.questions.length,
           correctAnswers: attempt.score,

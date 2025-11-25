@@ -1,5 +1,5 @@
 /**
- * Updated Admin Routes - WITH COURSE MANAGEMENT
+ * Updated Admin Routes
  * @module routes/admin
  * @description Admin management and dashboard routes including course CRUD operations
  */
@@ -63,7 +63,7 @@ router.use(requireAdmin);
 router.get('/dashboard', getAdminDashboard);
 
 // ==========================================
-// COURSE MANAGEMENT ROUTES (NEW)
+// COURSE MANAGEMENT ROUTES
 // ==========================================
 
 /**

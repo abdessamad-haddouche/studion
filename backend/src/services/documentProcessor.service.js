@@ -47,9 +47,6 @@ const PROCESSING_CONFIG = {
   // Maximum file size for processing (50MB)
   maxFileSize: 50 * 1024 * 1024,
   
-  // 🔥 REDUCED Maximum text length to stay within AI API limits
-  // Roughly 80,000 tokens worth of text (1 token ≈ 4 characters)
-  // This leaves room for prompts and responses in AI calls
   maxTextLength: 320 * 1024, // 320KB instead of 1MB
   
   // Supported file types
@@ -113,7 +110,6 @@ const extractTextFromPDF = async (filePath, options = {}) => {
       throw new Error('No text content found in PDF');
     }
     
-    // 🔥 SMART TRUNCATION with better logging
     let extractedText = pdfData.text;
     let wasTruncated = false;
     
@@ -121,7 +117,7 @@ const extractTextFromPDF = async (filePath, options = {}) => {
       console.log(`⚠️ Text length (${extractedText.length} chars) exceeds limit (${PROCESSING_CONFIG.maxTextLength} chars)`);
       console.log(`⚠️ Estimated tokens: ${Math.ceil(extractedText.length / 4)} (DeepSeek limit: ~131,000 tokens)`);
       
-      // Try to find a good breaking point
+      // Try to find a breaking point
       let breakPoint = PROCESSING_CONFIG.maxTextLength;
       
       // Look for paragraph break first (double newline)
@@ -167,7 +163,7 @@ const extractTextFromPDF = async (filePath, options = {}) => {
         estimatedTokens: Math.ceil(extractedText.length / 4),
         extractionMethod: 'pdf-parse',
         processingTime: processingTime,
-        detectedLanguage: detectedLanguage // 🆕 NEW: Language detection
+        detectedLanguage: detectedLanguage
       },
       processingTime
     });
@@ -183,7 +179,7 @@ const extractTextFromPDF = async (filePath, options = {}) => {
       metadata: {
         extractionMethod: 'pdf-parse',
         processingTime: processingTime,
-        detectedLanguage: 'en' // 🆕 NEW: Default fallback
+        detectedLanguage: 'en'
       },
       processingTime,
       error: error.message
@@ -203,15 +199,13 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
   try {
     console.log(`📖 Processing DOCX: ${path.basename(filePath)}`);
     
-    // For MVP, we'll provide a placeholder
-    // In production, you might want to use mammoth.js or similar
     const fileStats = fs.statSync(filePath);
     const processingTime = Date.now() - startTime;
     
     console.log(`⚠️ DOCX processing not yet implemented - using placeholder`);
     
     const placeholderText = `[DOCX Document - ${path.basename(filePath)}]\n\nThis DOCX document processing is not yet implemented. Please convert to PDF or TXT format for full text extraction.`;
-    const detectedLanguage = detectLanguage(placeholderText); // 🆕 NEW: Detect language even for placeholder
+    const detectedLanguage = detectLanguage(placeholderText);
     
     return new DocumentExtractionResult({
       success: true,
@@ -222,10 +216,10 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
         characterCount: null,
         originalSize: fileStats.size,
         wasTruncated: false,
-        estimatedTokens: 50, // Placeholder tokens
+        estimatedTokens: 50,
         extractionMethod: 'placeholder',
         processingTime: processingTime,
-        detectedLanguage: detectedLanguage // 🆕 NEW: Language detection
+        detectedLanguage: detectedLanguage
       },
       processingTime
     });
@@ -241,7 +235,7 @@ const extractTextFromDOCX = async (filePath, options = {}) => {
       metadata: {
         extractionMethod: 'placeholder',
         processingTime: processingTime,
-        detectedLanguage: 'en' // 🆕 NEW: Default fallback
+        detectedLanguage: 'en'
       },
       processingTime,
       error: error.message
@@ -273,19 +267,15 @@ const extractTextFromTXT = async (filePath, options = {}) => {
     const originalLength = text.length;
     let wasTruncated = false;
     
-    // 🔥 SMART TRUNCATION for TXT files too
     if (text.length > PROCESSING_CONFIG.maxTextLength) {
       console.log(`⚠️ TXT text length (${text.length} chars) exceeds limit (${PROCESSING_CONFIG.maxTextLength} chars)`);
       
-      // Try to find a good breaking point
       let breakPoint = PROCESSING_CONFIG.maxTextLength;
       
-      // Look for paragraph break first (double newline)
       const paragraphBreak = text.lastIndexOf('\n\n', PROCESSING_CONFIG.maxTextLength);
       if (paragraphBreak > PROCESSING_CONFIG.maxTextLength * 0.7) {
         breakPoint = paragraphBreak;
       } else {
-        // Look for sentence break
         const sentenceBreak = text.lastIndexOf('.', PROCESSING_CONFIG.maxTextLength);
         if (sentenceBreak > PROCESSING_CONFIG.maxTextLength * 0.8) {
           breakPoint = sentenceBreak + 1;
@@ -298,7 +288,6 @@ const extractTextFromTXT = async (filePath, options = {}) => {
       console.log(`✂️ TXT text truncated: ${originalLength} → ${text.length} chars`);
     }
     
-    // 🆕 NEW: Detect language from extracted text
     const detectedLanguage = detectLanguage(text);
     console.log(`🌍 Detected language: ${detectedLanguage}`);
     
@@ -310,7 +299,7 @@ const extractTextFromTXT = async (filePath, options = {}) => {
       success: true,
       text: text,
       metadata: {
-        pageCount: null, // TXT files don't have pages
+        pageCount: null,
         wordCount: text.split(/\s+/).length,
         characterCount: text.length,
         originalSize: fileStats.size,
@@ -320,7 +309,7 @@ const extractTextFromTXT = async (filePath, options = {}) => {
         estimatedTokens: Math.ceil(text.length / 4),
         extractionMethod: 'utf8-read',
         processingTime: processingTime,
-        detectedLanguage: detectedLanguage // 🆕 NEW: Language detection
+        detectedLanguage: detectedLanguage
       },
       processingTime
     });
@@ -336,7 +325,7 @@ const extractTextFromTXT = async (filePath, options = {}) => {
       metadata: {
         extractionMethod: 'utf8-read',
         processingTime: processingTime,
-        detectedLanguage: 'en' // 🆕 NEW: Default fallback
+        detectedLanguage: 'en'
       },
       processingTime,
       error: error.message
@@ -405,7 +394,6 @@ export const extractDocumentText = async (filePath, options = {}) => {
       });
     }
     
-    // 🔥 LOG TOKEN ESTIMATION
     const estimatedTokens = result.metadata.estimatedTokens || Math.ceil(result.text.length / 4);
     console.log(`🧮 Token estimation: ~${estimatedTokens} tokens (DeepSeek limit: 131,072 tokens)`);
     
@@ -452,7 +440,6 @@ export const getDocumentStats = async (filePath) => {
       isSupported: PROCESSING_CONFIG.supportedTypes.includes(fileExtension),
       createdAt: fileStats.birthtime,
       modifiedAt: fileStats.mtime,
-      // 🔥 ADD TOKEN ESTIMATION
       estimatedMaxTokens: Math.ceil((PROCESSING_CONFIG.maxTextLength / 4)), // Rough estimation
       tokenLimit: 131072 // DeepSeek limit
     };

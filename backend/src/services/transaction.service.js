@@ -50,7 +50,6 @@ export const createPointsEarningTransaction = async (transactionData) => {
       });
     }
 
-    // 🔧 FIX: Try to find user in BaseUser collection first, then Student
     console.log(`🔍 DEBUG: Looking for user with ID: ${userId}`);
     
     let user = await Student.findById(userId);
@@ -63,7 +62,6 @@ export const createPointsEarningTransaction = async (transactionData) => {
     
     if (!user) {
       console.error(`❌ DEBUG: User not found in any collection. UserID: ${userId}`);
-      // Let's check what's actually in the database
       console.log(`🔍 DEBUG: Checking database for user existence...`);
       const allUsers = await Student.find({}).limit(5);
       console.log(`🔍 DEBUG: Sample users in database:`, allUsers.map(u => ({ id: u._id, email: u.email, userType: u.userType })));
@@ -105,7 +103,6 @@ export const createPointsEarningTransaction = async (transactionData) => {
     await transaction.save();
     console.log(`✅ DEBUG: Transaction saved: ${transaction._id}`);
 
-    // 4. Update user points - Try both Student and BaseUser update methods
     try {
       const pointsUpdate = {
         $inc: {

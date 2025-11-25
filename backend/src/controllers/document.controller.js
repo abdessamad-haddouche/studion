@@ -1,7 +1,7 @@
 /**
- * Enhanced Document Controller - With Comprehensive Quiz Generation and Language Support
+ * Document Controller - With Comprehensive Quiz Generation and Language Support
  * @module controllers/document-enhanced
- * @description Enhanced document controller with bulk quiz generation after processing and language detection
+ * @description Document controller with bulk quiz generation after processing and language detection
  */
 
 import '#docs/swagger/document-routes-docs.js';
@@ -411,7 +411,7 @@ export const getAllDocuments = async (req, res, next) => {
         return {
           ...docData,
           quizInfo,
-          language: doc.file?.metadata?.language || 'en' // 🆕 NEW: Include detected language in response
+          language: doc.file?.metadata?.language || 'en'
         };
       })
     );
@@ -462,7 +462,7 @@ export const getDocumentById = async (req, res, next) => {
       document: {
         ...docData,
         quizInfo,
-        language: document.file?.metadata?.language || 'en' // 🆕 NEW: Include detected language
+        language: document.file?.metadata?.language || 'en'
       }
     });
     
@@ -545,7 +545,7 @@ export const getDocumentSummary = async (req, res, next) => {
         text: document.content.summary,
         keyPoints: document.content.keyPoints,
         topics: document.content.topics,
-        language: document.file?.metadata?.language || 'en', // 🆕 NEW: Include language info
+        language: document.file?.metadata?.language || 'en',
         metadata: document.processing.aiMetadata
       }
     });
@@ -585,7 +585,7 @@ export const generateCustomAnalysis = async (req, res, next) => {
       analysis: {
         prompt: prompt,
         generatedText: analysisResult.generatedText,
-        language: analysisResult.metadata.detectedLanguage || document.file?.metadata?.language || 'en', // 🆕 NEW: Include language
+        language: analysisResult.metadata.detectedLanguage || document.file?.metadata?.language || 'en',
         metadata: analysisResult.metadata
       }
     });
@@ -615,7 +615,7 @@ export const getDocumentAnalytics = async (req, res, next) => {
         views: document.analytics.viewCount,
         downloads: document.analytics.downloadCount,
         quizzesGenerated: document.analytics.quizGeneratedCount,
-        language: document.file?.metadata?.language || 'en', // 🆕 NEW: Include language in analytics
+        language: document.file?.metadata?.language || 'en',
         lastViewed: document.analytics.lastViewedAt,
         lastDownloaded: document.analytics.lastDownloadedAt
       }
@@ -643,7 +643,7 @@ export const getAIServiceStatus = async (req, res, next) => {
         status: statusResult.success ? 'operational' : 'error',
         model: 'deepseek-chat',
         available: statusResult.success,
-        languageSupport: Object.keys(LANGUAGE_PROMPTS || {}), // 🆕 NEW: Show supported languages
+        languageSupport: Object.keys(LANGUAGE_PROMPTS || {}),
         lastChecked: new Date().toISOString(),
         details: statusResult
       }
@@ -657,7 +657,7 @@ export const getAIServiceStatus = async (req, res, next) => {
         status: 'error',
         model: 'deepseek-chat',
         available: false,
-        languageSupport: [], // 🆕 NEW: Empty array on error
+        languageSupport: [],
         lastChecked: new Date().toISOString(),
         error: error.message
       }

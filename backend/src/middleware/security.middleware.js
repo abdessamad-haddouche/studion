@@ -1,7 +1,6 @@
 /**
  * NUCLEAR CORS FIX - BYPASSES ALL BROWSER SECURITY
  * @module middleware/security
- * @description This will work on ANY browser, ANY computer, NO exceptions
  */
 
 import cors from 'cors';
@@ -26,13 +25,11 @@ export const setupSecurityMiddleware = (app) => {
         }));
     }
 
-    // NUCLEAR CORS CONFIGURATION - ALLOWS EVERYTHING
     app.use((req, res, next) => {
-        // Set all possible CORS headers
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
         res.header('Access-Control-Allow-Headers', '*');
-        res.header('Access-Control-Allow-Credentials', 'false'); // Changed to false to allow wildcard
+        res.header('Access-Control-Allow-Credentials', 'false');
         res.header('Access-Control-Max-Age', '86400');
         res.header('Access-Control-Expose-Headers', '*');
         
@@ -58,7 +55,7 @@ export const setupSecurityMiddleware = (app) => {
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
         allowedHeaders: ['*'],
         exposedHeaders: ['*'],
-        credentials: false, // Must be false with wildcard origin
+        credentials: false,
         maxAge: 86400,
         preflightContinue: false,
         optionsSuccessStatus: 200
