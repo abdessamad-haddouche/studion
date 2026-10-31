@@ -169,7 +169,7 @@ const callDeepSeekAPI = async (messages, options = {}) => {
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), DEEPSEEK_CONFIG.timeout);
 
     const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
       method: 'POST',
@@ -563,7 +563,7 @@ export const generateComprehensiveQuizCollection = async (filePath, options = {}
 
 
 const buildComprehensiveQuizPrompt = (documentText, language = 'en') => {
-  const chunkedText = chunkTextForAI(documentText, 60000);
+  const chunkedText = chunkTextForAI(documentText, 40000);
   
   const languageSettings = {
     en: {

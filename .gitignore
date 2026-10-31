@@ -481,4 +481,7 @@ seeds/
 # Migration rollbacks
 rollback/
 
+# Ignore scripts folder
+scripts/
+
 # End of .gitignore
